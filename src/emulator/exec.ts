@@ -298,7 +298,7 @@ export function adSb_08(): void {
   else                        y = mr[dst] - src;
   if ((opcode[0] & 8) !== 0) mr[dst] = y & 0xFF;
   setFlagsB(y & 0xFF);
-  if (y > 0xFF) setFlag(flag | C_bit);
+  if ((y >>> 0) > 0xFF) setFlag(flag | C_bit);
   optionalJr(x);
   setCycles(cycles + 3);
 }
@@ -365,8 +365,11 @@ export function ppoPfl_14(): void {
   let y: number;
   if ((opcode[0] & 0x40) === 0) y = mr[regArg(x)];
   else y = fetchByte();
-  if ((x & 0x40) === 0) setLcdctrl(y);
-  else setFlag((flag & 0x0F) | (y & 0xF0));
+  if ((x & 0x40) === 0) {
+    setLcdctrl(y);
+  } else {
+    setFlag((flag & 0x0F) | (y & 0xF0));
+  }
   if ((opcode[0] & 0x40) === 0) optionalJr(x);
   setCycles(cycles + 3);
 }
@@ -580,7 +583,7 @@ export function adSb_38(): void {
   else                        y = srcVal - mr[regArg(x)];
   if ((opcode[0] & 4) !== 0) dstWrite(addr18(s, o), y & 0xFF);
   setFlagsB(y & 0xFF);
-  if (y > 0xFF) setFlag(flag | C_bit);
+  if ((y >>> 0) > 0xFF) setFlag(flag | C_bit);
   setCycles(cycles + 9);
 }
 
@@ -619,7 +622,7 @@ export function bupsBdns_58(): void {
     setIz((iz + step) & 0xFFFF);
   } while (true);
   setFlagsB(y & 0xFF);
-  if (y > 0xFF) setFlag(flag | C_bit);
+  if ((y >>> 0) > 0xFF) setFlag(flag | C_bit);
   setCycles(cycles + 3);
 }
 
@@ -636,7 +639,7 @@ export function supSdn_5C(): void {
     setIx((ix + step) & 0xFFFF);
   } while (true);
   setFlagsB(y & 0xFF);
-  if (y > 0xFF) setFlag(flag | C_bit);
+  if ((y >>> 0) > 0xFF) setFlag(flag | C_bit);
   setCycles(cycles + 3);
 }
 
@@ -672,7 +675,7 @@ export function adwSbw_88(): void {
   else                        y = getRegPair(dst) - getRegPair(src);
   if ((opcode[0] & 8) !== 0) putRegPair(dst, y);
   setFlagsW(y & 0xFFFF);
-  if (y > 0xFFFF) setFlag(flag | C_bit);
+  if ((y >>> 0) > 0xFFFF) setFlag(flag | C_bit);
   optionalJr(x);
   setCycles(cycles + 8);
 }

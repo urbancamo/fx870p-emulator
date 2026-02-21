@@ -90,6 +90,7 @@ onUnmounted(() => {
   width: 709px;
   height: 280px;
   flex-shrink: 0;
+  user-select: none;
 }
 
 .face-img {

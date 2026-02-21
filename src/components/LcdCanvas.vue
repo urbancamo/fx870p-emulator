@@ -66,7 +66,7 @@ function render(): void {
       for (let col = 0; col < cols; col++) {
         for (let hc = 0; hc < 2; hc++) {
           let nibble = lcdimage[index] ?? 0;
-          let py = y;
+          let py = y + hc * 8;
           for (let pixel = 0; pixel < 4; pixel++) {
             const color = (nibble & 0x8) !== 0 ? PIXEL_ON : PIXEL_OFF;
             setPixel2x2(pixels, x, py, color);

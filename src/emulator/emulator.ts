@@ -11,18 +11,19 @@
 import {
   OscFreq,
   CpuStop, CpuDelay, CpuSteps, BreakPoint,
+  CpuSleep, SW_bit,
   setCpuStop, setCpuDelay, setCpuSteps, setOscFreq, setOption2,
   setAcycles, acycles,
   memdef, RAM0_IDX,
   tm, setTm,
   ky, ie, ia,
-  setKy,
+  setFlag, setKy,
   VDD2_bit, CLK_bit,
   INT1_bit, INT2_bit, ONINT_bit, KEYPULSE_bit, MINTIMER_bit,
   delayed_ky, setDelayedKy,
   setIfl,
 } from './def.js';
-import { cpuReset, cpuRun } from './cpu.js';
+import { cpuReset, cpuRun, cpuWakeUp } from './cpu.js';
 import { ioInit } from './port.js';
 import { lcdInit, lcdRender, onrate, lcdctrl } from './lcd.js';
 import { SerialRate, onSerialTick } from './port.js';
@@ -46,6 +47,11 @@ export function setBreakCallback(fn: () => void): void { breakCallback = fn; }
 let running    = false;
 let lastTime   = 0;
 let rafHandle  = 0;
+
+// ─── auto-wake: simulate the ON key press once after first APO sleep ──────────
+// The ROM performs a cold-start APO sleep immediately. In the Delphi emulator
+// the user clicks the ON button; here we wake automatically after the first frame.
+let _autoWakeDone = false;
 
 function frame(now: number): void {
   rafHandle = requestAnimationFrame(frame);
@@ -151,6 +157,12 @@ function frame(now: number): void {
     }
   }
 
+  // Auto-wake: simulate pressing ON once after the ROM's initial APO sleep
+  if (!_autoWakeDone && CpuSleep) {
+    _autoWakeDone = true;
+    cpuWakeUp(false);
+  }
+
   // Render LCD once per frame
   lcdRender();
   renderCallback?.();
@@ -184,6 +196,9 @@ export function emulatorReset(): void {
   pulseCounter = 0;
   serialCounter = 0;
   secondCycles = 0;
+  _autoWakeDone = false;
+  // Delphi FormShow: flag := SW_bit — power switch on signal for the ROM
+  setFlag(SW_bit);
   setCpuStop(false);
 }
 

@@ -14,7 +14,9 @@ export const lcdchr   = new Uint8Array(256 * 16); // lcdchr[char * 16 + col]
 export let lcdctrl = 0; // LCD control port (written by exec PPO/PFL)
 export let onrate  = 8192;
 
-export function setLcdctrl(v: number) { lcdctrl = v & 0xFF; }
+export function setLcdctrl(v: number) {
+  lcdctrl = v & 0xFF;
+}
 
 // ─── internal state ───────────────────────────────────────────────────────────
 const lcdmem = new Uint8Array(2 * 768); // lcdmem[bank * 768 + index]
