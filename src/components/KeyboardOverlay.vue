@@ -10,6 +10,10 @@ import {
 } from '../emulator/keyboard.js';
 import { ia, setIfl } from '../emulator/def.js';
 import { KEYPULSE_bit } from '../emulator/def.js';
+import { cpuWakeUp } from '../emulator/cpu.js';
+
+// ON/BRK key code — matches Delphi case 67 which calls CpuWakeUp(False) on release
+const ON_KEY_CODE = 67;
 
 // face.png dimensions
 const FACE_W = 709;
@@ -83,6 +87,8 @@ function onMouseDown(e: MouseEvent): void {
 }
 
 function onMouseUp(): void {
+  // Delphi: case 67 → ReleaseKey1(-1,-1); CpuWakeUp(False)  (on mouse release)
+  if (keyCode1 === ON_KEY_CODE) cpuWakeUp(false);
   setKeyCode1(0);
 }
 
@@ -108,6 +114,8 @@ function onKeyDown(e: KeyboardEvent): void {
 }
 
 function onKeyUp(e: KeyboardEvent): void {
+  // Delphi: Escape → keycode 67 → CpuWakeUp(False) on key release
+  if (KEY_MAP[e.key] === ON_KEY_CODE) cpuWakeUp(false);
   if (KEY_MAP[e.key] !== undefined) setKeyCode2(0);
 }
 

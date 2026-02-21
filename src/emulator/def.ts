@@ -212,8 +212,9 @@ export function srcRead(address: number): number {
     if (address >= m.first && address < m.last) {
       if (!m.data) break;
       srcorg = m.memorg;
-      // memorg=1 means address×2 in file (16-bit word layout)
-      const byteIdx = (address - m.first) << m.memorg;
+      // byteIdx = (offset + (address - first)) << memorg
+      // offset accounts for where in the file this region's data begins
+      const byteIdx = (m.offset + (address - m.first)) << m.memorg;
       return m.data[byteIdx] ?? 0xFF;
     }
   }
@@ -247,7 +248,7 @@ export function dstWrite(address: number, value: number): void {
     const m = memdef[i]!;
     if (m.writable && address >= m.first && address < m.last) {
       if (!m.data) return;
-      const byteIdx = (address - m.first) << m.memorg;
+      const byteIdx = (m.offset + (address - m.first)) << m.memorg;
       m.data[byteIdx] = value;
       return;
     }
@@ -292,7 +293,7 @@ export function fetchOpcode(): number {
     for (let i = 0; i < MEMORIES; i++) {
       const m = memdef[i]!;
       if (m.memorg === 1 && m.data && a0 >= m.first && a0 < m.last) {
-        const base = (a0 - m.first) * 2;
+        const base = (m.offset + (a0 - m.first)) * 2;
         opcode[0] = m.data[base]     ?? 0xFF;
         opcode[1] = m.data[base + 1] ?? 0xFF;
         break;
@@ -301,7 +302,7 @@ export function fetchOpcode(): number {
     for (let i = 0; i < MEMORIES; i++) {
       const m = memdef[i]!;
       if (m.memorg === 1 && m.data && a1 >= m.first && a1 < m.last) {
-        const base = (a1 - m.first) * 2;
+        const base = (m.offset + (a1 - m.first)) * 2;
         opcode[2] = m.data[base]     ?? 0xFF;
         opcode[3] = m.data[base + 1] ?? 0xFF;
         break;
