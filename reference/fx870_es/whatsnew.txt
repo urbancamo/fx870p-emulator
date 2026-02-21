@@ -1,0 +1,66 @@
+version 15, 2025/08/03
+
+- added cassette tape support
+
+
+version 14, 2025/01/09
+
+- added floppy disk drive support
+
+
+version 13, 2024/09/26
+
+- fixed language version choice (wrong PD bit was assigned to the Option2 parameter)
+
+
+version 12, 2023/12/15
+
+- more accurate INT1
+- added multi-byte I/O access
+
+
+version 11, 2023/07/29
+
+- fixed implementation of the Gate Array register 011
+
+
+version 10, 2023/07/26
+
+- fixed language version choice (wrong PD bit was assigned to the Option2 parameter)
+- added printer support
+
+
+version 09 - 2023/06/25
+
+- the settings weren't read - corrected INI file name
+
+
+version 08 - 2023/06/17
+
+- fixed a bug where on the application termination, the new ram0.bin and register.bin files were saved to the folder specified by the communication utility, instead of the application folder
+
+
+version 07 - 2023/06/04
+
+- the communication utility can append an EOF character to the transmitted file
+
+
+version 06 - 2023/06/03
+
+- added communication utility
+
+
+version 05 - 2023/05/09
+
+- fixed BRK key
+
+
+version 04 - 2023/05/08
+
+- removed redundant code (RebuildWindowRgn)
+- corrected Pulse Interrupt rate
+
+
+version 03, 2023/05/03
+
+- first public release

@@ -1,0 +1,163 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+<title>FX-870P emulator</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="shortcut icon" href="https://pisi.com.pl/piotr433/favicon.ico">
+</head>
+<body>
+<table border="0" width="100%">
+<tbody><tr><td align="left"><a href="https://pisi.com.pl/piotr433/index.htm#fx870">Index</a></td>
+<td align="right"><a href="https://pisi.com.pl/piotr433/fx870_ep.htm">wersja polska</a><a href="https://pisi.com.pl/piotr433/fx870_ep.htm"><img src="FX-870P%20emulator_files/polska.png" align="middle" border="0" width="32" height="20" hspace="5" alt="wersja polska"></a></td>
+</tr></tbody></table>
+<hr>
+
+<h1>FX-870P emulator</h1>
+
+<p>The program emulates the HD61700 microprocessor and uses the ROM dump
+ from the original calculator, therefore it should function almost 
+exactly like the real one.<br>
+It works on PC-compatible machines with Microsoft Windows operating system.</p>
+
+<h2><a name="files">Files to download</a></h2>
+<h3>Program version 15, updated 2025/08/03</h3>
+<p><a href="https://pisi.com.pl/piotr433/fx870_es.zip"><img src="FX-870P%20emulator_files/file.png" align="middle" width="14" height="16" hspace="15" border="0" alt="download"></a><a href="https://pisi.com.pl/piotr433/fx870_es.zip">fx870_es.zip</a> - Delphi&nbsp;5 sources</p>
+<p><a href="https://pisi.com.pl/piotr433/fx870_em.zip"><img src="FX-870P%20emulator_files/file.png" align="middle" width="14" height="16" hspace="15" border="0" alt="download"></a><a href="https://pisi.com.pl/piotr433/fx870_em.zip">fx870_em.zip</a> - compiled executable<br>
+Usage: extract the files into an empty directory, then run the program <b>fx870.exe</b></p>
+<p><a href="https://pisi.com.pl/piotr433/fx870_fa.zip"><img src="FX-870P%20emulator_files/file.png" align="middle" width="14" height="16" hspace="15" border="0" alt="download"></a><a href="https://pisi.com.pl/piotr433/fx870_fa.zip">fx870_fa.zip</a> - alternative face image, contributed by Mahmoud Yassine<br>
+Usage: Replace the file face.bmp in the directory where the program was installed.</p>
+
+<h2><a name="scr">The screenshots</a></h2>
+<p><img src="FX-870P%20emulator_files/fx870_e1.png" width="709" height="280" alt="Screenshot of the FX-870P emulator"></p>
+<p><img src="FX-870P%20emulator_files/fx870_e2.png" width="633" height="437" alt="The debug window of the FX-870P emulator"></p>
+<p><img src="FX-870P%20emulator_files/fx870_e3.png" width="203" height="378" alt="The communication utility window of the FX-870P emulator"></p>
+
+<h2><a name="usage">Usage hints</a></h2>
+<ul>
+<li>Following files contain the memory images, and are loaded when the program is started:<pre>  rom0.bin     - processor's internal 6kB ROM
+  rom1.bin     - external 128kB ROM
+  charset.bin  - LCD controller's internal character ROM of size 1.5kB
+  ram0.bin     - 64kB RAM
+  register.bin - processor's internal register file
+</pre></li>
+<li>The updated files <code>ram0.bin</code> and <code>register.bin</code> are saved when the program is terminated.
+If they weren't found, they will be created.
+In such case the memory has to be initialised with the <b>ALL RESET</b> button.</li>
+<li>The emulator can be operated with the mouse or the keyboard.
+Special function keys:<pre>  Cursor keys: corresponding arrow keys
+  Page Up:     red S
+  Page Down:   CAPS
+  Esc:         BRK
+  Insert:      INS
+  Delete:      DEL
+  Backspace:   BS
+  Enter:       EXE
+  F3:          suspends the code execution and opens the debugger window
+  F4:          invokes the communication utility
+  F9:          Reset</pre></li>
+</ul>
+
+<h2><a name="peri">Peripheral devices</a></h2>
+<h3>Serial port</h3>
+<p>The communication utility invoked with the F4 key is equivalent to a 
+terminal program used with a real calculator. Button functions:</p>
+<dl>
+<dt>[Send]</dt><dd>selects the file to be sent to the calculator
+</dd><dt>[Receive]</dt><dd>selects the file to which the data received from the calculator is saved
+</dd><dt>[Stop]</dt><dd>closes the file</dd>
+</dl>
+<h3>Cassette tape recorder</h3>
+<p>Files are transferred in the same way as over the serial port, except that the data format specified in the <a href="https://pisi.com.pl/piotr433/tape.htm">mass storage and printer interface for the FX-700P calculator</a> project is used. It is supported by Marcus' von Cube <a href="https://www.mvcsys.de/doc/casioutil.html">Casio utilities</a> as <i>Piotr's</i> or <i>ASCII encoded raw data</i> format.</p><h3>Printer</h3>
+<p>The printed text is saved to the file selected with the [Receive] button of the communication utility.</p>
+<h3>Floppy disk drive</h3>
+<p>Emulated is the <a href="https://pisi.com.pl/piotr433/index.htm#md120">MD-120</a> device. Files are stored in the path specified in the <a href="#ini">INI file</a>.
+ Error messages may be inaccurate because Delphi's file management 
+routines do not provide a detailed cause of failure. The following disk 
+commands are excluded: DSKF, FORMAT, MODE 200, MODE 201.</p>
+
+<h2><a name="debug">Integrated debugger</a></h2>
+<h3>Disassembly box</h3>
+<ul>
+<li>On entry, the starting address matches the Program Counter, but it can be modified by clicking on the address in the first line.
+New value must be confirmed with Enter.</li>
+<li>After clicking on a disassembled instruction, a new instruction can be typed.
+As with the starting address, pressing Enter accepts the changes.
+Only changes in the RAM area will be saved upon program termination, all ROM modifications will be lost.
+Characteristics:<br>
+- labels and expressions aren't supported<br>
+- accepted are hexadecimal (with the prefix &amp;H) and decimal numbers<br>
+- destination of relative jumps can be only specified as absolute address, not as displacement</li>
+</ul>
+
+<h3>Hex Editor box</h3>
+<ul>
+<li>The HEX box allows viewing/changing the RAM contents only.</li>
+<li>It is possible to modify the starting address and the RAM contents by clicking on them.
+Enter accepts the changes.</li>
+</ul>
+
+<h3>Registers box</h3>
+<ul>
+<li>The contents of the registers can be modified by clicking on them.
+Enter accepts the changes.</li>
+<li>The top line in the register box shows the state of the upper four bits of the Flag register.
+They can be modified as well.</li>
+</ul>
+
+<h3>Main register file box</h3>
+<ul>
+<li>The contents of the registers can be modified by clicking on them.
+Enter accepts the changes.</li>
+</ul>
+
+<h3>Program execution control</h3>
+<ul>
+<li>Closing the debugger windows resumes the program execution without tracing.</li>
+<li>Pressing the button [Run] in the <b>Single step</b> group box executes a single machine code instruction without servicing of the interrupts.</li>
+<li>To execute a specified number of machine code instructions type the required value to the field in the <b>Number of steps</b> group box, then press the associated [Run] button.</li>
+<li>The <b>Breakpoint</b> group box allows to specify condition that determine when the program execution should be interrupted.
+Currently it only compares the Breakpoint Address typed in the field with the Program Counter.
+When they match, the program execution is stopped and the debugger window reappears.</li>
+</ul>
+
+<h2><a name="ini">The fx870.ini file</a></h2>
+<p>Some parameters of the emulator can be customised by editing the <b>fx870.ini</b> file with any text editor.<br>
+Description of the contents of this file:</p>
+<dl>
+<dt><code>OscFreq = 921</code></dt>
+<dd>This setting specifies the emulated CPU clock frequency in kHz.</dd>
+<dt><code>Option2 = 0</code></dt>
+<dd>This setting specifies the state of the port P4: 1 for the Japanese 
+version, 0 for some unreleased export version (in fact both the FX-870P 
+and VX-4 have Japanese setting).</dd>
+<dt><code>Path = disk0</code></dt>
+<dd>This setting specifies the path to the disk folder that stores the 
+contents of the floppy disk. It can be relative or absolute. It can also
+ be the name of the real floppy disk drive which allows to exchange 
+files with a real <a href="https://pisi.com.pl/piotr433/index.htm#md120">MD-120</a> device (the PC and MD-120 have the same disk format if the MD-120 dip-switches are set to 2DD 720K).</dd>
+</dl>
+
+<h2><a name="un">Uninstalling</a></h2>
+<p>To uninstall the emulator, simply delete the directory where it was installed.
+The program doesn't modify anything outside its installation directory.</p>
+
+<h2><a name="acknowl">Acknowledgments</a></h2>
+<ul>
+<li>The program includes a freeware component <b>ThreadedTimer</b> developed by <a href="http://www.carlosb.com/">Carlos Barbosa</a>.</li>
+</ul>
+
+<h2><a name="knownbugs">Known limitations and issues of the current version</a></h2>
+<ul>
+<li>The sound isn't supported.</li>
+<li>The scrolling function of the LCD controller command $8 isn't supported.</li>
+<li>Bugs may still lurk in the <code>rom0.bin</code> memory image.</li>
+</ul>
+
+<h2><a name="util">Utilities</a></h2>
+<p><a href="http://hd61700.yukimizake.net/">FMEM</a> is a RAM image editing tool.
+It can display the usage status of <b>ram0.bin</b> and write/delete text files in the F0-F9 areas.
+It is also possible to load machine language files into FBF/VX-MENU with the included <code>Pbf2FM.b</code> tool.</p>
+<hr>
+
+
+
+</body></html>
