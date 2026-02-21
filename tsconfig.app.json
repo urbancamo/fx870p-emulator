@@ -10,7 +10,10 @@
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+    // Emulator code indexes fixed-size typed arrays heavily; the extra |undefined
+    // overhead from noUncheckedIndexedAccess would require ~500 unnecessary assertions.
+    "noUncheckedIndexedAccess": false
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
 }
