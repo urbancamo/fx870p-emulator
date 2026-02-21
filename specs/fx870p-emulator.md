@@ -14,4 +14,6 @@ and plan first steps for a re-implementation, detailing the facilities provided 
 and how that might be implemented in a web-based version.
 
 The plan should include the major functional components of the emulator, document any binaries
-required, bitmaps, and supporting files that can be reused in the re-implementation.
+required, bitmaps, and supporting files that can be reused in the re-implementation. It should also
+point out facilities that are used by the emulator that may be a problem in a web-based implementation.
+
