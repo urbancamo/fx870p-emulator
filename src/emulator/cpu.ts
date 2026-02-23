@@ -12,6 +12,7 @@ import {
   addr18, dstWrite,
   CpuSleep,
   cpuWakeUp, setIfl,
+  firePcMonitor,
 } from './def.js';
 import { execInstr } from './exec.js';
 
@@ -66,6 +67,7 @@ export function cpuRun(): number {
       if ((ua & 3) !== 0) setCycles(cycles + 1);
     } else {
       // Execute an instruction
+      firePcMonitor(pc);
       setProcindex(0);
       execInstr();
       // Complete any deferred I/O device writes

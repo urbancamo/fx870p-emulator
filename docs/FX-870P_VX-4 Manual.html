@@ -1,0 +1,574 @@
+<html lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+
+<title>FX-870P/VX-4 Manual</title>
+<meta name="keywords" content="Poquecon, Casio, CASIO, FX-870P, VX-4, BASIC, Basic, C, CASL, F.COM, Data Bank, Memoin, FX, Statistical Calculation, Rounding">
+
+</head>
+<body bgcolor="#CCF7FF">
+<br>
+<br>
+<br>
+
+<a name="FILE-EDITOR"><h2><center>FX-870P/VX-4 Manual</center></h2></a>
+<br><br>
+<b>
+<font color="red">Attention
+<br>This content is mainly summarized in the manual included with VX4 by
+ Casio Computer Co., Ltd., and for information based on another 
+document,
+We try to clarify the references as appropriate.
+<br>However, since the timing of the announcement of information is 
+often old, please avoid contacting the quotation destination such as 
+Casio Computer Co., Ltd.</font>
+</b>
+<br><br>
+
+<b>Table of contents</b><br><br>
+<ul>
+  <li type="disc"><a href="#INTRODUCTION">0. Introduction About FX-870P/VX-4</a></li><br><br>
+  <li type="disc"><a href="#BASIC_OPERATION">1. Basic operation</a>
+    <ul>
+      <li type="disc"><a href="#BATTERY_EXCHANGE">1-1. Replacing the battery</a></li>
+      <li type="disc"><a href="#ON_OFF">1-2. Power ON/OFF and contrast adjustment</a></li>
+      <li type="disc"><a href="#SPECIAL_KEY">1-3. Special key</a></li>
+    </ul>
+  </li><br>
+  <li type="disc"><a href="#CAL_MODE">2. CAL mode</a></li><br><br>
+  <li type="disc"><a href="#DATABANK_MODE">3. Data bank/moone mode</a></li><br><br>
+  <li type="disc"><a href="#FX_MODE">4. F X (statistical calculation) mode</a></li><br><br>
+  <li type="disc"><a href="#FCOM_MODE">5. F.COM mode</a></li><br><br>
+  <li type="disc"><a href="https://luckleo.cocolog-nifty.com/pockecom/VX-4/HTML/fx-870p_basic_jp.html">6. BASIC mode</a></li><br><br>
+  <li type="disc"><a href="#C_MODE">7. C language mode</a></li><br><br>
+  <li type="disc"><a href="#CASL_MODE">8. CASL mode</a></li><br><br>
+  <li type="disc"><a href="#SPECIFICATION">9. Basic Specification</a></li><br><br>
+  <li type="disc"><a href="#OPTION">10. Options</a></li><br><br>
+  <li type="disc"><a href="https://luckleo.cocolog-nifty.com/pockecom/VX-4/HTML/hd61700_jp.html">11. HD61700 Cross assembler</a></li><br><br>
+  <li type="disc"><a href="https://luckleo.cocolog-nifty.com/pockecom/VX-4/HTML/fx-870p_inner_info_jp.html">12. FX-870P/VX-4 Internal Information</a></li><br><br>
+  <li type="disc"><a href="#APPENDIX">13. End-of-volume materials</a>
+    <ul>
+      <li type="disc"><a href="https://luckleo.cocolog-nifty.com/pockecom/VX-4/HTML/fx-870p_basic_jp.html#BUILT-IN_FUNCTION">13-1. List of built-in functions</a></li>
+      <li type="disc"><a href="https://luckleo.cocolog-nifty.com/pockecom/VX-4/HTML/fx-870p_basic_jp.html#CHARACTER_TABLE">13-2. Character Code Table</a></li>
+      <li type="disc"><a href="https://luckleo.cocolog-nifty.com/pockecom/VX-4/HTML/fx-870p_basic_jp.html#ERROR_MESSAGE">13-3. List of Error Messages</a></li>
+      <li type="disc"><a href="#ROMAN2KANA">13-4. List of Roman characters kana conversions</a></li>
+      <li type="disc"><a href="https://luckleo.cocolog-nifty.com/pockecom/VX-4/HTML/fx-870p_basic_jp.html#RESERVED_WORDS">13-5. Reservation language list</a></li>
+      <li type="disc"><a href="#ROUNDING">13-6. About rounding treatment</a></li>
+    </ul>
+  </li><br><br>
+</ul>
+
+<br><br><hr><br><br>
+
+
+<a name="INTRODUCTION"><b>0. Introduction About FX-870P/VX-4</b></a><br><br>
+<p>
+　The FX-870P/VX-4 is a model developed from the PB-100 series,<br>
+<table border="0" cellpadding="5">
+<tbody><tr><td valign="TOP">1</td><td valign="TOP">Since the internal 
+calculation accuracy is higher than other companies, it is possible to 
+perform more accurate calculations in complex calculations, financial 
+calculations, etc.,</td></tr><tr>
+<td valign="TOP">2</td><td valign="TOP">ten program areas and ten file areas,</td></tr><tr>
+<td valign="TOP">3</td><td valign="TOP">formula function,</td></tr><tr>
+<td valign="TOP">4</td><td valign="TOP">data bank function,</td></tr><tr>
+<td valign="TOP">5</td><td valign="TOP">statistical processing function,</td></tr><tr>
+<td valign="TOP">6</td><td>Although labels cannot be used, other 
+dimension arrays, relatively powerful BASIC, which can use variable 
+names of up to 255 characters,</td></tr><tr>
+<td valign="TOP">7</td><td valign="TOP">C language interpreter,</td></tr><tr>
+<td valign="TOP">8</td><td valign="TOP">The cash,</td></tr><tr>
+<td valign="TOP">9</td><td valign="TOP">It is equipped with an 8-bit CPU
+ called Hitachi's HD61700, and the operating frequency is 910 KHz, and 
+many instructions are 10 to 20 clocks, so while the power consumption of
+ the Pokécon is 0.08W, the power consumption of the Pokecon is 0.08W, 
+and the operation time of less than 200 hours is secured, (Calculation, 
+0.08W is estimated to be the maximum rating).</td></tr><tr>
+</tr></tbody></table>
+It is a feature.<br>
+On the other hand, as a constipation,<br>
+<table border="0" cellpadding="5">
+<tbody><tr><td valign="TOP">1</td><td valign="TOP">The execution of the self-made machine language program was not officially supported (executed with a hidden instruction),</td></tr><tr>
+<td valign="TOP">2</td><td valign="TOP">The LCD is 191 × 32 dots, and 
+although the dot interval is suitable for graphic display in a fully 
+equal cycle, it is a pity specification that does not support 
+graphic-related instructions. Graphics can only be done through machine 
+language,</td></tr><tr>
+<td valign="TOP">3</td><td valign="TOP">It is inconvenient because the label can not be used in BASIC,</td></tr><tr>
+<td valign="TOP">4</td><td valign="TOP">The execution speed of the program in C language is about one tenth of BASIC, and the C language can only be used for learning,</td></tr><tr>
+<td valign="TOP">5</td><td valign="TOP">Since VX-4, which has only 8KB 
+of memory, consumes about 3.3KB in the system area, it is necessary to 
+add memory by optional RP-33 or modification to execute a reasonable 
+program,</td></tr><tr>
+</tr></tbody></table>
+and so forth are raised.
+
+
+</p>
+
+
+<br><br><hr><br><br>
+
+
+<a name="BASIC_OPERATION"><b>1. Basic operation</b></a><br><br>
+
+<a name="BATTERY_EXCHANGE"><b>1-1. Replacing the battery</b></a><br><br>
+<p>
+　The batteries used by FX-870P/VX-4 are:<br>
+  <table border="0" cellpadding="5">
+    <tbody><tr><td valign="top" align="right">&nbsp;&nbsp;&nbsp;&nbsp;</td><td>Operating Batteries</td><td valign="top" align="left"> : Single three-battery (American standard AA) × 4pcs</td></tr><tr>
+    <td valign="top" align="right">&nbsp;&nbsp;&nbsp;&nbsp;</td><td>Batteries for data storage</td><td valign="top" align="left"> : CR1220 × 1 ... <a href="#BATTERY_CR1220">(Note)</a></td></tr><tr>
+  </tr></tbody></table>
+There are two types of batteries,<a href="#ON_OFF">Press the ON key ("BRK" key) but it does not start.</a>Or, after pressing the ON key,<a href="#LOW_BATTERY">When a low battery message appears,</a>The replacement of the batteries will be required.<br>
+　As a precaution when replacing the battery,<br>
+  </p><ul>
+    <li type="disc"><font color="red"><b>When the operation battery and the data storage battery are removed at the same time, the data such as the program is not saved,</b></font></li>
+    <li type="disc"><font color="red"><b>When the operation battery / 
+data storage battery is removed at the same time, the P button on the 
+back of the main unit and the ALL RESET button on the front of the main 
+unit
+      It is necessary to press sequentially with a thin stick of the 
+tip, such as toothpicks.</b></font></li>
+  </ul>
+and is raised,<br><br>
+<b>Replacement of operating batteries (single-three batteries; AA batteries)</b><br>
+<ol>
+  <li>Screw of the metal pig of the main body Three screws are turned with coins, etc., and the metal pig is removed.</li>
+  <li>When you remove the metal pig, there is a slide switch engraved with ON, OFF on the back of the main body. Turn off that switch.</li>
+  <li>Slide while holding down the battery slide pig ▼ and remove the battery slide pig.</li>
+  <li>Take out the old battery and set four AA batteries according to the instructions on the imprint of the inner electrode.</li>
+  <li>Bring the battery slide pig back to normal.</li>
+  <li>Turn on the slide switch.</li>
+  <li>Put on a metal pig and tighten three screws.</li>
+</ol>
+<br>
+
+<b>Replacing data storage batteries (CR1220)</b><br>
+　<b>Since the life of the data storage battery is twenty-four months, it is necessary to replace it once every two years.</b>
+<ol>
+  <li>Screw of the metal pig of the main body Three screws are turned with coins, etc., and the metal pig is removed.</li>
+  <li>When you remove the metal pig, there is a slide switch engraved with ON, OFF on the back of the main body. Turn off that switch.</li>
+  <li>Since the bottom of the round press plate of about 1 inch (2.54 
+cm) near the slide switch is the place where CR1220 is set, loosen the 
+small screw that is fastened and remove the pressing plate.</li>
+  <li>Set the battery by placing the + electrode of CR1220 on the upper side (side close to the presser when the presser is put on).</li>
+  <li>Put on the press and tighten the small screws.</li>
+  <li>Turn on the slide switch.</li>
+  <li>Put on a metal pig and tighten three screws.</li>
+</ol>
+<br>
+
+As a precaution when replacing a single battery (AA battery) or CR1220, 
+leave the slide switch off during the replacement operation.<br><br>
+
+
+
+For example, if FX-870P, VX4 cannot start "BRK" key (ON key) 
+successfully before replacing the battery, for example, for reasons such
+ as not using it for a long time,
+Press the P button on the back of the main body and the ALL RESET button
+ on the front of the main body with a thin stick on the tip like a 
+toothpick.
+After pressing all reset,<br><br>
+<table border="0" cellpadding="7" bgcolor="yellowgreen" align="center">
+  <tbody><tr><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td>
+    <td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td>
+    <td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td>
+    <td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td></tr><tr>
+
+  <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td>A</td><td>l</td><td>l</td><td></td><td>r</td><td>e</td><td>s</td><td>e</td>
+    <td>t</td><td>/</td><td>M</td><td>e</td><td>m</td><td>o</td><td>r</td><td>y</td>
+    <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr>
+
+  <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td>R</td><td>A</td><td>M</td><td></td><td>:</td><td></td><td></td><td>8</td>
+    <td>K</td><td>B</td><td></td><td>+</td><td></td><td></td><td>0</td><td>K</td>
+    <td>B</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr>
+
+  <td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td>
+    <td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td>
+    <td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td>
+    <td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td><td>*</td></tr><tr>
+</tr></tbody></table>
+<br>
+If you press the "BRK" key and the message above disappears, all the 
+memory is initialized and all the saved data is erased.
+In the above message, the first number following "RAM:" is the capacity 
+of the RAM of the main unit, and the latter number is the capacity of 
+the increased RAM of RP-33, etc., and the memory capacity of 
+FX-870P/VX-4 can be confirmed.<br><br>
+
+The P button on the back of the body is,
+<ul>
+  <li type="disc">Shocked by the intensity of static electricity,</li>
+  <li type="disc">I ran out of machine language, and the pokecon ran out of control.</li>
+</ul>
+It is used when it does not work normally due to the fact that it is not used.<br>
+　・The P button, ALL RESET button does not obtain or analyze the schematic, so it is a guess from other materials,
+Each one looks like a CPU reset and a key interrupt. Therefore,<br>
+<ul>
+  <li type="disc">・The P button takes a CPU reset, performs a CPU 
+initialization routine, and performs the minimum setting of the CPU (for
+ example, constant assignment to register $30, $31, etc.) is performed,
+    The RAM is not initialized.</li>
+  <li type="disc">The ALL RESET button is detected by the standard input routine of the key matrix and executes the initialization routine of RAM.</li>
+</ul>
+It is assumed to be a two-stage structure.
+<br><br><br>
+
+<a name="LOW_BATTERY"><b>Low battery display</b></a><br>
+　When the battery is exhausted and requires the replacement of the 
+battery, the message of the low battery is displayed as follows.
+In that case, it is necessary to replace the AA battery (AA battery) as 
+described above.<br><br>
+<table border="0" cellpadding="7" bgcolor="yellowgreen" align="center">
+  <tbody><tr><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+    <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+    <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+    <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr>
+
+  <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    <td>L</td><td>o</td><td>w</td><td></td><td>B</td><td>a</td><td>t</td><td>t</td>
+    <td>e</td><td>r</td><td>y</td><td></td><td>!</td><td>!</td><td>!</td><td></td>
+    <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr>
+
+  <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>Te</td>
+    <td>゙</td><td>ン</td><td>チ</td><td></td><td>ヲ</td><td></td><td>Ko</td><td>U</td>
+    <td>Ka</td><td>ン</td><td>Shi</td><td>Te</td><td>K</td><td>Ta</td><td>゙</td><td>Sa</td>
+    <td>Lee</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr>
+
+  <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+    <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+    <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+    <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr>
+</tr></tbody></table>
+<br>
+<font color="red"><b>This display can also be used, but the power is 
+turned off by force after about an hour.
+In that case, even if you press the ON key, the FX-870P/VX-4 does not 
+turn on the power supply, so when the low battery indication appears, 
+the battery replacement work should be performed as soon as possible.</b></font>
+If left unattended without replacing the battery, there is a possibility
+ of leakage of battery or destruction of the data contents.<br>
+　Also, if there is an error in the program and the battery is exhausted, "Low Battery!!!" After the display appears,
+An error message is displayed.<br><br><br>
+
+<a name="BATTERY_CR1220">(Note)</a><br>
+The model number of the button battery is determined by the 
+international standard IEC60086, and the specifications of the battery 
+are known. In the case of CR1220, C means that the battery system is a 
+manganese dioxide lithium battery (nominal voltage: 3.0V),
+R means round. 1220 represents a diameter of 12 mm and a thickness of 
+2.0 mm.
+<p></p>
+<br><br>
+
+
+<a name="ON_OFF"><b>1-2. Power ON/OFF and contrast adjustment</b></a><br><br>
+<p>
+<b>Power ON</b>
+<br>　The red "BRK" key on the right side also serves as the ON key, so 
+press this button. When it starts up normally, it enters CAL mode, and 
+the cursor flashes and the input waiting state is reached.
+<br>If there is no reaction even if you press it, the possibilities other than the breakdown and the countermeasures are as follows.
+</p><ul>
+  <li type="disc">It is working normally, but the contrast of the LCD is zero and the display is not visible. Adjust <a href="#CONTRAST_ADJUSTMENT">the LCD to the contrast.</a></li>
+  <li type="disc">The Low Battery continues to use, or the system is in 
+some kind of runaway state. →Press the P button on the back of the main 
+body with a thin stick on the tip such as toothpicks.
+    If this is the case, the program and files may be safe. If you are 
+worried, press the ALL RESET button to initialize the RAM.</li>
+  <li type="disc">The single three-battery for operation is out. → <a href="#BATTERY_EXCHANGE">Replacing a single battery, and in some cases, a CR1220 for data storage is also performed.</a></li>
+</ul>
+The FX-870P/VX-4 has six modes in addition to CAL mode, such as a 
+function calculator. Table 1-1 shows a brief description of how to enter
+ each mode and its mode.<br><br>
+
+<table border="1" cellpadding="5">
+  <caption><b>Table 1-1. FX-870P/VX-4 mode and migration method</b></caption>
+  <tbody><tr><th>Mode</th><th>How to transfer</th><th>Summary of the mode</th></tr><tr>
+  <td valign="top">CAL mode</td><td valign="top">Default mode when power is turned on.<br>Press "SHIFT" (red "S" key) and then "0".</td><td>Function Calculator-like functions and formula memory calculation function.</td></tr><tr>
+  <td valign="top">Data bank/moone mode</td><td valign="top">Press "SHIFT" (red "S" key) and then press "9".</td><td>Enter and search for data (notes).</td></tr><tr>
+  <td valign="top">F X (statistical calculation) mode</td><td valign="top">Press the "FX" key at the top.</td><td>Statistical calculations and training boards (extraordinary not included).</td></tr><tr>
+  <td valign="top">F.COM mode</td><td valign="top">Press the "F.COM" key, i.e., the "SHIFT" key, and then the "CASL" key.</td><td>I/O to an external device of the file, including the BASIC program. In addition, file manipulation such as editing and deletion.</td></tr><tr>
+  <td valign="top"><a href="https://luckleo.cocolog-nifty.com/pockecom/VX-4/HTML/fx-870p_basic_jp.html">BASIC mode</a></td>
+    <td valign="top">Press the "MODE" key in the upper right, then press "1".<br>When
+ you press the "SHIFT" (red "S" key) in CAL mode and then press the 
+numeric key (0-9), if the BASIC program exists in the program number of 
+the pressed number, it starts executing.</td>
+    <td>Basic mode.</td></tr><tr>
+  <td valign="top">C language mode</td><td valign="top">Press the "¢" key, i.e., the "SHIFT" key, and then the "FX" key.</td><td>The C language mode.</td></tr><tr>
+  <td valign="top">CASL mode</td><td valign="top">Press the "CASL" key.</td><td>The cash mode.</td></tr><tr>
+
+</tr></tbody></table>
+
+<br><br>
+
+<b>Power off</b><br>
+　If you press the OFF button on the upper left, the power is turned off.<br>
+In addition, if left in the input waiting state, that is, FX-870P / VX4 
+without calculation, the power is automatically turned off in a certain 
+period of time (about a few minutes).<br>
+this.<b>Auto power off function</b>to call it.<b>When the power is turned off with auto power off, all various mode designations such as number of digits are canceled,
+The files of programs, mathematical formulas, and the values of the submerged variables are preserved.</b><br>
+<br><br>
+
+
+<a name="CONTRAST_ADJUSTMENT"><b>Adjusting contrast</b></a><br>
+<ul>
+  <li type="disc">Press the "CONTRAST" key, i.e., the "SHIFT" key, and then the "MODE" key.</li>
+  <li type="disc">Contrast down with the "↑" key under the LCD, press 
+"↓" to "-right" and press the "↑" key to bring down the contrast. If you
+ want to finish, press the other key.</li>
+</ul>
+If it is not displayed normally, there is a high possibility that the battery is running out.
+
+<p></p>
+<br><br>
+
+
+
+<a name="SPECIAL_KEY"><b>1-3. Special key</b></a><br><br>
+
+<br><br><hr><br><br>
+
+<a name="CAL_MODE"><b>2. CAL mode</b></a><br><br>
+<p>
+
+</p>
+
+
+<br><br><hr><br><br>
+
+
+<a name="DATABANK_MODE"><b>3. Data bank/moone mode</b></a><br>
+<p>
+
+</p>
+
+
+<br><br><hr><br><br>
+
+
+<a name="FX_MODE"><b>4. FX (statistical calculation) mode</b></a><br>
+<p>
+
+</p>
+
+
+<br><br><hr><br><br>
+
+
+<a name="FCOM_MODE"><b>5. F.COM mode</b></a><br>
+<p>
+
+</p>
+
+
+<br><br><hr><br><br>
+
+
+<a name="BASIC_MODE"><b>6. BASIC mode</b></a><br>
+<p>
+See <a href="https://luckleo.cocolog-nifty.com/pockecom/VX-4/HTML/fx-870p_basic_jp.html">fx-870p_basic_jp.html</a>.
+</p>
+
+
+<br><br><hr><br><br>
+
+
+<a name="C_MODE"><b>7. C language mode</b></a><br>
+<p>
+
+</p>
+
+
+<br><br><hr><br><br>
+
+
+<a name="CASL_MODE"><b>8. CASL mode</b></a><br>
+<p>
+
+</p>
+
+
+<br><br><hr><br><br>
+
+
+<a name="SPECIFICATION"><b>9. Basic Specification</b></a><br>
+<p>
+
+</p>
+
+
+<br><br><hr><br><br>
+
+
+<a name="OPTION"><b>10. Options</b></a><br>
+<p>
+
+</p>
+
+
+<br><br><hr><br><br>
+
+
+<a name="HD61700"><b>11. HD61700 Cross assembler</b></a><br>
+<p>
+See <a href="https://luckleo.cocolog-nifty.com/pockecom/VX-4/HTML/hd61700_jp.html">hd61700_jp.html</a>.
+</p>
+
+
+<br><br><hr><br><br>
+
+
+<a name="BIOS"><b>12. System area and ROM call</b></a><br>
+<p>
+See <a href="https://luckleo.cocolog-nifty.com/pockecom/VX-4/HTML/fx-870p_inner_info_jp.html">fx-870p_inner_info_jp.html</a>.
+</p>
+
+
+<br><br><hr><br><br>
+
+
+<a name="APPENDIX"><b>13. End-of-volume materials</b></a><br>
+<br>
+
+<b>13-1. List of built-in functions</b><br>
+<p>
+See <a href="https://luckleo.cocolog-nifty.com/pockecom/VX-4/HTML/fx-870p_basic_jp.html#BUILT-IN_FUNCTION">./fx-870p_basic_jp.html#BUILT-IN_FUNCTION</a>.
+</p>
+
+<br><br>
+
+<b>13-2. Character Code Table</b><br>
+<p>
+See <a href="https://luckleo.cocolog-nifty.com/pockecom/VX-4/HTML/fx-870p_basic_jp.html#CHARACTER_TABLE">./fx-870p_basic_jp.html#CHARACTER_TABLE</a>.
+</p>
+
+<br><br>
+
+<b>13-3. List of Error Messages</b><br>
+<p>
+See <a href="https://luckleo.cocolog-nifty.com/pockecom/VX-4/HTML/fx-870p_basic_jp.html#ERROR_MESSAGE">./fx-870p_basic_jp.html#ERROR_MESSAGE</a>.
+</p>
+
+
+<br><br>
+
+<a name="ROMAN2KANA"><b>13-4. List of Roman characters kana conversions</b></a><br>
+<p>
+ Reference.
+</p>
+
+<br><br>
+
+<b>13-5. Reservation language list</b><br>
+<p>
+See <a href="https://luckleo.cocolog-nifty.com/pockecom/VX-4/HTML/fx-870p_basic_jp.html#RESERVED_WORDS">./fx-870p_basic_jp.html#RESERVED_WORDS</a>.
+</p>
+
+<br><br>
+
+<a name="ROUNDING"><b>13-6. About rounding treatment</b></a><br>
+<p>
+　In FX-870P / VX4, it is calculated in CAL mode, or in BASIC <a href="https://luckleo.cocolog-nifty.com/pockecom/VX-4/HTML/fx-870p_basic_jp.html#RES_PRINT">using PRINT</a> statements, for example,
+      <br>Print a
+<br>Even if you execute it, the number of the pseudo part shows only up to 10 digits, and the numbers in the range of 0 and ±1 × 10 <sup>-99</sup> to ±9.99,999,999 × 10 <sup>99</sup> seem to be the limit,
+<font color="red"><b>The numbers of FX-870P / VX-4 are expressed and calculated internally in BCD with 13 digits, index part 2 digits (0 and ±1 × 10 <sup>-99</sup> ~ ±9.99,999,999,999 × <sup>10 99</sup> ) in BCD,
+The variables are also preserved with precision.</b></font>
+<br>For example,
+      <br>A=1.123456789012
+<br>Enter and enter,
+      <br>Print a
+<br>If you do,
+      <br>1.123456789
+<br>(<a href="https://luckleo.cocolog-nifty.com/pockecom/VX-4/HTML/fx-870p_basic_jp.html#RES_SET">SET</a> statements can only be displayed with precision to the previous (<a href="https://luckleo.cocolog-nifty.com/pockecom/VX-4/HTML/fx-870p_basic_jp.html#RES_SET">the SET</a> statement only drops the number of displayed digits).
+However, using <a href="https://luckleo.cocolog-nifty.com/pockecom/VX-4/HTML/fx-870p_basic_jp.html#RES_PRINT_USING">the print-using</a> statement,
+      <br>Print using "#. ################################################################
+<br>If you do,
+      <br>1.123456789012
+<br>You can see that the internal accuracy is up to thirteen digits.
+<br>and again,
+      <br>Print using "#. ################################################################
+<br>and execute,
+      <br>0.1111111111111
+<br>From the display, it can be confirmed that the internal accuracy is thirteen digits.
+<br>　FX-870P/VX-4 performs rounding after arithmetic operations by default (at initialization) and <a href="https://luckleo.cocolog-nifty.com/pockecom/VX-4/HTML/fx-870p_basic_jp.html#RES_MODE">MODE10</a>.
+The method of rounding,<br>
+</p><ul>
+  <li type="disc">When the number of 11-13 digits is less than 049, truncated,
+  </li><li type="disc">When the 11-13-digit number is more than 950, rounded up
+</li></ul>
+is. and again,<a href="https://luckleo.cocolog-nifty.com/pockecom/VX-4/HTML/fx-870p_basic_jp.html#RES_MODE">Mode 11</a>By doing so, you can disable rounding processing after the four arithmetic operations.<br>
+　To confirm the rounding process, first enable the rounding process by MODE10.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A=1.123456789049<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Print using "#. ################################<br>
+and execute continuously. At this time, A = 1.123456789049 is displayed,
+<font color="red"><b>Constant assignments are not rounded even if the 
+rounding process after arithmetic operations is effective, but it is not
+ rounded.</b></font>I can confirm things.<br>
+　and then,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A = A*1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Print using "#. ################################<br>
+and running continuously,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A=1.123456789000<br>
+It can be seen that the rounding process was performed by the four arithmetic operations.<br>
+　Here, an example of operation near the threshold of rounding treatment is summarized in the table below.<br><br>
+<table border="1" cellpadding="5" align="CENTER">
+  <caption align="CENTER"><b>Table . Calculation result example when the rounding process after four arithmetic operations is enabled<br>(FX-870P/VX-4)</b></caption>
+  <tbody><tr><th>Assignment value to A</th><th>After MODE10, A = A value by A1</th><th>Rounding treatment</th></tr><tr>
+  <td align="CENTER">1.123456788<font color="red">049</font></td><td align="CENTER">1.123456788<font color="red">000</font></td><td>truncated</td></tr><tr>
+  <td align="CENTER">1.123456788<font color="red">050</font></td><td align="CENTER">1.123456788<font color="red" data-moz-translations-id="0">050</font></td><td rowspan="2">No rounding</td></tr><tr>
+  <td align="CENTER">1.123456788<font color="red">949</font></td><td align="CENTER">1.123456788<font color="red">949</font></td></tr><tr>
+  <td align="CENTER">1.123456788<font color="red">950</font></td><td align="CENTER">1.12345678<font color="red">9000</font></td><td>Cut up</td></tr><tr>
+</tr></tbody></table><br>
+Here, in order to clarify the effect of the rounding and avoid 
+confusion, the value of the decimal point 9th place to be assigned 
+before the calculation of the table is set to eight.<br><br>
+
+　In addition, whether the rounding treatment is effective or invalid for FX-870P / VX-4 is in the system area<a href="https://luckleo.cocolog-nifty.com/pockecom/VX-4/HTML/fx-870p_inner_info_jp.html#TBL-1_RNDFL">RND FL</a>(Older
+ name: MODED, Address: &amp;H1133)
+The value of this address is zero, and the rounding process at the time 
+of arithmetic operation is effective at zero, and the rounding process 
+at the time of arithmetic operation is invalid in one. Specifically,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DEFEG=0<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PEEK (&amp;H1133)<br>
+So, you can check the contents. However, if you do not execute the 
+DEFSEG instruction until then, the DEFSEG=0 command is unnecessary.<br>
+　For details on the format of numerical variables, please refer to 12. FX-870P/VX-4 Internal Information<a href="https://luckleo.cocolog-nifty.com/pockecom/VX-4/HTML/fx-870p_inner_info_jp.html#BCD-FLOATING-POINT_FORMAT">A-2. BCD Floating-point format and internal format</a>about the reference.<br><br>
+
+　Finally,<font color="red"><b>In the FX-890P / Z-1 of the successor machine, the rounding method is different,</b></font><br>
+<ul>
+  <li type="disc">When the number of 11-13 digits is less than 007, truncated,
+  </li><li type="disc">When the number of 11-13 digits is 990 or more, it is rounded up
+</li></ul>
+And the conditions are getting tougher. The rounding conditions for 
+models prior to the FX-870P/VX-4 are unknown because the author does not
+ have those aircraft.<br><br><br>
+
+(Note)<br>
+In the case of Sharp's Poquecon, although PC-E500 models such as PC-E650
+ can store 20digits with support for double accuracy and can be stored 
+in twenty-four digits of calculation (basic is the same as conventional 
+with single accuracy),
+Most models are stored in twelve digits and are ten digits. The 11th and
+ 12th digits are rounded up, and out of the eight bytes stored in memory
+ as variable values, the last byte is zero and the information is 
+damaged (operations confirmed with PC-1350, PC-G850V).
+Therefore, Sharp's Pokécon is a specification that makes it easy to 
+accumulate errors when performing complex calculations. In Casio's 
+pocketcon, as described above, it is in contrast to the preservation of 
+basically thirteen-digit accuracy.<br>
+　Therefore,<b>In terms of calculation accuracy, it seems that the Casio's pocketcomputer is better than Sharp.</b>
+
+<p></p>
+
+
+<br><br><hr><br><br>
+
+
+<address>123</address>
+
+
+</body></html>

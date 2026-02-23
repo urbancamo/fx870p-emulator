@@ -12,11 +12,15 @@ import {
 } from '../emulator/emulator.js';
 import LcdCanvas from './LcdCanvas.vue';
 import KeyboardOverlay from './KeyboardOverlay.vue';
+import CommPanel from './CommPanel.vue';
+import { commInit } from '../emulator/comm.js';
+import { setIoDebug, isIoDebug } from '../emulator/port.js';
 
 const error    = ref<string | null>(null);
 const loading  = ref(true);
 
 async function init(): Promise<void> {
+  commInit(); // ensures comm.ts registers its callbacks before the emulator starts
   loadConfig();
   try {
     await Promise.all([loadRoms(), loadCharset()]);
@@ -43,6 +47,11 @@ async function beforeUnload(): Promise<void> {
 }
 
 onMounted(() => {
+  // Expose debug toggle on window for browser console use:
+  //   ioDebug(true)  — start tracing all I/O register reads/writes
+  //   ioDebug(false) — stop tracing
+  (window as unknown as Record<string, unknown>).ioDebug = setIoDebug;
+  (window as unknown as Record<string, unknown>).ioDebugState = isIoDebug;
   init();
   window.addEventListener('keydown', onKeyDown);
   window.addEventListener('beforeunload', beforeUnload);
@@ -72,12 +81,14 @@ onUnmounted(() => {
       <!-- Transparent keyboard hit-test overlay -->
       <KeyboardOverlay />
     </div>
+    <CommPanel />
   </div>
 </template>
 
 <style scoped>
 .emulator-root {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 100vh;

@@ -12,7 +12,7 @@ import {
   OscFreq,
   CpuStop, CpuDelay, CpuSteps, BreakPoint,
   CpuSleep, SW_bit,
-  setCpuStop, setCpuDelay, setCpuSteps, setOscFreq, setOption2,
+  setCpuStop, setCpuDelay, setCpuSteps, setOscFreq,
   setAcycles, acycles,
   memdef, RAM0_IDX,
   tm, setTm,
@@ -22,11 +22,15 @@ import {
   INT1_bit, INT2_bit, ONINT_bit, KEYPULSE_bit, MINTIMER_bit,
   delayed_ky, setDelayedKy,
   setIfl,
+  setRamWriteMonitor,
+  setPcMonitor,
+  sz, ix,
 } from './def.js';
 import { cpuReset, cpuRun, cpuWakeUp } from './cpu.js';
-import { ioInit } from './port.js';
+import { ioInit, SerialRate, onSerialTick, pd, pe, pdi, getUartRegs } from './port.js';
 import { lcdInit, lcdRender, onrate, lcdctrl } from './lcd.js';
-import { SerialRate, onSerialTick } from './port.js';
+import { commDecTimer } from './comm.js';
+import { remoteLog, flushLog, isRemoteLogEnabled } from './remote-log.js';
 
 // ─── counters (cycle-based, like Delphi's timer variables) ──────────────────
 
@@ -70,6 +74,7 @@ function frame(now: number): void {
     return;
   }
 
+  _resetCycles += frameCycles;
   setAcycles(acycles + frameCycles);
 
   while (acycles > 0) {
@@ -120,6 +125,9 @@ function frame(now: number): void {
       if (serialCounter < 0) serialCounter = SerialRate;
       onSerialTick();
     }
+
+    // Comm char-delay timer (mirrors Delphi: if CommDelayTimer > 0 then Dec(CommDelayTimer, x))
+    commDecTimer(x);
 
     // One-second tick → TM register (BCD seconds; at 60 s → fire one-minute timer)
     secondCycles += x;
@@ -188,7 +196,12 @@ export function emulatorStop(): void {
   running = false;
 }
 
+// Accumulated cycles since last reset — used to time-stamp debug log entries.
+let _resetCycles = 0;
+export function getResetCycles(): number { return _resetCycles; }
+
 export function emulatorReset(): void {
+  _resetCycles = 0;
   cpuReset();
   ioInit();
   lcdInit();
@@ -200,29 +213,99 @@ export function emulatorReset(): void {
   // Delphi FormShow: flag := SW_bit — power switch on signal for the ROM
   setFlag(SW_bit);
   setCpuStop(false);
+  remoteLog('emulator', 'reset — PC=0x0000 SW_bit set');
+  // Phase 1: log first-write to every address in the first 2 s (capture full boot).
+  // Phase 2: after 2 s, switch to a permanent watch on devtbl[0] (0x11100) and
+  //          the COM0 driver-pointer table (0x1165C) so we can see every write.
+  const MONITOR_CYCLES = OscFreq * 2000; // 2 s of emulated time (capture full boot)
+  const _seen = new Set<number>();
+  setRamWriteMonitor((addr, val) => {
+    if (_resetCycles <= MONITOR_CYCLES) {
+      if (!_seen.has(addr)) {
+        _seen.add(addr);
+        remoteLog('RAM first-wr', `0x${addr.toString(16).padStart(5,'0')} = 0x${val.toString(16).padStart(2,'0')}`);
+      }
+    } else {
+      // Phase 2: watch devtbl[0] and the COM0 driver-pointer table entry
+      if (_seen.size > 0) {
+        remoteLog('RAM monitor', `phase1 done — ${_seen.size} unique addrs; watching 0x11100 & 0x1165C`);
+        _seen.clear();
+        void flushLog();
+      }
+      if (addr === 0x11100) {
+        const uart = getUartRegs();
+        remoteLog('devtbl[0]', `0x${val.toString(16).padStart(2,'0')} COM0=${val & 0x10 ? 'YES' : 'NO'} pc=0x${pc.toString(16).padStart(4,'0')} pe=0x${pe.toString(16).padStart(2,'0')} pd=0x${pd.toString(16).padStart(2,'0')} pdi=0x${pdi.toString(16).padStart(2,'0')} ga3=0x${(uart.rd[3]??0xFF).toString(16)} @${_resetCycles}cy`);
+      }
+      // DriverPtrTable[SX] at 0x1165C:0x1165D — two bytes of the 16-bit driver pointer.
+      // 0x2734 = stub (COM0 not ready), 0x1FB0 = real driver (COM0 ready).
+      if (addr === 0x1165C || addr === 0x1165D) {
+        remoteLog('drvptr', `RAM[0x${addr.toString(16)}]=0x${val.toString(16).padStart(2,'0')} pc=0x${pc.toString(16).padStart(4,'0')} @${_resetCycles}cy`);
+      }
+    }
+  });
+
+  // PC execution trace: log the first time each key DriverInstallLoop address is hit.
+  // 0x1FC3 = DriverInstallLoop entry (GetDeviceEntry call)
+  // 0x1FC6 = after GetDeviceEntry (cal nz,&H2D64 — taken if GetDeviceEntry returns nz)
+  // 0x1FC9 = past the 0x2D64 branch (only if GetDeviceEntry returned z=1)
+  // 0x1FDA = ldw r2,&H1FB0 — real driver about to be stored
+  // 0x1FDE = cal StoreDriverPtr with r2=0x1FB0
+  // 0x2D64 = escape path (GetDeviceEntry returned nz; jp &H2AE8 never returns)
+  // 0x273A = jp &H1FC3 from InstallCOM0Stub (confirms stub installer ran)
+  const _pcSeen = new Set<number>([0x1FC3, 0x1FC6, 0x1FC9, 0x1FDA, 0x1FDE, 0x2D64, 0x273A]);
+  setPcMonitor((tracePC) => {
+    if (!isRemoteLogEnabled() || !_pcSeen.has(tracePC)) return;
+    _pcSeen.delete(tracePC); // log each address once only
+    remoteLog('PC-trace', `0x${tracePC.toString(16).padStart(4,'0')} sz=0x${sz.toString(16).padStart(2,'0')} ix=0x${ix.toString(16).padStart(4,'0')} @${_resetCycles}cy`);
+    if (_pcSeen.size === 0) setPcMonitor(null); // all seen, disable hook
+  });
 }
 
 // ─── ROM loading ──────────────────────────────────────────────────────────────
 
 export async function loadRoms(baseUrl = '/roms'): Promise<void> {
   const loads = memdef
-    .filter(m => m.filename && (m.required || m.filename === 'ram0.bin'))
+    .filter(m => m.filename)
     .map(async (m) => {
       try {
         const resp = await fetch(`${baseUrl}/${m.filename}`);
         if (!resp.ok) {
           if (m.required) throw new Error(`ROM ${m.filename} not found (${resp.status})`);
-          return;
+          return; // optional (ram0.bin) — fall through to 0xFF init below
         }
         const buf = await resp.arrayBuffer();
         m.data = new Uint8Array(buf);
       } catch (e) {
         if (m.required) throw e;
-        // Optional ROMs (ram0.bin) initialize to zeros
-        m.data = new Uint8Array(m.last - m.first);
       }
     });
   await Promise.all(loads);
+  // Any writable region not loaded from server gets initialised to 0xFF.
+  for (const m of memdef) {
+    if (m.writable && !m.data) {
+      m.data = new Uint8Array(m.last - m.first).fill(0xFF);
+    }
+  }
+}
+
+// ─── RAM byte reader (for diagnostics) ───────────────────────────────────────
+
+export function readRamByte(physAddr: number): number {
+  const ram0 = memdef[RAM0_IDX];
+  if (!ram0?.data) return 0xFF;
+  const idx = physAddr - ram0.first;
+  if (idx < 0 || idx >= ram0.data.length) return 0xFF;
+  return ram0.data[idx] ?? 0xFF;
+}
+
+// ─── RAM state import (load a ram0.bin saved by the Delphi emulator) ──────────
+
+export async function importRamState(data: Uint8Array): Promise<void> {
+  const ram0 = memdef[RAM0_IDX];
+  if (!ram0?.data) return;
+  const len = Math.min(data.length, ram0.data.length);
+  ram0.data.set(data.subarray(0, len));
+  await saveState(); // persist to IndexedDB so it survives reloads
 }
 
 // ─── charset loading ──────────────────────────────────────────────────────────
@@ -300,9 +383,13 @@ export async function restoreState(): Promise<void> {
 
 // ─── config from localStorage ─────────────────────────────────────────────────
 
+// Bumped to 3: stop persisting option2 (it is a compile-time constant in def.ts,
+// not a user preference). Any stored option2 value caused pdi to be wrong at boot.
+const CONFIG_VERSION = 3;
+
 interface Config {
+  version: number;
   oscFreq?: number;
-  option2?: number;
 }
 
 export function loadConfig(): void {
@@ -310,14 +397,45 @@ export function loadConfig(): void {
     const raw = localStorage.getItem('fx870p-config');
     if (!raw) return;
     const cfg: Config = JSON.parse(raw);
+    if (typeof cfg.version !== 'number' || cfg.version < CONFIG_VERSION) {
+      localStorage.removeItem('fx870p-config');
+      return;
+    }
     if (typeof cfg.oscFreq === 'number') setOscFreq(cfg.oscFreq);
-    if (typeof cfg.option2 === 'number') setOption2(cfg.option2);
   } catch {
     // ignore malformed config
   }
 }
 
 export function saveConfig(): void {
-  const cfg: Config = { oscFreq: OscFreq, option2: 0 };
+  const cfg: Config = { version: CONFIG_VERSION, oscFreq: OscFreq };
   localStorage.setItem('fx870p-config', JSON.stringify(cfg));
+}
+
+export async function clearSavedState(): Promise<void> {
+  localStorage.removeItem('fx870p-config');
+  try {
+    const db = await openDb();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).clear();
+    await new Promise<void>((res, rej) => {
+      tx.oncomplete = () => res();
+      tx.onerror    = () => rej(tx.error);
+    });
+  } catch {
+    // ignore if DB doesn't exist yet
+  }
+}
+
+// Wipe saved state and perform a cold reset in-memory — no page reload.
+// Preserves running emulator infrastructure (logging, RAF loop) so debug
+// tooling stays active across the reset.
+export async function freshReset(): Promise<void> {
+  await clearSavedState();
+  // Re-initialise RAM region to 0xFF (mirrors cold-start MemLoad)
+  const ram0 = memdef[RAM0_IDX];
+  if (ram0?.data) ram0.data.fill(0xFF);
+  emulatorReset();
+  emulatorStart();
+  remoteLog('emulator', 'freshReset — RAM cleared to 0xFF, cold boot starting');
 }

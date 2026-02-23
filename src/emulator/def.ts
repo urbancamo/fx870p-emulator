@@ -123,7 +123,7 @@ export let CpuSleep = false;
 export let CpuDelay = 0;
 export let CpuSteps = -1;
 export let BreakPoint = -1;
-export let Option2  = 0;
+export let Option2  = 0;  // 0 = International (VX-4); 1 = Japanese (FX-870P)
 
 // port / printer (needed by port.ts, referenced from def)
 export let PrinterData = 0;
@@ -222,6 +222,22 @@ export function srcRead(address: number): number {
   return 0xFF;
 }
 
+// Optional monitor — set by debug tooling; called on every RAM write when active.
+// Signature: (address: number, value: number) => void
+let _ramWriteMonitor: ((a: number, v: number) => void) | null = null;
+export function setRamWriteMonitor(fn: ((a: number, v: number) => void) | null): void {
+  _ramWriteMonitor = fn;
+}
+
+// Optional PC monitor — called before each instruction, with the current PC value.
+let _pcMonitor: ((pc: number) => void) | null = null;
+export function setPcMonitor(fn: ((pc: number) => void) | null): void {
+  _pcMonitor = fn;
+}
+export function firePcMonitor(pcVal: number): void {
+  _pcMonitor?.(pcVal);
+}
+
 export function dstWrite(address: number, value: number): void {
   address = address >>> 0;
   value   = value & 0xFF;
@@ -250,6 +266,7 @@ export function dstWrite(address: number, value: number): void {
       if (!m.data) return;
       const byteIdx = (m.offset + (address - m.first)) << m.memorg;
       m.data[byteIdx] = value;
+      _ramWriteMonitor?.(address, value);
       return;
     }
   }
