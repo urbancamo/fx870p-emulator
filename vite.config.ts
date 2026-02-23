@@ -51,5 +51,6 @@ export default defineConfig({
   plugins: [vue(), logServerPlugin()],
   server: {
     port: 3007,
+    allowedHosts: ['m5tea.uk'],
   },
 });
