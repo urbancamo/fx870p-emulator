@@ -2,20 +2,36 @@
 
 A browser-based emulator for the **Casio FX-870P** (also sold as the VX-4) pocket computer, written in TypeScript and Vue 3.
 
-The FX-870P was a 1986 programmable calculator running a **Hitachi HD61700** CPU at 921 kHz with a 96×64 pixel LCD, 83-key keyboard, serial port, and optional MD-120 floppy drive. This emulator is a full port of the original Delphi reference implementation to the web platform.
+The FX-870P was a 1986 programmable calculator running a **Hitachi HD61700** CPU at 921 kHz with a 96×64 pixel LCD, 
+83-key keyboard, serial port, and optional MD-120 floppy drive. This emulator is a full port of the 
+original Delphi reference implementation to the web platform.
+
+## Credits
+
+The original emulator is available on the [PISI](https://www.pisi.com.pl/piotr433/index.htm#fx870) and credit 
+is given to the original author of the amazing suite of emulators available on this site. This implementation is 
+designed to purely make the code behind that emulator available to a wider audience on the internet.
+
+This version of the emulator implemented by [Mark Wickens](https://urbancamo.github.com) and is hosted 
+on GitHub [here](https://github.com/urbancamo/fx870p-emulator/).
+
+## Limitations
+
+IO is not yet implemented in any capacity. This is a work in progress. I'm also planning on implementing direct
+keyboard entry - at the moment you have to use the mouse to click the keyboard buttons directly.
 
 ---
 
 ## Hardware Emulated
 
-| Component | Details |
-|---|---|
-| CPU | Hitachi HD61700, 921 kHz |
-| Memory | 18-bit address space: ROM0 (6 KB, 16-bit words), ROM1 (128 KB × 2 banks), RAM (64 KB) |
-| Display | HD44352A01 LCD controller — 96×64 pixels + 5 status indicators |
-| Keyboard | 83-key matrix (9 blocks, 16 KO columns) |
-| Serial | UART with XON/XOFF flow control |
-| Storage | MD-120 floppy disk via Origin Private File System (OPFS) |
+| Component | Details                                                                               |
+|-----------|---------------------------------------------------------------------------------------|
+| CPU       | Hitachi HD61700, 921 kHz                                                              |
+| Memory    | 18-bit address space: ROM0 (6 KB, 16-bit words), ROM1 (128 KB × 2 banks), RAM (64 KB) |
+| Display   | HD44352A01 LCD controller — 96×64 pixels + 5 status indicators                        |
+| Keyboard  | 83-key matrix (9 blocks, 16 KO columns)                                               |
+| Serial    | UART with XON/XOFF flow control                                                       |
+| Storage   | MD-120 floppy disk via Origin Private File System (OPFS)                              |
 
 ---
 
