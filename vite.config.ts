@@ -49,4 +49,7 @@ function logServerPlugin() {
 
 export default defineConfig({
   plugins: [vue(), logServerPlugin()],
+  server: {
+    port: 3007,
+  },
 });
