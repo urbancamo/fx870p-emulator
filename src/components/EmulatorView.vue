@@ -4,6 +4,8 @@
 //   face.png → LcdCanvas (at x=48,y=36) → KeyboardOverlay
 
 import { ref, onMounted, onUnmounted } from 'vue';
+
+const base = import.meta.env.BASE_URL;
 import {
   loadRoms, loadCharset,
   emulatorReset, emulatorStart, emulatorStop,
@@ -71,7 +73,7 @@ onUnmounted(() => {
 
     <div class="face-container">
       <img
-        src="/images/face.png"
+        :src="`${base}images/face.png`"
         alt="CASIO fx-870P"
         class="face-img"
         draggable="false"

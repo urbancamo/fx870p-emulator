@@ -263,7 +263,7 @@ export function emulatorReset(): void {
 
 // ─── ROM loading ──────────────────────────────────────────────────────────────
 
-export async function loadRoms(baseUrl = '/roms'): Promise<void> {
+export async function loadRoms(baseUrl = `${import.meta.env.BASE_URL}roms`): Promise<void> {
   const loads = memdef
     .filter(m => m.filename)
     .map(async (m) => {
@@ -311,7 +311,7 @@ export async function importRamState(data: Uint8Array): Promise<void> {
 // ─── charset loading ──────────────────────────────────────────────────────────
 import { initCharset } from './lcd.js';
 
-export async function loadCharset(baseUrl = '/roms'): Promise<void> {
+export async function loadCharset(baseUrl = `${import.meta.env.BASE_URL}roms`): Promise<void> {
   const resp = await fetch(`${baseUrl}/charset.bin`);
   if (!resp.ok) throw new Error(`charset.bin not found`);
   const buf  = await resp.arrayBuffer();

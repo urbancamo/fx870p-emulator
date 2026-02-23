@@ -48,6 +48,7 @@ function logServerPlugin() {
 }
 
 export default defineConfig({
+  base: '/fx870p-emulator/',
   plugins: [vue(), logServerPlugin()],
   server: {
     port: 3007,
