@@ -107,6 +107,11 @@ interface
 
 implementation
 
+{$Q-}{$R-}
+{ Overflow and range checks disabled for this unit: all arithmetic here is intentional
+  fixed-width CPU register emulation. Byte/word wraparound is correct behaviour for
+  the HD61700 instruction set (rotates, shifts, 2s-complement negation, BCD ops, etc.) }
+
   uses Def, Keyboard, Lcd, Port;
 
 type

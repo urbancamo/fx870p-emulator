@@ -562,6 +562,7 @@ end {NumOfBytes};
 { converts absolute address to relative displacement,
   returns FALSE when out of range }
 function AbsToRel (var destination: word; location: word) : boolean;
+{$Q-}{$R-} { Intentional word wraparound: distance computed modulo 2^16 }
 begin
   Dec (destination,location);
   if destination > $7FFF then destination := $0080 - destination;

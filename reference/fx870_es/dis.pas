@@ -11,6 +11,10 @@ interface
 
 implementation
 
+{$Q-}{$R-}
+{ Overflow and range checks disabled for this unit: Imm7Arg uses intentional
+  word wraparound arithmetic to compute relative branch addresses. }
+
 uses Def, SysUtils;
 
 type

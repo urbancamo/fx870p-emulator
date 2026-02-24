@@ -317,11 +317,11 @@ begin
             if integer (x+i) >= 0 then
             begin
               if x+i > 95 then Break;
-              Nexus (lcdimage[n+i], mem[(offset-x+i) and $F], m);
+              Nexus (lcdimage[n+i], mem[(integer(offset)-integer(x)+integer(i)) and $F], m);
             end {if};
 {$else}
             if col+i > 95 then Break;
-            Nexus (lcdimage[n+i], mem[(offset-col+i) and $F], m);
+            Nexus (lcdimage[n+i], mem[(integer(offset)-integer(col)+integer(i)) and $F], m);
 {$endif}
           end {for};
         end {with};
