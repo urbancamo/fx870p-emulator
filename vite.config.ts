@@ -12,7 +12,8 @@ interface LogEntry {
 }
 
 function logServerPlugin() {
-  const logFile = path.resolve('emulator-debug.log');
+  const logFile   = path.resolve('emulator-debug.log');
+  const traceFile = path.resolve('trace.jsonl');
 
   return {
     name: 'log-server',
@@ -21,6 +22,8 @@ function logServerPlugin() {
         logFile,
         `=== emulator debug log started ${new Date().toISOString()} ===\n`,
       );
+      // Truncate trace file so each dev-server session starts fresh
+      fs.writeFileSync(traceFile, '');
 
       server.middlewares.use('/log', (req, res, next) => {
         if (req.method !== 'POST') { next(); return; }
@@ -39,6 +42,19 @@ function logServerPlugin() {
           } catch {
             // ignore malformed body
           }
+          res.statusCode = 204;
+          res.end();
+        });
+      });
+
+      // /trace — accepts plain-text JSONL batches from trace.ts and appends to trace.jsonl
+      server.middlewares.use('/trace', (req, res, next) => {
+        if (req.method !== 'POST') { next(); return; }
+
+        let body = '';
+        req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+        req.on('end', () => {
+          if (body.length > 0) fs.appendFileSync(traceFile, body);
           res.statusCode = 204;
           res.end();
         });

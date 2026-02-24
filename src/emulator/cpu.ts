@@ -3,9 +3,11 @@
 
 import {
   pc, ua, ib, iserv, ss, speed,
+  mr,
   setPc, setUa, setIe, setIa, setIb, setIserv, setSs,
   setKy, setSpeed, setAcycles, setCpuSleep,
   setDelayedUa, setDelayedKy,
+  setSx, setSy, setSz, setFlag, setIx, setIy, setIz, setUs,
   cycles, setCycles, setOpindex,
   procptr, procindex, setProcindex,
   INTVECTORS, intmask, intvec,
@@ -15,10 +17,24 @@ import {
   firePcMonitor,
 } from './def.js';
 import { execInstr } from './exec.js';
+import { traceInstr, traceAddCycles, isTraceEnabled } from './trace.js';
 
 export { cpuWakeUp, setIfl };
 
 export function cpuReset(): void {
+  // Zero the general register file and all index/size registers so that every
+  // fresh start is deterministic — equivalent to a Delphi program launch where
+  // all global variables are zero-initialised by the Pascal runtime.
+  // Without this, registers retain values from the previous run.  After one
+  // execution r0 is non-zero; the ROM's `psr sz,0` then sets sz=r0≠0; and
+  // GetDeviceEntry's `anc $1,$sz` reads mr[sz] (a 0xFF RAM byte) → returns NZ
+  // → DriverInstallLoop escapes at 0x1FC6 → 0x1FB0 is never written.
+  mr.fill(0);
+  setSx(0); setSy(0); setSz(0);
+  setFlag(0);
+  setIx(0); setIy(0); setIz(0);
+  setUs(0); setSs(0);
+
   setPc(0x0000);
   setUa(0);
   setDelayedUa(0);
@@ -68,6 +84,7 @@ export function cpuRun(): number {
     } else {
       // Execute an instruction
       firePcMonitor(pc);
+      if (isTraceEnabled()) traceInstr(pc);
       setProcindex(0);
       execInstr();
       // Complete any deferred I/O device writes
@@ -83,5 +100,6 @@ export function cpuRun(): number {
   // Apply speed divisor when not in interrupt service
   if (iserv === 0) setCycles(cycles << speed);
 
+  traceAddCycles(cycles); // keep TraceCycles synchronised
   return cycles;
 }

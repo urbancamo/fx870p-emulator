@@ -72,15 +72,10 @@ export function writePd(): void {
 
 export function ioInit(): void {
   // Mirror Delphi ResetAll exactly:
-  //   pdi = $EE (international/VX-4) or $FF (Japanese/FX-870P)
-  //   pe  = $00  (explicitly reset — Delphi does this before IoInit)
-  //   pd  = $00  (output latch reset)
-  //   IoInit then clears bit 5 of pdi ("printer always ready")
-  //
-  // VX-4: bit 0 = 0 simulates the RS-232C chip asserting Port D bit 0 LOW,
-  // which is what the ROM probes during cold-start hardware detection.
-  // With bit 0 = 1 (old 0xEF) the ROM saw "no RS-232C" and omitted COM0.
-  pdi     = (Option2 === 0 ? 0xEE : 0xFF) & 0xDF;
+  //   Delphi: pdi = $EF (VX-4) or $FF (FX-870P), then IoInit does pdi &= $DF
+  //   Result: pdi = 0xCF (VX-4) or 0xDF (FX-870P)
+  //   pe = $00, pd = $00 set before IoInit in Delphi's ResetAll.
+  pdi     = (Option2 === 0 ? 0xEF : 0xFF) & 0xDF;
   pe      = 0x00;
   pd      = 0x00;
   OldPort = getPort();

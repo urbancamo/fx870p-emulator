@@ -4,6 +4,20 @@ Reference companion to `fx870p-roms.txt` (see also raw file, line numbers match)
 ROM0 = word memory (0x0000–0x0BFF, each PC address = 1 × 16-bit word in file).
 ROM1 = byte memory (0x0C00–0xFFFF, each PC address = 1 byte).
 
+### Source files
+
+Raw disassemblies with inline comments are in `reference/ROM Disassembly/`:
+
+| File | ROM | Size | Notes |
+|------|-----|------|-------|
+| `fx870_r0/rom0.src` | ROM0 | 2,026 lines | Word memory; confirms ReadDevTable, DevTableUpdate, RegisterCOM0 |
+| `fx870_r1/rom1a.src` | ROM1 | 16,457 lines | Byte memory 0x0C00–~0x4000; covers all boot/driver-install routines |
+| `fx870_r1/rom1b.src` | ROM1 | 8,499 lines | Continuation; contains EscapeDriverLoop (0x2D64) |
+| `fx870_r1/rom1c.src` | ROM1 | 1,603 lines | String tables and error code table |
+
+These files are the authoritative instruction-level source. The label dictionary and annotated
+sections below are a curated digest of the same binary.
+
 ---
 
 ## Label Dictionary
@@ -311,6 +325,47 @@ installed.
 
 ---
 
+## Root-Cause Analysis (TypeScript Emulator Bugs)
+
+Two confirmed bugs caused `LOAD "COM0:..."` to throw OP Error (code 28):
+
+### Bug 1 — Wrong `pdi` initial value
+
+`port.ts` used `0xEE & 0xDF = 0xCE` instead of the correct `0xEF & 0xDF = 0xCF`.
+Delphi's `ResetAll` sets `pdi = $EF` (VX-4) then `IoInit` does `pdi &= $DF` → `0xCF`.
+The one-bit difference (bit 0) affects the Port D composite value after `DevPreInit`
+sets `pd=0xCC, pe=0xCE`:
+
+```
+getPort() = (pd & pe) | (pdi & ~pe) = 0xCC | (pdi & 0x31)
+Delphi:  0xCC | (0xCF & 0x31) = 0xCC | 0x01 = 0xCD  (bit 0 = 1)
+Bug:     0xCC | (0xCE & 0x31) = 0xCC | 0x00 = 0xCC  (bit 0 = 0)
+```
+
+**Fixed:** reverted `0xEE` → `0xEF` in `port.ts`.
+
+### Bug 2 — `cpuReset()` did not zero general registers
+
+`cpuReset()` left `mr[]`, `sx`, `sy`, `sz`, `flag` unchanged between runs.
+After one execution `r0` is non-zero. The ROM's `psr sz,0` at ColdBootInit
+(`0x1F57`) sets `sz = r0 ≠ 0`. Then in `GetDeviceEntry`:
+
+```
+2972: ld  $0,$sy       ; r0 = sy
+2974: cal &H294F       ; ReadSlotTable → r1 = RAM[0x16C4 + sx] = 0xFF (uninit)
+2977: anc $1,$sz       ; r1 &= mr[sz]  ← reads mr[non-zero] = 0xFF → NZ!
+```
+
+`anc $1,$sz` reads `mr[sz]` (general register at index sz). With `sz ≠ 0` pointing
+at a RAM-initialised `0xFF` byte, the result is non-zero → `cal nz,&H2D64` fires
+→ DriverInstallLoop escapes via `jp &H2AE8` (never returns) → `0x1FDE` never
+reached → `0x1FB0` never written to `DriverPtrTable` → oscillation persists.
+
+**Fixed:** `cpuReset()` now calls `mr.fill(0)` and zeros `sx/sy/sz/flag/ix/iy/iz/us/ss`,
+matching Delphi's Pascal global-variable zero-initialisation at program start.
+
+---
+
 ## The COM0 Oscillation Bug
 
 ### Normal (Delphi) stable flow
@@ -364,3 +419,29 @@ overwrites 0x1FB0 back to 0x2734.
 
 See `src/emulator/def.ts` `setRamWriteMonitor` — extend the 500ms window or
 add a permanent monitor for just this address.
+
+---
+
+## Error Codes (from rom1c.src string table)
+
+Relevant I/O error codes that the ROM may set when COM0 init fails:
+
+| Code | Mnemonic | Meaning |
+|------|----------|---------|
+| 0x06 | NR Error | I/O device not ready |
+| 0x07 | RW Error | I/O device operation error |
+| 0x1C | OP Error | File not opened (code 28 — returned by `LOAD "COM0:..."` when devtbl has no COM0) |
+
+---
+
+## Notes from rom1a.src
+
+### `jr &H1FD7` inside DriverInstallLoop
+
+The `.src` file shows a short `jr` (not `jp`) targeting `0x1FD7` within the
+DriverInstallLoop body (around lines 2100–2108). Address `0x1FD7` is the
+`pst ua,&H54` instruction immediately before `ldw $2,&H1FB0`.  A forward
+`jr` to this point would skip the `std $1,(ix+$sx)` devtbl write at `0x1FD5`
+but would **still reach `0x1FDA`** (`ldw $2,&H1FB0`) and `0x1FDE`
+(`StoreDriverPtr`).  This branch does not prevent the real driver address from
+being written — it is not a factor in the COM0 oscillation bug.

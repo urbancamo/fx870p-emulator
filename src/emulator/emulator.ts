@@ -24,13 +24,14 @@ import {
   setIfl,
   setRamWriteMonitor,
   setPcMonitor,
-  sz, ix,
+  sz, ix, ua, flag, mr,
 } from './def.js';
 import { cpuReset, cpuRun, cpuWakeUp } from './cpu.js';
 import { ioInit, SerialRate, onSerialTick, pd, pe, pdi, getUartRegs } from './port.js';
 import { lcdInit, lcdRender, onrate, lcdctrl } from './lcd.js';
 import { commDecTimer } from './comm.js';
 import { remoteLog, flushLog, isRemoteLogEnabled } from './remote-log.js';
+import { traceInit, traceClose } from './trace.js';
 
 // ─── counters (cycle-based, like Delphi's timer variables) ──────────────────
 
@@ -192,6 +193,7 @@ export function emulatorStart(): void {
 }
 
 export function emulatorStop(): void {
+  traceClose();
   setCpuStop(true);
   running = false;
 }
@@ -214,6 +216,7 @@ export function emulatorReset(): void {
   setFlag(SW_bit);
   setCpuStop(false);
   remoteLog('emulator', 'reset — PC=0x0000 SW_bit set');
+  traceInit(); // start full instruction trace (auto-stops after 10 s of emulated time)
   // Phase 1: log first-write to every address in the first 2 s (capture full boot).
   // Phase 2: after 2 s, switch to a permanent watch on devtbl[0] (0x11100) and
   //          the COM0 driver-pointer table (0x1165C) so we can see every write.
@@ -248,15 +251,21 @@ export function emulatorReset(): void {
   // 0x1FC3 = DriverInstallLoop entry (GetDeviceEntry call)
   // 0x1FC6 = after GetDeviceEntry (cal nz,&H2D64 — taken if GetDeviceEntry returns nz)
   // 0x1FC9 = past the 0x2D64 branch (only if GetDeviceEntry returned z=1)
+  // 0x1FCC = return from cal &H9272 (LCD ops) — confirms 9272 returned OK
+  // 0x1FCF = return from cal &H001C (device-table read, modifies ix/mr[1])
+  // 0x1FD5 = std $1,(ix+$sx) — confirms an/or executed
+  // 0x1FD7 = pst ua,&H54 — first instruction of the inner loop body
   // 0x1FDA = ldw r2,&H1FB0 — real driver about to be stored
   // 0x1FDE = cal StoreDriverPtr with r2=0x1FB0
   // 0x2D64 = escape path (GetDeviceEntry returned nz; jp &H2AE8 never returns)
   // 0x273A = jp &H1FC3 from InstallCOM0Stub (confirms stub installer ran)
-  const _pcSeen = new Set<number>([0x1FC3, 0x1FC6, 0x1FC9, 0x1FDA, 0x1FDE, 0x2D64, 0x273A]);
+  const _pcSeen = new Set<number>([0x1FC3, 0x1FC6, 0x1FC9, 0x1FCC, 0x1FCF, 0x1FD5, 0x1FD7, 0x1FDA, 0x1FDE, 0x2D64, 0x273A]);
   setPcMonitor((tracePC) => {
     if (!isRemoteLogEnabled() || !_pcSeen.has(tracePC)) return;
     _pcSeen.delete(tracePC); // log each address once only
-    remoteLog('PC-trace', `0x${tracePC.toString(16).padStart(4,'0')} sz=0x${sz.toString(16).padStart(2,'0')} ix=0x${ix.toString(16).padStart(4,'0')} @${_resetCycles}cy`);
+    const fl = flag;
+    const flStr = `fl=0x${fl.toString(16).padStart(2,'0')}(${fl & 0x80 ? 'Z' : 'z'}${fl & 0x40 ? 'C' : 'c'}${fl & 0x08 ? 'SW' : ''})`;
+    remoteLog('PC-trace', `0x${tracePC.toString(16).padStart(4,'0')} sz=0x${sz.toString(16).padStart(2,'0')} ix=0x${ix.toString(16).padStart(4,'0')} ua=0x${ua.toString(16).padStart(2,'0')} mr1=0x${(mr[1]??0).toString(16).padStart(2,'0')} ${flStr} @${_resetCycles}cy`);
     if (_pcSeen.size === 0) setPcMonitor(null); // all seen, disable hook
   });
 }

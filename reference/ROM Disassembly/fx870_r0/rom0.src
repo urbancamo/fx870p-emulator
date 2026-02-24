@@ -1,0 +1,2845 @@
+; internal ROM of the microprocessor HD61700 A06
+
+; reset
+0000:	jr	&H0002
+
+; power switch on
+0001:	jr	&H0010
+
+0002:	gfl	$0
+0003:	anc	$0,&H02
+0005:	jp	nz,&H8000
+0007:	gre	ky,$1
+0008:	an	$1,&H08
+000A:	jp	nz,&H0BCF
+000C:	pst	ib,&H00
+000E:	jp	&H0D6E
+
+0010:	gfl	$0
+0011:	anc	$0,&H02
+0013:	jp	nz,&H9000
+0015:	gre	ky,$1
+0016:	an	$1,&H07
+0018:	jp	nz,&H0BC5
+001A:	jp	&H0D71
+
+; = 02A3
+001C:	pre	ix,&H1100	;LCDST system variable
+001E:	ldd	$1,(ix+$sx)
+001F:	rtn
+
+0020:	jp	&HFFEE
+
+; instruction TRP
+0022:	jp	&H0D74
+
+; = 0024
+; OKHX1, is $0 a hex digit?
+; Returns Carry set if $0 is in range '0'..'9' or 'A'..'F'.
+0024:	sbc	$0,&H41
+0026:	jr	c,&H002B
+0027:	sbc	$0,&H47,jr &H005B
+
+; = 0029
+0029:	cal	&H0049		;NEXTC
+; = 002B
+; OKNM1, is $0 a digit?
+; Returns Carry set if $0 is a digit '0'..'9'.
+002B:	adc	$0,&HD0
+002D:	rtn	nc
+002E:	sbc	$0,&H3A,jr &H005B
+
+0030:	jp	&HFFF1
+
+; ON interrupt
+0032:	phsm	$7,8
+0034:	phsm	$15,8
+0036:	gfl	$8
+0037:	gst	ua,$9
+0038:	gre	ix,$10
+0039:	gre	iz,$12
+003A:	jp	&H0D77
+
+; = 003C
+; ENDSC, test for an end of the parsed line
+; Fetches the first byte other than space from address IZ and updates the IZ
+; register. Returns Carry set if the byte is equal &H00, &H01 or &H02, or flag
+; Zero if the byte is equal &H03.
+003C:	cal	&H0049		;NEXTC
+003E:	sbc	$0,&H03,jr &H005B
+
+0040:	jp	&HFFF4
+
+; one-minute timer interrupt
+0042:	phsm	$3,4
+0044:	gfl	$0
+0045:	gst	ua,$1
+0046:	gre	ix,$2
+0047:	jp	&H0D7A
+
+; = 0049
+; NEXTC, get next character other than space
+; Fetches the byte pointed to by the IZ register to the $0 register.
+; Returns if the byte isn't equal &H20, otherwise increments the IZ register
+; and proceeds with the next one.
+; Returns Carry set if the fetched byte is less than &H20.
+0049:	ldd	$0,(iz+$sx)
+004A:	sbc	$0,&H20
+004C:	rtn	nz
+004D:	ldd	$0,(iz+$sy)
+004E:	sbc	$0,&H20,jr &H004C
+
+0050:	jp	&HFFF7
+
+; external interrupt 2
+0052:	jp	&H0D7D
+
+; = 0054
+; push a FP number $10-$18 on the US
+0054:	ldw	$19,&H0009
+0056:	cal	&H0D8C		;check the user stack space
+0058:	phum	$17,8
+005A:	phu	$18
+005B:	rtn
+
+; = 005C
+; pop a FP number from the US to $10-$18
+005C:	ppu	$18
+005D:	ppum	$10,8
+005F:	rtn
+
+0060:	jp	&HFFFA
+
+; pulse/key interrupt
+0062:	jp	&H0D80
+
+; = 0064
+; push a FP number $0-$8 on the user stack
+0064:	ldw	$19,&H0009
+0066:	cal	&H0D8C		;check the user stack space
+0068:	phum	$7,8
+006A:	phu	$8
+006B:	rtn
+
+; = 006C
+; pop a FP number from the US to $0-$8
+006C:	ppu	$8
+006D:	ppum	$0,8
+006F:	rtn
+
+0070:	jp	&HFFFD
+
+; external interrupt 1
+0072:	jp	&H0D83
+
+; = 01AA
+; the ON interrupt service routine continues here
+0074:	pst	ua,&H14
+0076:	cal	&H040B
+0078:	pre	ix,&H110D	;CSRCN, cursor flash counter
+007A:	sb	(ix+$sx),$30
+007B:	jr	nc,&H007D
+007C:	std	$31,(ix+$sx)
+007D:	pre	iz,$12
+007E:	pre	ix,$10
+007F:	pst	ua,$9
+0080:	pfl	$8
+0081:	ppsm	$8,8
+0083:	ppsm	$0,8
+0085:	rtni
+
+; = 01BC
+; the one-minute timer interrupt service routine continues here
+0086:	pst	ua,&H14
+0088:	pre	ix,&H110F	;APOCN, APO counter
+008A:	sb	(ix+$sx),$30
+008B:	jr	nc,&H008D
+008C:	std	$31,(ix+$sx)
+008D:	pre	ix,$2
+008E:	pst	ua,$1
+008F:	pfl	$0
+0090:	ppsm	$0,4
+0092:	rtni
+
+; = 01C9
+; SN Error if not an end of the parsed line
+0093:	cal	&H003C		;ENDSC, test for an end of the parsed line
+0095:	rtn	c
+0096:	jp	&H0D9E		;SN Error, syntax
+
+; = 01CE
+0098:	adc	$0,&H60
+009A:	rtn	nc
+009B:	sbc	$0,&HE0,jr &H00D6
+
+; = 01D3
+; CHEX1, hex character to binary conversion
+; If $0 contains a hexadecimal digit (character code in range '0'..'9' or
+; 'A'..'F' or 'a'..'F'), it's converted to binary value (in range &H00..&H0F)
+; and Carry is set.
+009D:	cal	&H00B6		;TCAPS, lower to upper case conversion
+009F:	cal	&H0024		;OKHX1, is $0 a hex digit?
+00A1:	rtn	nc
+00A2:	sb	$0,&H30
+00A4:	sbc	$0,&H0A
+00A6:	rtn	c
+00A7:	ad	$0,&HF9,jr &H00D6
+
+; = 01DF
+00A9:	cal	&H0049		;NEXTC
+; = 01E1
+; OKAM1, is $0 a letter?
+; Returns Carry set if $0 is a letter (in range 'A'..'Z' or 'a'..'z').
+00AB:	adc	$0,&HBF
+00AD:	rtn	nc
+00AE:	sbc	$0,&H5B
+00B0:	rtn	c
+; is $0 a lower case letter?
+00B1:	adc	$0,&H9F
+00B3:	rtn	nc
+00B4:	sbc	$0,&H7B,jr &H00D6
+
+; = 01EC
+; TCAPS, lower to upper case conversion
+; If $0 contains a lower case character, it's converted to upper case. The
+; function always returns cleared Carry.
+00B6:	cal	&H00B1		;is $0 a lower case letter?
+00B8:	rtn	nc
+00B9:	sb	$0,&H20,jr &H00D6
+
+; = 01F1
+; test for a specified character
+; Fetches the first byte other than space from address IZ and updates the IZ
+; register. If the byte is equal $0, increments the IZ register and returns
+; flag Zero.
+00BB:	ld	$1,&H2F,jr &H00D1
+00BD:	ld	$1,&H3A,jr &H00D1
+00BF:	ld	$1,&H22,jr &H00D1
+00C1:	ld	$1,&H40,jr &H00D1
+00C3:	ld	$1,&H2C,jr &H00D1
+00C5:	ld	$1,&H28,jr &H00D1
+00C7:	ld	$1,&H29,jr &H00D1
+00C9:	ld	$1,&H2D,jr &H00D1
+00CB:	ld	$1,&H3B,jr &H00D1
+00CD:	ld	$1,&H23,jr &H00D1
+00CF:	ld	$1,&H2E
+00D1:	cal	&H0049		;NEXTC
+00D3:	sbc	$1,$sz
+00D4:	rtn	nz
+00D5:	ldd	$0,(iz+$sy)
+00D6:	rtn
+
+; = 020B
+; test for a specified character, SN Error if not found
+; Fetches the first byte other than space from address IZ and updates the IZ
+; register. If the byte is equal $0, increments the IZ register, otherwise
+; causes the SN Error via address &H0D9E
+00D7:	ld	$1,&H3B,jr &H00E5
+00D9:	ld	$1,&H24,jr &H00E5
+00DB:	ld	$1,&H2C,jr &H00E5
+00DD:	ld	$1,&H2D,jr &H00E5
+00DF:	ld	$1,&H29,jr &H00E5
+00E1:	ld	$1,&H28,jr &H00E5
+00E3:	ld	$1,&H3D
+00E5:	cal	&H00D1
+00E7:	rtn	z
+00E8:	jr	&H0096		;SN Error, syntax
+
+; = 3902 (OM-53B)
+; test for the keyword prefix and code
+00E9:	ld	$1,&H07,jr &H00F1
+00EB:	ld	$1,&H06,jr &H00F1
+00ED:	ld	$1,&H05,jr &H00F1
+00EF:	ld	$1,&H04
+00F1:	cal	&H0049		;NEXTC, get next character other than space
+00F3:	sbc	$1,$sz
+00F4:	rtn	nz
+00F5:	sbc	(iz+$sy),$2
+00F6:	rtn	nz
+00F7:	ldiw	$1,(iz+$sx)	;IZ <- IZ+2
+00F8:	rtn
+
+; = 021D
+; block transfer - automatically chooses the direction in order to be able to
+; transfer even overlapping memory blocks
+; The procedure uses the BUP/BDN block transfer instructions when INT1 and
+; INT2 interrupts are disabled, otherwise the transfer is done with LDIM/STIM
+; or LDDM/STDM instructions.
+; $0,$1 - destination block lower address
+; $2,$3 - source block lower address
+; $4,$5 - number of transferred bytes
+; source and destination page specified in the UA register
+00F9:	sbcw	$4,$sy
+00FA:	rtn	c		;return if number of bytes is equal 0
+00FB:	gre	iz,$6
+00FC:	phsw	$7
+00FD:	sbcw	$2,$sz
+00FE:	jr	c,&H0123	;source address < destination address
+; source address >= destination address
+00FF:	pre	ix,$2		;source block lower address
+0100:	pre	iz,$0		;destination upper address
+0101:	gst	ie,$6
+0102:	anc	$6,&HA0
+0104:	jr	nz,&H0111	;branch if INT1 or INT2 interrupt enabled
+0105:	sbw	$4,$sy
+0106:	adw	$2,$4
+0108:	pre	iy,$2		;source block upper address
+0109:	bup
+010A:	gre	iz,$0
+010B:	gre	ix,$2
+010C:	sbw	$2,$sz
+010D:	adw	$0,$sy
+010E:	ppsw	$6
+010F:	pre	iz,$6
+0110:	rtn
+; transfer with LDIM/STIM
+0111:	sbw	$2,$sz
+0112:	ldw	$0,&H0008
+; this loop copies data in 8-byte chunks
+0114:	sbw	$4,$sz
+0115:	jr	c,&H011B
+0116:	ldim	$6,(ix+$sx),8
+0118:	stim	$6,(iz+$sx),8
+011A:	jr	&H0114
+011B:	ad	$4,$sz
+; this loop copies the remaining bytes
+011C:	sb	$4,$sy
+011D:	jr	c,&H0121
+011E:	ldi	$6,(ix+$sx)
+011F:	sti	$6,(iz+$sx)
+0120:	jr	&H011C
+0121:	gre	iz,$0,jr &H010E
+; source address < destination address
+0123:	pre	iy,$2		;source block lower address
+0124:	adw	$0,$4		;destination upper address
+0126:	adw	$2,$4
+0128:	pre	ix,$2		;source block upper address
+0129:	pre	iz,$0
+012A:	gst	ie,$6
+012B:	anc	$6,&HA0
+012D:	jr	nz,&H0135	;branch if INT1 or INT2 interrupt enabled
+012E:	ldd	$0,(ix-$sy)	;ix <- ix-1
+012F:	ldd	$0,(iz-$sy)	;iz <- iz-1
+0130:	bdn
+0131:	gre	ix,$0
+0132:	gre	iz,$2
+0133:	sbw	$2,$sz,jr &H010E
+; transfer with LDDM/STDM
+0135:	sbw	$2,$sz
+0136:	cmpw	$2
+0137:	ldw	$0,&H0008
+; this loop copies data in 8-byte chunks
+0139:	sbw	$4,$sz
+013A:	jr	c,&H0140
+013B:	lddm	$13,(ix-$sy),8
+013D:	stdm	$13,(iz-$sy),8
+013F:	jr	&H0139
+0140:	ad	$4,$sz
+; this loop copies the remaining bytes
+0141:	sb	$4,$sy
+0142:	jr	c,&H0146
+0143:	ldd	$13,(ix-$sy)
+0144:	std	$13,(iz-$sy)
+0145:	jr	&H0141
+
+; = 026A
+0146:	gre	ix,$0,jr &H010E
+
+; = 026C
+; block transfer from the ROM to the RAM (source page 0, destination page 1)
+0148:	gst	ua,$6
+0149:	pst	ua,&H44
+014B:	jr	&H014F
+; = 0270
+; block transfer within the RAM (source and destination page 1)
+014C:	gst	ua,$6
+014D:	pst	ua,&H54
+014F:	phs	$6
+0150:	cal	&H00F9
+0152:	pps	$6
+0153:	pst	ua,$6
+0154:	rtn
+
+; = 0279
+; SHFTM, move memory block
+; Copies the number of bytes specified in the $4,$5 registers from address
+; specified in the $2,$3 registers to address specified in the $0,$1
+; registers, then the source area is erased with &H00.
+0155:	cal	&H014C		;block transfer
+; = 027B
+; CLRME, clear memory block
+; Clears with &H00 the number of bytes specified in the $2,$3 registers
+; starting from address specified in the $0,$1 registers. Does nothing when
+; $2 and $3 contain 0.
+0157:	sbbm	$4,$4,8
+0159:	pre	ix,$0
+015A:	ldw	$0,&H0008
+015C:	sbw	$2,$sz
+; this loop clears the memory in 8-byte chunks
+015D:	jr	c,&H0161
+015E:	stim	$4,(ix+$sx),8
+0160:	jr	&H015C
+0161:	adw	$2,$sz
+; this loop clears the remaining bytes
+0162:	sb	$2,$sy
+0163:	rtn	c
+0164:	sti	$4,(ix+$sx)
+0165:	jr	&H0162
+
+; = 028A
+; procedure equivalent to the "switch" statement in C, or "case" in Pascal
+; expects: the selector code in $16, and a table of codes and addresses of
+; procedures pointed to by IX
+; the last entry of the table contains 0 and an address of procedure executed
+; when no match is found, equivalent to the "default" clause in C, or "else"
+; in Pascal
+0166:	gst	ua,$3
+0167:	pst	ua,&H04
+; search the table for a selector code $16
+0169:	ldim	$0,(ix+$sx),3	;$0=code, $1,$2=corresponding handler procedure
+016B:	sbc	$16,$sz
+016C:	jr	z,&H016F
+016D:	anc	$0,$sz		;end of the table?
+016E:	jr	nz,&H0169	;next table entry if not
+016F:	pst	ua,$3
+0170:	jp	$1
+
+; = 0295
+; one-minute timer and ON interrupt enable
+0171:	gst	ie,$1
+0172:	or	$1,&H18,jr &H0177
+; = 0299
+; INT1 interrupt enable
+0174:	gst	ie,$1
+0175:	or	$1,&H80
+0177:	pst	ie,$1
+0178:	rtn
+; = 029D
+; INT1 interrupt disable
+0179:	gst	ie,$1
+017A:	an	$1,&H7F,jr &H0177
+; = 02A0
+; one-minute timer and ON interrupt disable
+017C:	gst	ie,$1
+017D:	an	$1,&HE7,jr &H0177
+
+
+; *** Display routines ***
+
+; = 02A7
+; set the contrast to the value pointed to by the ELVAD system variable
+017F:	pre	ix,&H110B	;ELVAD, pointer to the contrast data
+0181:	ldw	$3,(ix+$sx)
+; transfer the contrast data pointed to by the $3,$4 register pair to the LCD
+; controller
+0182:	stw	$3,(ix+$sx)	;save the pointer in the ELVAD variable
+; = 02AB
+0183:	ppo	&HC3
+0185:	ld	$0,$sx
+0186:	pre	ix,$3
+0187:	ldw	$1,&H0D56
+0189:	sbc	$3,$1
+018B:	gst	ua,$4
+018C:	pst	ua,&H04
+018E:	ldw	$1,(ix+$sx)
+018F:	pst	ua,$4
+0190:	jr	nc,&H0193	;skip for pointer >= &H0D56
+0191:	didm	$2,3
+0193:	or	$0,&H0C
+0195:	stlm	$0,3
+0197:	rtn
+
+; = 02C4
+; decrease the contrast by a single step
+0198:	ldw	$1,&H0D2E	;begin of the contrast table
+019A:	ld	$0,&HFE,jr &H01A0	;step = -2
+; = 02C8
+; increase the contrast by a single step
+019C:	ldw	$1,&H0D6C	;end of the contrast table
+019E:	ld	$0,&H02		;step = +2
+01A0:	pre	ix,&H110B	;ELVAD, pointer to the contrast data
+01A2:	ldw	$3,(ix+$sx)
+01A3:	sbc	$3,$1
+01A5:	rtn	z
+01A6:	ad	$3,$sz,jr &H0182
+
+; = 02D4
+01A8:	cal	&H01D4		;LCD off
+01AA:	cal	&H01DA
+01AC:	cal	&H01D2		;set character width to 6 pixels
+01AE:	cal	&H01D0
+01B0:	cal	&H017F		;set the contrast according to ELVAD variable
+01B2:	cal	&H01D6		;ON pulse frequency = 921kHz/4096
+; user-defined characters &HFC..&HFF
+01B4:	sbbm	$2,$2,8
+01B6:	ldw	$0,&H030B
+01B8:	ppo	&HFB
+01BA:	stlw	$0
+01BB:	ppo	&HFA
+01BD:	stlm	$2,8
+01BF:	sb	$1,$sy
+01C0:	jr	nc,&H01B8
+; define the hardware cursor bitmaps
+01C1:	ld	$1,&H86
+01C3:	cal	&H01C7
+01C5:	ld	$1,&H96
+01C7:	ppo	&HFF
+01C9:	stlm	$1,3
+01CB:	ppo	&HFE
+01CD:	stlm	$2,8
+01CF:	rtn
+
+; = 02FC
+01D0:	ld	$2,&HF9,jr &H01DC
+01D2:	ld	$2,&H28,jr &H01DC	;set character width to 6 pixels
+01D4:	ld	$2,&H04,jr &H01DC	;LCD off
+01D6:	ld	$2,&HAD,jr &H01DC	;ON pulse frequency = 921kHz/4096
+01D8:	ld	$2,&H14,jr &H01DC	;LCD on
+01DA:	ld	$2,&H0A
+01DC:	ppo	&HFF
+01DE:	stl	$2
+01DF:	rtn
+
+; = 030C
+; copy the character dot pattern indicated by EDCSR from the LEDTP buffer
+; to the CSRDT buffer
+01E0:	cal	&H01F2		;$2,$3 <- EDCSR address in the LEDTP buffer
+01E2:	gst	ua,$0
+01E3:	pre	ix,$2
+01E4:	ldw	$2,&H1135	;CSRDT
+; = 0312
+; copy the 6-byte LCD dot pattern pointed to by IX to address $2,$3
+01E6:	ldm	$4,(ix+$sx),6
+01E8:	pst	ua,$0
+01E9:	pre	ix,$2
+01EA:	stm	$4,(ix+$sx),6
+01EC:	rtn
+
+; = 2AAF (OM-53B)
+; test the bit "cursor movement range setting"
+01ED:	pre	ix,&H1101
+01EF:	ld	$0,(ix-$sy)	;LCDST
+01F0:	anc	$0,&H08,jr &H01FE	;bit "cursor movement range setting"
+
+; ~ 031C
+01F2:	pre	ix,&H1101
+01F4:	ldw	$0,(ix+$sx)
+01F5:	sb	$0,$1		;EDSCR-SCTOP
+; = 031F
+; $2,$3 <- LEDTP + 6*$0
+01F7:	ld	$1,$sx
+01F8:	ldw	$2,&H123C
+01FA:	biuw	$0		;*2
+01FB:	adw	$2,$sz
+01FC:	biuw	$0		;*4
+01FD:	adw	$2,$sz
+01FE:	rtn
+
+; = 0327
+; $2,$3 <- EDTOP+$0
+01FF:	pre	ix,&H113B
+0201:	ldd	$1,(ix+$sz)
+0202:	gre	ix,$2
+0203:	sbc	$1,$sx		;test for 0
+0204:	rtn
+
+; = 032D
+; copy 191 bytes from address IX to the LCD row specified in $4 register
+0205:	ldw	$2,&H0082	;$2=&H82, select LCD1 (left part of the LCD)
+				;$3=&H00, column 0
+0207:	cal	&H020B
+0209:	ld	$2,&H92		;select LCD2 (right part of the LCD)
+; copy 95 or 96 bytes from address IX to the LCD,
+; $2=command, $3=column address, $4=row
+020B:	ppo	&HFF
+020D:	stlm	$2,3
+020F:	ppo	&HFE
+0211:	ld	$5,&H0B		;counter of 8-byte chunks
+0213:	cal	&H0219
+0215:	sbc	$2,&H92
+0217:	jr	z,&H0220	;last 7-byte chunk
+0218:	ld	$5,$sy
+0219:	ldim	$6,(ix+$sx),8
+021B:	stlm	$6,8
+021D:	sb	$5,$sy
+021E:	jr	nz,&H0219
+021F:	rtn
+0220:	ldim	$6,(ix+$sx),8
+0222:	stlm	$6,7
+0224:	rtn
+
+; = 0342
+; converts the character position in $4 (in range 0..127) to the command
+; for the LCD controller in $2..$4
+0225:	ld	$5,$4
+0227:	bid	$4
+0228:	did	$4		;$4 <- $4/32, row
+0229:	anc	$5,&H10
+022B:	jr	z,&H022E	;skip if left part of the screen
+022C:	or	$2,&H10		;select LCD2
+022E:	diu	$5
+022F:	ld	$3,$sx
+0230:	biu	$5
+0231:	jr	nc,&H0234	;skip if left block of 48 columns
+0232:	ad	$3,&H80		;select right block
+0234:	biu	$5
+0235:	jr	nc,&H0238	;skip if left block of 24 columns
+0236:	ad	$3,&H30		;= 24*2
+0238:	sb	$5,&H40
+023A:	rtn	c
+023B:	ad	$3,&H0C,jr &H0238	;= 6*2
+
+; = 035A
+023D:	cal	&H001C		;$1 <- (LCDST)
+023F:	an	$1,&HEF,jr &H0249	;bit 4: cursor on/off flag
+
+; = 035E
+0241:	cal	&H001C		;$1 <- (LCDST)
+0243:	anc	$1,&H10		;LCDST, bit 4: cursor on/off flag
+0245:	rtn z
+0246:	jr	&H0249
+
+; = 0364
+0247:	cal	&H001C		;$1 <- (LCDST)
+0249:	anc	$1,&H02		;LCDST, bit 1: cursor disable/enable flag
+024B:	rtn	z		;return if cursor disabled
+024C:	xr	$1,&H10		;LCDST, bit 4: cursor on/off flag
+024E:	std	$1,(ix+$sx)
+024F:	ldd	$10,(ix+$sx)
+0250:	cal	&H01E0		;copy the char. dot pattern indicated by EDCSR
+				;from the LEDTP buffer to the CSRDT buffer
+0252:	anc	$10,&H10	;LCDST, bit 4: cursor on/off flag
+0254:	jr	z,&H0262
+0255:	jp	&H0D95
+
+0257:	phsm	$16,6
+0259:	cal	&H0286		;cursor bitmap in $11-$16
+025B:	xrm	$4,$11,6
+025D:	ppsm	$11,6
+025F:	pre	ix,$2		;CSRDT, cursor data buffer (&H1135)
+0260:	stm	$4,(ix+$sx),6
+; = 0388
+; display a character at the position EDCSR, $2,$3=pointer to the bitmap
+0262:	pre	ix,&H1101
+0264:	ldw	$4,(ix+$sx)	;$4 <- EDCSR, $5 <- SCTOP
+0265:	sb	$4,$5
+0267:	rtn	c		;return if outside the displayed area
+0268:	ld	$5,(ix+&H09)	;SCROL system variable (&H110A)
+026A:	sbc	$4,$5
+026C:	rtn	nc		;return if outside the displayed area
+026D:	pre	ix,$2		;pointer to the bitmap
+026E:	ld	$2,&H82		;LCDC command "graphic output"
+0270:	cal	&H0225		;character position $4 -> LCDC command $2..$4
+0272:	ppo	&HFF
+0274:	stlm	$2,3
+0276:	ldm	$5,(ix+$sx),6
+0278:	ppo	&HFE
+027A:	sbc	$3,&HD4		;column
+027C:	jr	z,&H0280
+027D:	stlm	$5,6
+027F:	rtn
+0280:	sbc	$2,&H92
+0282:	jr	nz,&H027D
+0283:	stlm	$5,5
+0285:	jr	&H027F
+
+0286:	jp	&H0DAD
+
+; ~0374
+; returns the cursor bitmap in $11-$16
+0288:	ld	$0,$sy		;thin cursor
+0289:	pre	ix,&H1113	;KEYMD system variable
+028B:	ldd	$1,(ix+$sx)
+028C:	anc	$1,&H20
+028E:	jr	z,&H0291
+028F:	ld	$0,&H03		;thick cursor
+0291:	ld	$11,$sx
+0292:	ld	$12,$sz
+0293:	ld	$13,$sz
+0294:	ld	$14,$sz
+0295:	ld	$15,$sx
+0296:	ld	$16,$sx
+0297:	biu	$1
+0298:	rtn	c		;return with a narrow cursor
+; wide cursor
+0299:	ld	$11,$sz
+029A:	ldw	$15,$12,jr &H027F
+
+; = 03A3
+029C:	cal	&H02BB
+029E:	cal	&H02CD
+02A0:	ldim	$0,(ix-$sy),5	;$0=EDSCR, $1=SCTOP, $3=BOEDB, $4=MOEDB
+02A2:	anc	$0,&H08
+02A4:	jr	nz,&H02B6
+02A5:	na	$0,$sx
+02A6:	stw	$31,(ix+$sy)	;TOARE=0, BOARE=$0
+02A7:	ldd	$0,(ix+$sx)	;MOEDB
+02A8:	sbc	$3,$sz
+02A9:	jr	c,&H02AC
+02AA:	ld	$0,$3
+02AC:	sbc	$4,$sz
+02AD:	jr	nc,&H02B0
+02AE:	ld	$0,$3
+02B0:	sbc	$1,$sz
+02B1:	jr	nc,&H02B3
+02B2:	bydw	$1
+02B3:	std	$0,(ix+$sx)	;MOEDB
+02B4:	sbc	$30,$sx		;clear Carry
+02B5:	rtn
+; = 03BD
+02B6:	ldw	$0,(ix+$sy)	;$0=TOARE, $1=BOARE
+02B7:	st	$0,(ix-&H02)	;TOEDB
+02B9:	st	$1,(ix-$sy)	;BOEDB
+02BA:	jr	&H02B3
+
+; = 03C2
+02BB:	ldw	$1,&H1101
+02BD:	ld	$0,($1)
+02BF:	or	$0,&H1F
+02C1:	pre	ix,&H113B	;EDTOP
+02C3:	sb	$0,&H20
+02C5:	jr	c,&H02C8
+02C6:	sbc	(ix+$sz),$31
+02C7:	jr	nz,&H02C3
+02C8:	ad	$0,$sy
+02C9:	pre	ix,$1
+02CA:	st	$0,(ix+&H02)
+02CC:	rtn
+
+; = 03D4
+02CD:	ldd	$0,(ix+$sx)
+02CE:	or	$0,&H1F
+02D0:	pre	ix,&H113B	;EDTOP
+02D2:	sbc	(ix+$sz),$31
+02D3:	jr	nz,&H02D8
+02D4:	pre	ix,$1
+02D5:	st	$0,(ix+&H03)
+02D7:	rtn
+02D8:	ad	$0,&H20
+02DA:	jr	nc,&H02D2
+02DB:	sb	$0,&H20,jr &H02D4
+
+; = 2B07 (OM-53B)
+; decrement SCTOP by 32
+02DD:	ld	$1,&HE0,jr &H02E1
+; increment SCTOP by 32
+02DF:	ld	$1,&H20
+02E1:	ad	(ix+$sy),$1	;SCTOP
+02E2:	rtn
+
+; = 03E4
+; look for the end of a string in the logical line in the EDTOP buffer,
+; returns in $0 the index of the end of the string
+02E3:	ldw	$1,&H1104
+02E5:	ld	$0,($1)		;BOEDB
+02E7:	cal	&H02F2		;$0 <- end of the string in the EDTOP buffer
+; ensure that $0 stays within the logical line
+02E9:	pre	ix,$1
+02EA:	sbc	(ix+$sx),$0	;if $0 > BOEDB ...
+02EB:	jr	nc,&H02ED
+02EC:	ldd	$0,(ix+$sx)	;... then $0 = BOEDB
+02ED:	sbc	(ix+$sy),$0	;if $0 < MOEDB ...
+02EE:	rtn	z
+02EF:	rtn	c
+02F0:	ld	$0,(ix+$sy)	;... then $0 = MOEDB
+02F1:	rtn
+
+; = 03F3
+; look for the end of a string in the EDTOP buffer starting from index $0
+; backwards,
+; returns in $0 the index of the end of the string
+02F2:	pre	ix,&H113B	;EDTOP
+02F4:	sbc	(ix+$sz),$31	;test the character in the buffer for 0
+02F5:	jr	nz,&H02FA
+02F6:	sbc	$0,$sx		;test the index for 0
+02F7:	rtn	z		;return if top of the EDTOP buffer reached
+02F8:	sb	$0,$sy,jr &H02F4
+02FA:	ad	$0,$sy
+02FB:	rtn	nz
+02FC:	sb	$0,$sy
+02FD:	rtn
+
+; = 03FF
+; process the logical line (determine EDCNT, fill the gaps with spaces)
+02FE:	cal	&H02E3		;$0 <- end of the string in the logical line
+0300:	st	$0,(ix+&H04)	;EDCNT
+0302:	ld	$2,$sz
+0303:	ldd	$0,(ix+$sy)	;MOEDB
+0304:	ld	$3,$sz
+; replace all zeros in the string in the EDTOP buffer (from MOEDB to EDCNT)
+; with spaces
+0305:	ld	$1,&H20
+0307:	pre	ix,&H113B	;EDTOP buffer
+0309:	sbc	$2,$sz
+030A:	rtn	z
+030B:	sbc	(ix+$sz),$1	;is the byte greater than or equal &H20 ?
+030C:	jr	nc,&H030E	;skip if so
+030D:	st	$1,(ix+$sz)	;replace it with a space
+030E:	ad	$0,$sy,jr &H0309
+
+0310:	cal	&H001C		;$1 <- (LCDST)
+0312:	anc	$1,&H02
+0314:	rtn
+
+; = 29C2 (OM-53B)
+0315:	ld	$0,&H20,jr &H031E
+; = 29C6 (OM-53B)
+0317:	ld	$0,&H08,jr &H031E ;respect the cursor movement range setting
+; = 29CA (OM-53B)
+0319:	ld	$0,&H04,jr &H031E
+; = 29CE (OM-53B)
+031B:	ld	$0,&H02,jr &H031E	;cursor display enable
+; = 29D2 (OM-53B)
+031D:	ld	$0,$sy
+031E:	cal	&H001C		;$1 <- (LCDST)
+0320:	or	$1,$sz
+0321:	std	$1,(ix+$sx)
+0322:	rtn
+
+0323:	cal	&H0DB0
+0325:	an	$1,&HEF
+0327:	std	$1,(ix+$sx)
+
+; = 29E0 (OM-53B)
+0328:	ld	$0,&HF7,jr &H0332 ;ignore the cursor movement range setting
+; = 29DC (OM-53B)
+032A:	ld	$0,&HDF,jr &H0332
+; = 29E4 (OM-53B)
+032C:	ld	$0,&HFB,jr &H0332
+; = 29E8 (OM-53B)
+032E:	ld	$0,&HFD,jr &H0332	;cursor display disable
+; = 29EC (OM-53B)
+0330:	ld	$0,&HFE
+0332:	cal	&H001C		;$1 <- (LCDST)
+0334:	an	$1,$sz,jr &H0321
+
+; = 2A52 (OM-53B)
+; create an LCD dot pattern
+; Converts the character specified in the $16 register to the corresponding LCD
+; dot pattern (6 bytes) at the address pointed to by the $2,$3 register pair.
+0336:	cal	&H033A		;IX <- dot pattern for character $16
+0338:	jp	&H01E6		;copy 6-byte LCD dot pattern to address $2,$3
+
+; ~ 2A58 (OM-53B)
+; returns a pointer IX to the LCD dot pattern for character $16
+033A:	gst	ua,$0
+033B:	phs	$0
+033C:	ld	$0,$16
+033E:	ld	$1,$sx
+033F:	sb	$0,&H20
+0341:	jr	nc,&H0343
+0342:	ld	$0,$sx
+0343:	sbc	$0,&HDC
+0345:	jr	nc,&H0351
+; fixed characters &H20-&HFB
+0346:	cal	&H0DB3
+0348:	pst	ua,&H24
+; $5,$6 <- $5,$6 + 6 * $0,$1
+034A:	biuw	$0
+034B:	adw	$5,$sz
+034C:	biuw	$0
+034D:	adw	$5,$sz
+034E:	pre	ix,$5
+034F:	pps	$0
+0350:	rtn
+; user defined characters &HFC-&HFF
+0351:	ldw	$5,&H153C		;CGRAM
+0353:	sb	$0,&HDC,jr &H034A
+
+
+; *** Keyboard routines ***
+
+; structure of the keyboard buffer memory block
+; &H111B		;KYCNT, number of characters in the key buffer
+; &H111C		;index of the head in range &H00..&H0F
+; &H111D		;index of the tail in range &H00..&H0F
+; &H111E: DB &H10	;buffer size (fixed value)
+; &H111F: DW &H1121	;address of the buffer (fixed value)
+; &H1121: DS &H10	;circular key buffer
+
+; = 0411
+; put character $0 to the keyboard buffer
+0355:	pre	ix,&H111B
+0357:	ldm	$1,(ix+$sy),5
+0359:	sbc	(ix+$sx),$3	;compare KYCNT against the buffer size
+035A:	jr	z,&H0368	;buffer overflow, exit with Carry set
+035B:	ad	(ix+$sx),$30	;increment KYCNT
+035C:	ad	$2,$sy		;increment the index of the tail
+035D:	sbc	$2,$3		;compare the tail against the buffer size
+035F:	jr	nz,&H0361
+0360:	ld	$2,$sx		;wrap the tail index
+0361:	std	$2,(ix+&H02)	;store the updated tail index
+0363:	pre	ix,$4
+0364:	std	$0,(ix+$2)	;store the character and exit with NoCarry
+0366:	adc	$31,$sy		;clear Carry
+0367:	rtn
+0368:	sbc	$31,$sy		;set Carry
+0369:	rtn
+
+; = 0426
+; get a character from keyboard buffer to $0
+036A:	pre	ix,&H111B
+036C:	ldm	$0,(ix+$sy),5
+036E:	sbc	(ix+$sx),$30	;test KYCNT for 0
+036F:	rtn	c		;exit with Carry set when buffer empty
+0370:	sb	(ix+$sx),$30	;decrement KYCNT
+0371:	ad	$0,$sy		;increment the index of the head
+0372:	sbc	$2,$sz		;compare the head against the buffer size
+0373:	jr	nz,&H0375
+0374:	ld	$0,$sx		;wrap the head index
+0375:	std	$0,(ix+$sy)	;store the updated head index
+0376:	pre	ix,$3		;address of the buffer
+0377:	ldd	$0,(ix+$sz)	;fetch the character pointed to by the head
+0378:	jr	&H0366		;exit with Carry cleared
+
+; = 0435
+; clear the keyboard buffer
+0379:	pre	ix,&H111B
+037B:	sti	$31,(ix+$sx)	;KYCNT, number of characters in the key buffer
+037C:	sti	$31,(ix+$sx)	;index of the key buffer head
+037D:	std	$31,(ix+$sx)	;index of the key buffer tail
+037E:	rtn
+
+; = 043B
+037F:	ld	$0,&H4D		;select all columns
+; = 043D
+; select KO column $0, read KI to $1,$2
+0381:	pst	ia,$0
+0382:	adbcm	$4,$4,2		;small delay
+0384:	adbcm	$4,$4,2
+0386:	gre	ky,$1
+0387:	pst	ia,&H40
+0389:	an	$2,&HE0,jr &H037E
+
+038B:	rtn	z
+; = 0448
+; ensure that KI=0 when no KO column selected
+038C:	pst	ia,&H40
+038E:	gre	ky,$1
+038F:	an	$2,&HE0
+0391:	orc	$1,$2,jr &H038B
+
+; = 044F
+; set the key repeat flag when the conditions are met
+0393:	cal	&H001C		;$1 <- (LCDST)
+0395:	anc	$1,$sy
+0396:	rtn	z
+; = 0453
+0397:	pre	ix,&H1114
+0399:	ldw	$0,(ix+$sx)
+039A:	sbc	(ix+&H07),$31	;KYCNT, number of characters in the key buffer
+039C:	rtn	nz
+; = 0459
+039D:	sbc	$1,&H07		;$1=CHATA, debounce counter
+039F:	rtn	nz
+03A0:	or	$0,&H04		;bit "repeat on"
+03A2:	std	$0,(ix+$sx)	;KYSTA system variable
+03A3:	rtn
+
+; = 0460
+; CRTKY
+; waits for a key press, returns the key code in $0
+; processes the Contrast, Break and OFF keys
+03A4:	pre	ix,&H110D	;CSRCN, cursor flash counter
+03A6:	ld	$0,(ix+$sy)	;cursor flash rate
+03A7:	std	$0,(ix+$sx)
+03A8:	pre	ix,&H110F	;APOCN, APO counter
+03AA:	ld	$0,(ix+$sy)
+03AB:	std	$0,(ix+$sx)
+03AC:	cal	&H0171		;one-minute timer and ON interrupt enable
+03AE:	pre	ix,&H110D	;CSRCN, cursor flash counter
+03B0:	sbc	(ix+$sx),$31
+03B1:	jr	nz,&H03BA
+03B2:	cal	&H017C		;one-minute timer and ON interrupt disable
+03B4:	ld	$0,(ix+$sy)	;cursor flash rate
+03B5:	std	$0,(ix+$sx)
+03B6:	cal	&H0247
+03B8:	cal	&H0171		;one-minute timer and ON interrupt enable
+03BA:	cal	&H03F3
+03BC:	pre	ix,&H111B	;KYCNT
+03BE:	sbc	(ix+$sx),$31
+03BF:	jr	z,&H03AE	;loop if the keyboard buffer is empty
+03C0:	cal	&H017C		;one-minute timer and ON interrupt disable
+03C2:	cal	&H036C		;get a character from keyboard buffer to $0
+03C4:	pre	ix,&H1114	;KYSTA
+03C6:	ldd	$1,(ix+$sx)
+03C7:	sbc	$0,&HFC		;contrast key?
+03C9:	jr	z,&H03DE	;branch if so
+; not a contrast key
+03CA:	anc	$1,&H10		;KYSTA bit 4 - contrast preset mode?
+03CC:	jr	z,&H03D6	;branch if not
+; contrast preset mode
+03CD:	sbc	$0,&H1E		;arrow up?
+03CF:	jr	z,&H03E2	;increase the contrast
+03D0:	sbc	$0,&H1F		;arrow down?
+03D2:	jr	z,&H03E5	;decrease the contrast
+; any other key clears the contrast preset mode
+03D3:	an	$1,&HEF		;clear bit 4 of the KYSTA variable
+03D5:	std	$1,(ix+$sx)
+03D6:	sbc	$0,&H03		;BRK key?
+03D8:	jp	z,&H0D98
+03DA:	sbc	$0,&H13		;OFF key?
+03DC:	jr	z,&H0401
+03DD:	rtn
+; contrast key was pressed
+03DE:	or	$1,&H10
+03E0:	std	$1,(ix+$sx)	;KYSTA
+03E1:	jr	&H03A8
+03E2:	cal	&H019C		;increase the contrast by a single step
+03E4:	jr	&H03E7
+03E5:	cal	&H0198		;decrease the contrast by a single step
+03E7:	pre	ix,&H1114	;KYSTA
+03E9:	ldw	$0,(ix+$sx)
+03EA:	cal	&H039D
+03EC:	jr	&H03A8
+
+; = 04E0
+03ED:	gfl	$0
+03EE:	gfl	$1
+03EF:	sbc	$1,$sz
+03F0:	jr	nz,&H03ED
+03F1:	anc	$1,&H08,jr &H03DD	;power switch state flag SW
+
+; = 04E6
+03F3:	pre	ix,&H110F	;APOCN, APO counter
+03F5:	sbc	(ix+$sx),$30
+03F6:	jr	c,&H0401
+; = 04EA
+03F7:	gfl	$0
+03F8:	gfl	$1
+03F9:	sbc	$1,$sz
+03FA:	jr	nz,&H03F7
+03FB:	anc	$1,$sy		;undocumented bit 0 of the Flag register
+03FC:	jp	z,&H0DAA
+03FE:	cal	&H03ED		;= GFL $1, test the SW flag
+0400:	rtn	nz
+0401:	jp	&H0D8F
+
+; = 04EF
+0403:	cal	&H03ED		;= GFL $1, test the SW flag
+0405:	jr	z,&H0409	;branch if the power switch in the OFF state
+0406:	anc	$1,&H04		;auto power off state flag APO
+0408:	rtn	z
+0409:	jp	&H0DB6
+
+; = 04F9
+; this procedure is periodically called by the ON interrupt service routine
+040B:	pre	ix,&H1115
+040D:	cal	&H038C		;ensure that KI=0 when no KO column selected
+040F:	adc	(ix+$sx),$31	;test the debounce counter (CHATA) for 0
+0410:	jr	nz,&H0426
+0411:	cal	&H037F		;select KO column $0, read KI to $1,$2
+0413:	sbcw	$1,$sy
+0414:	rtn	c		;return when no key pressed
+0415:	cal	&H038C		;ensure that KI=0 when no KO column selected
+; scan KO columns 12 to 1
+0417:	ld	$0,&H4C		;initial KO column
+0419:	cal	&H0381		;select KO column $0, read KI to $1,$2
+041B:	sbcw	$1,$sy
+041C:	jr	nc,&H0420
+041D:	sb	$0,$sy		;next KO column
+041E:	jr	nlz,&H0419
+041F:	rtn
+; store the coordinates of a pressed key, $0=KO $1,$2=KI
+0420:	stm	$0,(ix+$sy),3
+0422:	ld	$0,&H20
+0424:	std	$0,(ix+$sx)	;CHATA, debounce counter
+0425:	rtn
+
+; = 0514
+0426:	ldm	$0,(ix+$sx),4
+0428:	pst	ia,$1
+0429:	adbcm	$4,$4,2		;small delay
+042B:	adbcm	$4,$4,2
+042D:	gre	ky,$4
+042E:	an	$5,&HE0
+0430:	sb	$0,&H10		;CHATA, debounce counter
+0432:	pst	ia,&H40
+0434:	jr	nlz,&H045A	;branch if an accepted key remains pressed
+; process the newly pressed key
+0435:	sbcw	$2,$4		;compare the current and previous KI states
+0437:	jr	z,&H043A	;branch if they match
+; the KI state has changed
+0438:	std	$31,(ix+$sx)	;clear the debounce counter
+0439:	rtn
+; still the same KI state
+043A:	std	$0,(ix+$sx)	;CHATA, debounce counter
+043B:	sbc	$0,$sx		;test for 0
+043C:	rtn	nz
+; stable KI state was validated
+043D:	ld	$6,$sx
+043E:	ld	$0,$sx
+043F:	ad	$0,$sy
+0440:	biu	$3
+0441:	rou	$2
+0442:	jr	nc,&H043F
+; $0 contains the bit number of the KI port (1=KI12, 2=KI11, ...)
+0443:	sbcw	$2,$sy
+0444:	jr	nc,&H0422
+0445:	an	$1,&H0F		;$1 contains the KO state (1=KO1, 2=KO2, ...)
+0447:	phs	$6
+0448:	cal	&H0D92		;decode the pressed key
+044A:	pps	$6
+044B:	pre	ix,&H1115
+044D:	ld	$0,(ix-$sy)	;KYSTA
+044E:	an	$0,&HFB
+0450:	st	$0,(ix-$sy)
+0451:	ldw	$4,&H14B4
+0453:	sbc	$6,$sx
+0454:	jr	z,&H0456
+0455:	bydw	$5		;$4 = either &HB4 or &H14
+0456:	st	$4,(ix+&H04)	;KYREP
+; = 0543
+0458:	ld	$0,&H07,jr &H0424	;debounce counter <- 7 then return
+
+; the key still remains pressed after it was accepted
+045A:	ancw	$2,$4		;compare the current and previous KI states
+045C:	ld	$0,(ix-$sy)	;KYSTA
+045D:	jr	nz,&H0460
+; the KI state has changed
+045E:	sb	(ix+$sx),$30	;decrement the debounce counter
+045F:	rtn
+; still the same KI state
+0460:	an	$0,&H04		;test the REPEAT ON/OFF bit
+0462:	jr	z,&H0458
+0463:	ld	$4,(ix+&H04)	;KYREP
+0465:	sb	$4,$sy		;decrement the KYREP counter
+0466:	jr	nz,&H0456	;(KYREP) <- $4, (CHATA) <- &H07
+; accept the key if counter=0
+0467:	ld	$4,(ix+&H05)
+0469:	st	$4,(ix-&H02)	;KEYMD
+046B:	ld	$6,$sy,jr &H043E
+
+; = 055A
+046D:	ldw	$3,&H1111	;KANA1
+046F:	st	$30,($3),jr &H045F
+
+; = 055E
+0471:	ld	$7,$sx
+0472:	anc	$2,&H20
+0474:	jr	z,&H04A0
+0475:	cal	&H00AB		;OKAM1, is $0 a letter?
+0477:	jr	nc,&H048D
+0478:	cal	&H00B6		;TCAPS, lower to upper case conversion
+047A:	ld	$1,$sx
+047B:	ldw	$3,&H0BBF
+047D:	cal	&H0582
+047F:	ldw	$3,&H1111
+0481:	ldw	$5,($3)
+0483:	sbc	$0,&H06
+0485:	jr	z,&H04A5
+0486:	sbc	$5,$sy
+0487:	jr	nz,&H04B3
+0488:	sbc	$0,$sx
+0489:	jr	uz,&H04B1
+048A:	ld	$5,$sz
+048B:	st	$5,($3),jr &H045F
+
+; = 0578
+048D:	ldw	$3,&H1111	;KANA1
+048F:	ldw	$5,($3)
+0491:	st	$30,($3)
+0493:	sbc	$5,&H1F
+0495:	jr	z,&H0499
+0496:	sbc	$6,&H1F
+0498:	jr	nz,&H04A0
+0499:	ld	$7,$sy
+049A:	byum	$0,3
+049C:	ld	$0,&HDD
+049E:	sbc	$1,$sx,jr &H04A1
+04A0:	sbc	$0,$sx
+04A1:	jr	nz,&H04A3
+04A2:	ad	$7,$sy
+04A3:	jp	&H0557
+
+04A5:	ld	$0,&HDD
+04A7:	sbc	$5,&H1F
+04A9:	jr	z,&H04AD
+04AA:	sbc	$6,&H1F
+04AC:	jr	nz,&H04AF
+04AD:	ld	$1,$sz
+04AE:	ld	$7,$sy
+04AF:	jp	&H0555
+
+04B1:	ad	$0,&HB1,jr &H04A0
+
+; = 0592
+04B3:	ld	$1,$sx
+04B4:	sbc	$0,$sy
+04B5:	jr	uz,&H04CA
+04B6:	sbc	$6,$sx
+04B7:	jr	z,&H04B9
+04B8:	bydw	$6
+04B9:	ld	$6,$sz
+04BA:	sbc	$5,&H1F
+04BC:	jr	nz,&H04C2
+04BD:	sbc	$6,&H33
+04BF:	jr	z,&H048B
+04C0:	ld	$0,&HDD,jr &H04C7
+04C2:	sbc	$5,$6
+04C4:	jr	nz,&H048B
+04C5:	ld	$0,&HAF
+04C7:	bydw	$6
+04C8:	st	$5,($3),jr &H04A3
+04CA:	sbc	$6,$sx
+04CB:	jr	z,&H04F7
+04CC:	sbc	$6,&H33
+04CE:	jr	nz,&H04D4
+04CF:	sbc	$5,&H30
+04D1:	jr	uz,&H04F6
+04D2:	ld	$6,$sy,jr &H04F7
+04D4:	sbc	$6,&H15
+04D6:	jr	nz,&H04E1
+04D7:	sbc	$5,&H1A
+04D9:	jr	nz,&H04F6
+04DA:	sbc	$0,&H02
+04DC:	jr	nz,&H04F6
+04DD:	ld	$6,$sx,jr &H04F7
+04DF:	ld	$0,&HDD,jr &H0555
+04E1:	sbc	$6,&H24
+04E3:	jr	nz,&H04F6
+04E4:	sbc	$5,&H15
+04E6:	jr	z,&H04F4
+04E7:	sbc	$5,&H18
+04E9:	jr	z,&H04F2
+04EA:	sbc	$5,&H5A
+04EC:	jr	z,&H04F0
+04ED:	sbc	$5,&H1A
+04EF:	jr	nz,&H04F6
+04F0:	ad	$5,&H02,jr &H0525
+04F2:	ld	$5,&H1A
+04F4:	ld	$6,$sx,jr &H0523
+04F6:	bydw	$6
+04F7:	sbc	$5,&H38
+04F9:	jr	nz,&H04FF
+04FA:	anc	$0,$sy
+04FB:	jr	z,&H052A
+04FC:	ld	$1,$sz
+04FD:	ld	$0,&HB3,jr &H057D
+04FF:	sbc	$5,&H2F
+0501:	jr	nz,&H0503
+0502:	sb	$5,$sy
+0503:	sbc	$5,&H18
+0505:	jr	nz,&H0510
+0506:	sbc	$6,$sy
+0507:	jr	nz,&H050A
+0508:	ld	$5,&H1A,jr &H0510
+050A:	anc	$0,$sy
+050B:	jr	z,&H050E
+050C:	ld	$5,&H15,jr &H0510
+050E:	ld	$5,&H10
+0510:	sbc	$5,&H31
+0512:	jr	nz,&H051C
+0513:	ld	$7,$sy
+0514:	ld	$2,$sz
+0515:	ldw	$0,&HDEB3
+0517:	sbc	$2,&H02
+0519:	jr	z,&H0555
+051A:	ad	$2,&HA7,jr &H0554
+051C:	sbc	$5,&H4F
+051E:	jr	nz,&H0526
+051F:	ld	$5,&H55
+0521:	sbc	$6,$sy
+0522:	jr	z,&H0526
+0523:	sbc	$0,$sy
+0524:	jr	z,&H0526
+0525:	ld	$6,$sy
+0526:	anc	$6,$sy
+0527:	jr	z,&H0570
+0528:	ld	$2,$sz
+0529:	ld	$0,$sy
+052A:	sb	$5,&H10
+052C:	ad	$0,$5
+052E:	an	$0,&H3F
+0530:	ldw	$3,&H0C1A
+0532:	cal	&H0582
+0534:	anc	$5,&H40
+0536:	jr	z,&H0539
+0537:	ld	$1,&HDE,jr &H053E
+0539:	anc	$5,&H80
+053B:	jr	z,&H053F
+053C:	ld	$1,&HDF
+053E:	ld	$7,$sy
+053F:	sbc	$6,$sy
+0540:	jr	nz,&H0555
+0541:	ad	$7,$sy
+0542:	ldw	$3,&H0C47
+0544:	ad	$3,$2
+0546:	phsw	$1
+0547:	cal	&H0583
+0549:	ld	$2,$sz
+054A:	ppsw	$0
+054B:	sbc	$7,$sy
+054C:	jr	nz,&H0555
+054D:	ld	$1,$2,jr &H0555
+054F:	sbc	$0,&H03
+0551:	jr	nz,&H052A
+0552:	ldw	$0,&HAAB2
+0554:	ad	$7,$sy
+0555:	cal	&H046D
+0557:	pre	ix,&H111B
+0559:	ldd	$3,(ix+$sx)
+055A:	ad	$3,$7
+055C:	ad	$3,&HF1
+055E:	jr	c,&H0565
+055F:	phsw	$2
+0560:	cal	&H0355		;put character $0 to the keyboard buffer
+0562:	ppsw	$0
+0563:	sb	$7,$sy,jr &H055E
+0565:	pre	ix,&H1115
+0567:	ld	$2,(ix-&H02)
+0569:	st	$2,(ix+&H05)
+056B:	an	$2,&H7F
+056D:	st	$2,(ix-&H02)
+056F:	rtn
+
+; = 064F
+0570:	sbc	$5,&H30
+0572:	jr	z,&H057F
+0573:	jr	uz,&H054F
+0574:	sbc	$5,&H25
+0576:	jr	nz,&H052A
+0577:	ld	$1,$sz
+0578:	ld	$0,&HCC
+057A:	sbc	$1,&H02
+057C:	jr	z,&H0555
+057D:	ad	$1,&HA7,jr &H0554
+057F:	ld	$1,$sz
+0580:	ld	$0,&HB8,jr &H057D
+
+; = 0661
+0582:	adw	$3,$sz
+0583:	pre	iz,$3
+0584:	ldw	$0,(iz+$sx)
+0585:	rtn
+
+
+; = 0665
+; parse for a keyword subroutine
+; IZ = pointer to the parsed string
+; IX = pointer to the table of keywords and their codes terminated by &H00
+; return with Carry set when a keyword found
+; $17 = code of the identified keyword
+0586:	gre	iz,$17
+0587:	sbc	(ix+$sx),$31	;test for 0
+0588:	jr	z,&H059B	;end of the block with the same prefix
+0589:	ldi	$1,(ix+$sx)
+058A:	ldi	$0,(iz+$sx)
+058B:	anc	$0,&H80
+058D:	jr	nz,&H0596	;keyword found
+058E:	cal	&H00B6		;TCAPS, lower to upper case conversion
+0590:	sb	$1,$sz
+0591:	jr	z,&H0589
+0592:	sbc	$1,&H80
+0594:	jr	z,&H059E
+; strings don't match, move the IX pointer to the next entry
+0595:	ld	$1,(ix-$sy)
+0596:	biu	$1		;bit 7 -> Carry
+0597:	ldi	$1,(ix+$sx)	;= IX<-IX+1
+0598:	jr	nc,&H0596
+0599:	pre	iz,$17,jr &H0587
+; keyword not found
+059B:	ldd	$0,(ix+$sy)
+059C:	pre	iz,$17
+059D:	rtn
+; keyword found
+059E:	ldd	$17,(ix+$sx)
+059F:	sbc	$31,$sy		;set carry
+05A0:	rtn
+
+
+; *** Floating point math library ***
+
+; = 1CA1 (OM-53B)
+05A1:	ldm	$0,$10,8
+05A3:	ld	$8,$18
+05A5:	jp	&H005C		;pop a FP number from the US to $10-$18
+
+; = 1D32 (OM-53B)
+05A7:	cal	&H0049		;NEXTC, get next character other than space
+05A9:	sbc	$0,&H2B		;'+'
+05AB:	rtn	z
+05AC:	sbc	$0,&H07
+05AE:	rtn	z
+05AF:	sbc	$0,&H2D		;'-'
+05B1:	rtn
+
+; = 1D54 (OM-53B)
+; sign change of the FP number $10-$18
+05B2:	sbc	$16,$sx
+05B3:	rtn	z
+05B4:	adb	$18,&H05
+05B6:	an	$18,&H0F
+05B8:	rtn
+
+; operator NOT, prefix 7, code &HC3
+05B9:	cal	&H0AC5		;convert a FP number to signed integer (word)
+05BB:	ldw	$5,&HFFFF
+05BD:	jr	&H05C0
+
+; operators AND,OR,XOR prefix 7, codes &HC4-&HC6
+05BE:	cal	&H0ABF		;convert a pair of FP numbers to signed integer
+05C0:	sbc	$0,&H14
+05C2:	jr	z,&H05CA
+05C3:	sbc	$0,&H12
+05C5:	jr	z,&H05C8
+05C6:	xrw	$15,$5,jr &H05CC
+05C8:	anw	$15,$5,jr &H05CC
+05CA:	orw	$15,$5
+05CC:	jp	&H0A97		;CNVR
+
+; = 0680
+; FP subtraction, $10-$18 <- $0-$8 - $10-$18
+05CE:	adb	$18,&H05		;change the sign of the number $10-$18
+05D0:	an	$18,&H0F,jr &H05DA	;floating point addition
+
+; = 0684
+; subtract 1 from the FP number $10-$18
+05D2:	cal	&H0669			;$0-$8 <- floating point constant 1
+; = 0686
+; FP subtraction, $10-$18 <- $10-$18 - $0-$8
+05D4:	adb	$8,&H05			;change the sign of the number $0-$8
+05D6:	an	$8,&H0F,jr &H05DA	;floating point addition
+
+; = 068A
+; increment by 1, $10-$18 <- $10-$18 +1
+05D8:	cal	&H0669		;$0-$8 <- floating point constant 1
+; = 068C
+; floating point addition, $10-$18 <- $10-$18 + $0-$8
+05DA:	cal	&H06A6		;compare absolute values of two FP numbers
+05DC:	jr	nc,&H05E3	;skip if |$10-$18| >= |$0-$8|
+05DD:	cal	&H0960		;if $27=&H05 then invert the FP number $0-$8
+05DF:	cal	&H06B8		;swap two FP numbers
+05E1:	cal	&H0960		;if $27=&H05 then invert the FP number $0-$8
+05E3:	sbc	$27,$sx		;test for 0
+05E4:	jr	z,&H05E9	;skip if both operands have the same sign
+; shift the mantissa of both operands by one digit up in order to increase the
+; precision, this will be compensated later at address &H05FD
+05E5:	dium	$0,7
+05E7:	dium	$10,7
+05E9:	phsw	$18		;save the exponent and signs
+05EA:	ldm	$20,$sz,7	;mantissa of the second operand
+05EC:	sbbw	$17,$7		;subtract the exponents
+05EE:	sbc	$18,$sx		;test for 0
+05EF:	jr	nz,&H05F3	;branch if difference between exponents is > 99
+05F0:	sbc	$17,&H15
+05F2:	jr	c,&H05F7	;skip if difference between exponents is < 15
+; replace the second operand with 0 if the difference between exponents is > 14
+05F3:	sbbm	$19,$19,8,jr &H05F9
+; this loop shifts right the mantissa of the second operand by the number of
+; digits equal the difference between the exponents
+05F5:	didm	$26,8
+05F7:	sbb	$17,$sy
+05F8:	jr	nc,&H05F5
+; both operands are represented now with the same exponent
+05F9:	ppsw	$17		;restore the exponent and signs
+05FA:	sbc	$27,$sx		;test for 0
+05FB:	jr	z,&H0601
+; the operands have different signs
+05FC:	sbbw	$17,$sy
+05FD:	didm	$6,7		;shift the mantissa by one digit down
+05FF:	sbbm	$10,$20,7,jr &H061D	;floating point normalisation
+; both operands have the same sign
+0601:	adbm	$10,$20,7,jr &H061D
+
+; = 06B5
+; floating point 2nd power, $10-$18 <- $10-$18 ^ 2
+0603:	ldm	$0,$10,7
+0605:	ldw	$7,$17
+; = 06B9
+; floating point multiplication, $10-$18 <- $10-$18 * $0-$8
+0607:	ld	$19,$sx		;superfluous?
+0608:	ldm	$20,$10,7	;multiplier
+060A:	or	$27,&H0F	;lower nibble = loop counter (15 digits)
+060C:	adbw	$17,$7		;add the exponents of both factors
+060E:	sbb	$18,$sy		;subtract the exponent bias
+060F:	sbbm	$9,$9,8,jr &H0615	;initialise the product to 0
+; digit loop
+0611:	didm	$26,8		;shift the multiplier one digit right
+0613:	didm	$16,8		;shift the product one digit right
+0615:	sb	$19,$sx		;test the lowest digit of the multiplier
+; repeated addition of multiplicand $0-$6 to product $10-$16 as many
+; times as there are units in the lowest digit of multiplier $20-$26
+0616:	jr	lz,&H061B
+0617:	adbm	$10,$sz,7	;add the multiplicand to the product
+0619:	sb	$19,$sy,jr &H0616
+; addition done, next digit of the multiplier will be processed
+061B:	sb	$27,$sy		;loop counter
+061C:	jr	nlz,&H0611
+
+; = 06CF
+; floating point normalisation of the number in $10-$18
+; Normalises a floating point number contained in the main registers $10-$18,
+; i.e. shifts the mantissa up (one digit at a time), until the most
+; significant digit is nonzero, then reduces the exponent by the number of
+; shifts. The result is stored in the main registers $10-$18.
+061D:	anc	$16,&HF0
+061F:	jr	z,&H0633
+0620:	adbw	$17,$sy
+0621:	didm	$16,7
+0623:	an	$18,&H0F
+0625:	ld	$27,$18
+0627:	adb	$27,&H05
+0629:	sbb	$27,&H05
+062B:	jr	z,&H0640
+062C:	jr	nc,&H0629
+062D:	sbc	$27,&H97
+062F:	jp	z,&H0DA4	;OV Error, overflow
+0631:	jr	nc,&H0636	;$10-$18 <- floating point constant 0
+0632:	rtn
+0633:	orcm	$10,$10,7
+0635:	jr	nz,&H063A
+; = 06E8
+; $10-$18 <- floating point 0
+0636:	sbw	$17,$17
+0638:	sbbm	$10,$10,7,jr &H0632
+;
+063A:	sbc	$16,$sx		;test for 0
+063B:	jr	nz,&H0623
+063C:	dium	$10,7
+063E:	sbbw	$17,$sy,jr &H063A
+0640:	adc	$17,&HFF,jr &H0631
+
+; = 06F4
+; reciprocal, $10-$18 <- 1 / $10-$18
+0642:	cal	&H0669		;$0-$8 <- floating point constant 1
+; floating point division, $10-$18 <- $0-$8 / $10-$18
+0644:	cal	&H06B8		;swap two FP numbers
+; floating point division, $10-$18 <- $10-$18 / $0-$8
+; An attempt to divide by 0 causes the MA Error via address &H0DA1.
+0646:	sbbcm	$10,$sz,7
+0648:	jr	nc,&H064A
+0649:	sbbw	$17,$sy
+064A:	cal	&H0665		;MA Error if division by 0 attempted
+064C:	sbbw	$17,$7		;subtract the exponents
+064E:	adb	$18,$sy		;add the exponent bias
+064F:	orcm	$10,$10,7	;test the dividend for 0
+0651:	jr	z,&H061D	;floating point normalisation
+0652:	sbbm	$19,$19,7,jr &H065A	;initialise the quotient to 0
+; main division loop
+0654:	dium	$10,7		;shift the dividend one digit left
+0656:	dium	$19,7		;shift the quotient one digit left
+0658:	jr	&H065A
+; repeated subtraction of divisor $0-$6 from dividend $10-$16,
+; quotient $19-$25 is incremented at every subtraction
+0659:	adb	$19,$sy		;increment the quotient
+065A:	sbbm	$10,$sz,7	;subtract the divisor from the dividend
+065C:	jr	nc,&H0659	;branch if the subtraction succeeded
+; the dividend was less than the divisor, take back the subtraction
+065D:	adbm	$10,$sz,7	;add the divisor to the dividend
+; the shift/subtraction loop is repeated until we get 15 digits of the
+; quotient (i.e. the 15th digit is not equal 0)
+065F:	sbc	$25,$sx		;test the upper digit of the quotient
+0660:	jr	z,&H0654
+0661:	ldm	$10,$19,7,jr &H061D	;floating point normalisation
+
+; = 0715
+; MA Error if the floating point number $10-$18 is negative
+0663:	adc	$18,&HFB,jr &H0666
+; = 0717
+; MA Error if $6 = 0
+0665:	sbc	$6,$sy
+0666:	jp	c,&H0DA1	;MA Error, mathematical error
+0668:	rtn
+
+; = 071B
+; $0-$8 <- floating point constant 1
+0669:	ld	$8,$sy
+066A:	ldw	$6,$sy
+066B:	sbbm	$0,$sz,6,jr &H0668
+
+; = 071F
+; square root, $10-$18 <- SQR $10-$18
+; Negative radicand causes the MA Error via address &H0DA1.
+;
+; +++ Description of the digit-by-digit algorithm copied from Wikipedia +++
+;
+; Beginning with the left-most pair of digits, do the following procedure for
+; each pair:
+; 1. Starting on the left, bring down the most significant (leftmost) pair of
+;   digits not yet used (if all the digits have been used, write "00") and
+;   write them to the right of the remainder from the previous step (on the
+;   first step, there will be no remainder). In other words, multiply the
+;   remainder by 100 and add the two digits. This will be the current value C.
+; 2. Find P, Y and X, as follows:
+;   - Let P be the part of the root found so far, ignoring any decimal point.
+;     For the first step, P=0.
+;   - Determine the greatest digit X such that Y=(20*P+X)*X does not exceed C.
+;   - Place the digit X as the next digit of the root. Thus the next P will
+;     be the old P times 10 plus X.
+; 3. Subtract Y from C to form a new remainder.
+; 4. If the remainder is zero and there are no more digits to bring down,
+;   then the algorithm has terminated. Otherwise go back to step 1 for another
+;   iteration.
+;
+; The procedure uses a slightly modified algorithm:
+; 1. the radicand is divided by 2
+; 2. the expression in the step 2 is therefore changed to Y=10*P*X+X*X/2, while
+;   the term X*X/2 is calculated as a sum of the arithmetic sequence 1+2+...+X
+;
+066D:	cal	&H0663		;MA Error if the radicand is negative
+066F:	ldm	$0,$10,8	;copy the radicand to $0-$8
+0671:	ld	$8,$18		;signs
+0673:	ld	$24,$18		;superfluous?
+; multiply the mantissa by 5 then divide by 10, which is simpler than dividing
+; a decimal number by 2
+0675:	adbm	$10,$sz,7	;*2
+0677:	adbm	$10,$10,7	;*4
+0679:	adbm	$10,$sz,7	;*5
+067B:	jr	z,&H067E	;skip if mantissa = 0
+067C:	adb	$8,&H05		;add the upper byte of (5 * bias)
+067E:	anc	$17,$sy		;exponent
+067F:	jr	nz,&H0682	;skip if odd exponent
+0680:	didm	$16,7		;divide the mantissa by 10
+; multiply the biased exponent by 5 then divide by 10, which is simpler than
+; dividing a decimal number by 2
+0682:	adbw	$17,$17		;*2
+0684:	adbw	$17,$17		;*4
+0686:	adbw	$17,$7		;*5 + &H0500 if radicand <> 0
+0688:	didw	$18		;/10
+0689:	ld	$24,$8		;superfluous?
+068B:	phsw	$18		;exponent and signs
+; initial value of the remainder C = 0000 0000 0000 aaaa, where "aaaa" are the
+; four most significant digits of the radicand
+068C:	sbbm	$17,$17,6
+; initial value of the root P = 0000 0000 0000 00
+068E:	sbbm	$1,$1,7
+0690:	ld	$0,&H50
+; iteration loop
+; $15-$22 - remainder C
+; $1-$7 - calculated root P
+0692:	ld	$9,&H0D,jr &H0695	;number of calculated digits
+0694:	ad	$1,$sy		;increment digit X
+0695:	sbbm	$15,$sz,8	;C <- C-10*P-X
+0697:	jr	nc,&H0694
+0698:	adbm	$15,$sz,8
+069A:	sb	$9,$sy		;decrement the loop counter
+069B:	jr	z,&H06A3
+069C:	dium	$1,7		;P <- 10*P
+; shift next two most significant digits of the radicand to the remainder C
+069E:	byum	$17,7		;why seven bytes? six would be sufficient
+06A0:	byum	$10,8
+06A2:	jr	&H0695		;next digit
+; all digits processed
+06A3:	ppsw	$17		;exponent and signs
+06A4:	ldm	$10,$1,7,jr &H0668
+
+; = 0758
+; compare the absolute values of two floating point numbers
+; Carry set if |$10-$18| < |$0-$8|
+; if both operands have the same sign then $27=&H00
+; otherwise $27=&H05 and the sign of operand $0-$8 is inverted
+06A6:	ld	$27,$sx
+06A7:	anc	$18,&H04		;sign of operand $10-$18
+06A9:	jr	lz,&H06AC		;branch if $10-$18 is positive
+06AA:	sbc	$8,&H05,jr &H06AE
+06AC:	adc	$8,&HFB			;sign of operand $0-$8
+06AE:	jr	nc,&H06B3		;skip if both operands of the same sign
+06AF:	ld	$27,&H05		;flag of different signs
+06B1:	cal	&H0960			;invert the sign of operand $0-$8
+06B3:	sbcw	$17,$7			;compare the exponents
+06B5:	rtn	nz
+; exponents are equal, compare the mantissas
+06B6:	sbbcm	$10,$0,7,jr &H0668
+
+; = 076A
+; swap two FP numbers $10-$18 <-> $0-$8
+06B8:	phsm	$18,7
+06BA:	phsw	$11
+06BB:	ldm	$10,$sz,7
+06BD:	ldw	$17,$7
+06BF:	ppsw	$0
+06C0:	ppsm	$2,7
+06C2:	rtn
+
+; The following arithmetic functions use algorithms described by J.E.Meggitt
+; in the IBM Journal (April 1962) in an article "Pseudo Division and Pseudo
+; Multiplication processes", which can be treated as implementation of the
+; CORDIC method developed by J.Volder.
+
+; = 0775
+; $19:	bit 5 - set = trigonometric, cleared = logarithm/exponetial
+;	bit 7 - set = access the constant table
+06C3:	ld	$7,&H0A
+06C5:	sb	$7,$17
+06C7:	anc	$19,&H20
+06C9:	jr	nz,&H06FE	;branch if logarithm/exponetial
+; trigonometric
+06CA:	adc	$17,&H80
+06CC:	jr	uz,&H06FA
+06CD:	jr	nc,&H06D1
+06CE:	anc	$27,&H80
+06D0:	jr	uz,&H06D2
+06D1:	ld	$7,$sx
+06D2:	adc	$19,$19
+06D4:	jr	c,&H06DB
+06D5:	jr	nz,&H06D9		;branch if trigonometric
+; logarithm/exponetial
+06D6:	ad	$7,$sy
+06D7:	sbc	$31,$sy,jr &H06F9	;set Carry
+06D9:	biu	$7,jr &H06D7
+; access the constant table
+06DB:	jr	nz,&H06DE		;branch if trigonometric
+; logarithm/exponetial
+06DC:	ld	$8,&H84,jr &H06E0	;0C8B: table 10^j * log (1+10^-j)
+; trigonometric
+06DE:	ld	$8,&H4C			;0C53: table 10^j * atn (10^-j)
+06E0:	diu	$7
+; the following two instructions seem to be superfluous
+06E1:	sbc	$7,&HE0			;an attempt to process the 14th digit?
+06E3:	jr	z,&H06E0		;this condition never occurs
+; offset $7 = ($7 >> 4) * 7
+06E4:	ld	$9,$7
+06E6:	did	$9
+06E7:	bid	$7
+06E8:	sb	$7,$9
+06EA:	ad	$8,$7			;lower byte of the table address
+06EC:	ld	$9,&H0C			;upper byte of the table address
+06EE:	pre	ix,$8
+06EF:	gst	ua,$8
+06F0:	pst	ua,&H04
+06F2:	ldim	$0,(ix+$sx),7
+06F4:	pst	ua,$8
+06F5:	ldm	$20,$sz,7		;modifier M
+06F7:	sb	$7,$7			;clear $7 and Carry
+06F9:	rtn
+
+06FA:	ad	$7,&H0A
+06FC:	adc	$17,&H7A,jr &H06CD
+06FE:	adc	$17,&H6D,jr &H06CD
+
+; = 07B2
+; $10-$16 - dividend A
+; $0-$6 - divisor B
+; $19 - options
+0700:	cal	&H0D86		;reserve
+0702:	ld	$27,&H1D
+0704:	orcm	$10,$10,7
+0706:	jr	z,&H072C		;skip the pseudo division if A=0
+; first iteration loop: pseudo division
+0707:	cal	&H06C3
+0709:	ld	$18,$sx			;digit of quotient Q
+070A:	jr	nc,&H0712		;modifier M from the constant table
+070B:	sbc	$19,&H20
+070D:	jr	uz,&H0710
+070E:	ldm	$20,$sz,7,jr &H0712	;M <- B
+0710:	ldm	$20,$10,7		;M <- A
+0712:	sbbm	$10,$sz,7		;A <- A - B
+0714:	jr	c,&H071E
+0715:	ad	$18,$sy			;increment the digit of quotient Q
+0716:	an	$27,&H8F
+0718:	anc	$7,&H0E
+071A:	jr	z,&H0712
+071B:	cal	&H075E			;B <- B + M * 10^-J
+071D:	jr	&H070B
+; dividend A was less than divisor B, take back the subtraction
+071E:	adbm	$10,$sz,7		;A <- A + B
+0720:	anc	$27,&H10
+0722:	jr	nz,&H0726
+0723:	phs	$18			;push the digit of quotient Q
+0724:	sb	$27,$sy
+0725:	jr	lz,&H0732		;exit to the pseudo division
+0726:	dium	$10,7			;shift A one digit up
+0728:	sbb	$17,$sy
+0729:	jr	nc,&H0707
+072A:	or	$27,&H80,jr &H0707
+;
+; if A=0 then push 13 digits=0 on the System Stack
+072C:	sbbm	$20,$20,7
+072E:	phsm	$26,7
+0730:	phsm	$26,6
+; quotient Q is stored on the System Stack
+0732:	ad	$19,&H80
+0734:	sbbm	$0,$sz,6
+0736:	ld	$6,&H10
+0738:	or	$27,&H0D,jr &H073D
+; second iteration loop: pseudo multiplication
+073A:	adb	$17,$sy
+073B:	didm	$16,7			;shift A one digit down
+073D:	pps	$18			;pop the digit of quotient Q
+073E:	cal	&H06C3
+0740:	jr	nc,&H0748
+0741:	adc	$19,&HE0
+0743:	jr	nz,&H0746
+0744:	ldm	$20,$10,7,jr &H0748	;M <- A
+0746:	ldm	$20,$sz,7		;modifier M from the constant table
+0748:	sb	$18,$sy			;decrement the digit of quotient Q
+0749:	jr	c,&H0757
+074A:	adbm	$10,$sz,7		;A <- A + B
+074C:	anc	$7,&H0E
+074E:	jr	z,&H0748
+074F:	sbc	$19,$sx			;test for 0
+0750:	jr	nz,&H0754
+0751:	cal	&H075E			;B <- B + M * 10^-J
+0753:	jr	&H0746
+0754:	cal	&H075C			;B <- B - M * 10^-J
+0756:	jr	&H0744
+0757:	sb	$27,$sy
+0758:	jr	nlz,&H073A
+0759:	ld	$18,$sx
+075A:	jp	&H061D		;floating point normalisation
+
+; = 080E
+; $20-$26 = modifier M
+; $0-$6 = divisor B
+; lower nibble of $7 = counter J
+; subtract $20-$26 shifted down by (lower nibble of $7) digits from $0-$6
+075C:	ld	$9,$sy,jr &H075F
+; add $20-$26 shifted down by (lower nibble of $7) digits to $0-$6
+075E:	ld	$9,$sx
+075F:	ld	$8,$7
+0761:	an	$8,&H0F
+; shift $20-$26 down by $8 digits
+0763:	rod	$8
+0764:	jr	nc,&H076A
+0765:	didm	$26,7		;shift $20-$26 down by 1 digit when $8 was odd
+0767:	jr	&H076A
+0768:	bydm	$26,7		;shift $20-$26 down by 2 digits
+076A:	sb	$8,$sy
+076B:	jr	nz,&H0768
+; add/subtract $20-$26 to/from $0-$6
+076C:	sb	$9,$sx		;test for 0
+076D:	jr	nz,&H0770
+076E:	adbm	$0,$20,7,jr &H0788
+0770:	sbbm	$0,$20,7,jr &H0788
+
+; = 0824
+; evaluate a chain of operators '+' and '-'
+; returns $2 = &H00 if evaluated to '+', or $2 = &H05 if evaluated to '-'
+0772:	ld	$2,$sx
+0773:	cal	&H0049		;NEXTC
+0775:	sbc	$0,&H2B		;'+'
+0777:	jr	z,&H077F
+0778:	sbc	$0,&H2D		;'-'
+077A:	rtn	nz
+077B:	adb	$2,&H05
+077D:	an	$2,&H0F
+077F:	ldd	$0,(iz+$sy)	;iz <- iz+1
+0780:	jr	&H0773
+
+; = 0833
+0781:	cal	&H0049		;NEXTC
+; returns carry set if $0 is a digit or a decimal point
+0783:	sbc	$0,&H2E		;decimal point?
+0785:	jp	nz,&H002B	;OKNM1, test if $0 is a digit
+0787:	sbc	$31,$sy		;set Carry
+0788:	rtn
+
+; = 083B
+; evaluate a hex numeral preceded by "&H"
+0789:	sbc	$0,&H26		;'&'
+078B:	jr	nz,&H07A8
+078C:	ldi	$0,(iz+$sy)
+078D:	cal	&H00B6		;TCAPS, lower to upper case conversion
+078F:	ld	$1,$sz
+0790:	sbbm	$15,$15,3
+0792:	ldd	$0,(iz+$sx)
+0793:	sbc	$1,&H48		;'H'
+0795:	jr	nz,&H07A6
+; evaluate a hex numeral
+0796:	cal	&H009D		;CHEX1, hex character to binary conversion
+0798:	jr	nc,&H07A6
+0799:	ld	$14,$sz
+079A:	diu	$14
+079B:	dium	$14,4
+079D:	sbc	$17,$sx
+079E:	jr	nz,&H07AA	;OV Error, overflow
+079F:	ldd	$0,(iz+$sy)
+07A0:	cal	&H009D		;CHEX1, hex character to binary conversion
+07A2:	jr	c,&H0799
+07A3:	cal	&H0A97		;CNVR, integer to floating point conversion
+07A5:	jr	&H0787
+07A6:	ldd	$0,(iz-&H02)	;iz <- iz-2
+07A8:	jp	&H0636		;$10-$18 <- floating point constant 0
+07AA:	jp	&H0DA4		;OV Error, overflow
+
+; = 085E
+; evaluate a decimal or hex numeral pointed to by IZ
+07AC:	cal	&H0781		;NEXTC, then test if $0 is a digit or DP...
+07AE:	jr	nc,&H0789	;... otherwise try with a HEX numeral
+07AF:	sbbm	$10,$10,7	;$10-$16 = mantissa
+07B1:	ldw	$17,&H0112	;$17 = exponent, $18 = signs
+07B3:	ldw	$8,$sy		;$8 = &H01, flag of the integer part
+				;$9 = &H00, no digit yet
+; this loop evaluates the coefficient
+07B4:	ldi	$0,(iz+$sx)
+07B5:	sbc	$0,&H2E		;decimal point?
+07B7:	jr	z,&H07FB	;branch if so
+07B8:	or	$9,$sy		;flag of at least one digit
+07B9:	sbc	$16,$sx		;most significant byte of the mantissa
+07BA:	jr	nz,&H07E7	;ignore subsequent digits if not zero
+; append digit $0 to the mantissa
+07BB:	an	$0,&H0F
+07BD:	dium	$10,7
+07BF:	or	$10,$sz
+07C0:	sbc	$8,$sx		;integer or fractional part?
+07C1:	jr	nlz,&H07C3	;skip if the integer part
+07C2:	sbbw	$17,$sy		;decrement the exponent
+; parse the input string for the scientific notation
+07C3:	gre	iz,$3		;save the input pointer
+07C4:	ldd	$0,(iz+$sx)
+07C5:	sbc	$0,&H45		;'E'
+07C7:	jr	z,&H07CB
+07C8:	sbc	$0,&H65		;'e'
+07CA:	jr	nz,&H07EB
+; evaluate the scientific notation exponent, 1 or 2 digits, result in $3
+07CB:	ldi	$0,(iz+$sx)
+07CC:	cal	&H0772		;evaluate a chain of operators '+' and '-'
+07CE:	cal	&H002B		;OKNM1, test if $0 is a digit
+07D0:	jr	nc,&H07FF	;branch if 'E' not followed by a number
+07D1:	ld	$3,$sz
+07D2:	an	$3,&H0F		;first digit
+07D4:	ldd	$0,(iz+$sy)
+07D5:	cal	&H002B		;OKNM1, test if $0 is a digit
+07D7:	jr	nc,&H07E2	;branch if not
+07D8:	diu	$3
+07D9:	an	$0,&H0F
+07DB:	or	$3,$sz		;append the second digit
+07DC:	ldi	$0,(iz+$sx)	;iz <- iz+1
+07DD:	ldd	$0,(iz+$sx)
+07DE:	cal	&H002B		;OKNM1, test if $0 is a digit
+07E0:	jp	c,&H0D9E	;SN Error if so, only 2 digits allowed
+; apply the value of the scientific notation exponent
+07E2:	ld	$4,$sx
+07E3:	sbc	$2,$sx		;sign of the scientific notation exponent
+07E4:	jr	nz,&H07E9	;branch if negative
+07E5:	adbw	$17,$3,jr &H07EE
+07E7:	adbw	$17,$sy,jr &H07C0	;increment the exponent
+07E9:	sbbw	$17,$3,jr &H07EE
+07EB:	cal	&H0783		;is $0 a digit or a decimal point?
+07ED:	jr	c,&H07B4	;back to the coefficient evaluation loop if so
+; end of the function
+07EE:	sbc	$9,$sx		;the number should consist of at least one digit
+07EF:	jr	z,&H0801	;branch if no digits
+07F0:	sbc	$18,&H03
+07F2:	jr	c,&H07F8
+07F3:	sbc	$18,&H90
+07F5:	jr	c,&H07AA	;OV Error, overflow
+07F6:	sbbm	$10,$10,7	;clear the mantissa
+07F8:	cal	&H061D		;floating point normalisation
+07FA:	jr	&H0787		;return with Carry set
+; decimal point
+07FB:	sb	$8,$sy		;flag of the fractional part
+07FC:	jr	lz,&H07C3
+; more than one decimal point occured
+07FD:	ldd	$0,(iz-$sy)
+07FE:	jr	&H07EE
+; the attempt to parse for the scientific notation exponent failed, move the
+; input pointer back to the end of the coefficient
+07FF:	pre	iz,$3,jr &H07EE
+; no digits
+0801:	sbc	$8,$sx
+0802:	jr	nlz,&H07A8	;$10-$18 <- floating point constant 0
+0803:	ldd	$0,(iz-$sy)	;IZ <- IZ - 1
+0804:	jr	&H07A8		;$10-$18 <- floating point constant 0
+
+; = 08B7
+; natural logarithm $10-$18 <- LN $10-$18
+0805:	ld	$0,$sx,jr &H0808
+; = 8B9
+; decimal logarithm $10-$18 <- LOG $10-$18
+; Non positive arguments cause the MA Error via address &H0DA1.
+0807:	ld	$0,$sy
+0808:	phs	$0
+0809:	cal	&H0663		;MA Error if the argument is negative
+080B:	sbc	$18,$sx		;test the signs for 0
+080C:	jr	nz,&H081B	;branch if the argument >= 1
+080D:	sbc	$16,$sx		;test the upper mantissa byte for 0
+080E:	jp	z,&H0DA1	;MA Error if the argument is equal 0
+; argument < 1, apply the equation: log(x) = -log(1/x)
+0810:	adb	$17,$sy
+0811:	ldw	$28,&H0500
+0813:	sbb	$28,$17
+0815:	ldm	$0,$10,7
+0817:	ld	$16,&H10
+0819:	sbbm	$10,$10,6,jr &H0820
+; argument >= 1
+081B:	ld	$29,$sx
+081C:	ld	$28,$17
+081E:	cal	&H0669		;$0-$8 <- floating point constant 1
+;
+0820:	sbbm	$10,$sz,7
+0822:	sbbm	$17,$17,3
+0824:	sbb	$17,$sy
+0825:	cal	&H0700
+0827:	ldm	$6,$28,3
+0829:	ld	$7,$sx
+082A:	sbbm	$0,$0,6
+082C:	cal	&H06B8		;swap two FP numbers
+082E:	cal	&H061D		;floating point normalisation
+0830:	ld	$19,$sx
+0831:	cal	&H05DA		;floating point addition
+0833:	adb	$18,$29
+0835:	pps	$28
+0836:	sbc	$28,$sy
+0837:	rtn	nc		;return for a decimal logarithm
+; continue with a natural logarithm
+0838:	cal	&H09AA		;$0-$8 <- floating point constant LOG(e)
+083A:	jp	&H0646		;FP division, $10-$18 <- $10-$18 / $0-$8
+
+; = 08EE
+; exponential function $10-$18 <- EXP $10-$18
+; An overflow causes the MA Error via address &H0DA1.
+083C:	ld	$28,$sx
+083D:	cal	&H09AA		;$0-$8 <- floating point constant LOG(e)
+083F:	cal	&H06B8		;swap two FP numbers
+0841:	ld	$19,$sx		;superfluous?
+0842:	phs	$28
+0843:	cal	&H0608		;FP multiplication, $10-$18 <- $10-$18 * $0-$8
+0845:	cal	&H0987		;absolute value of a FP number $10-$18
+0847:	sbc	$18,$sx		;test for 0
+0848:	jr	z,&H0856
+0849:	anc	$28,&HF0
+084B:	jr	nz,&H0854
+084C:	diu	$28
+084D:	or	$28,$16
+084F:	sbbw	$17,$sy
+0850:	dium	$9,8
+0852:	an	$16,&H0F,jr &H0847
+0854:	ld	$28,&HE0
+0856:	ld	$19,&H80
+0858:	cal	&H0700
+085A:	cal	&H05D8		;increment by 1, $10-$18 <- $10-$18 +1
+085C:	pps	$0
+085D:	adb	$17,$28
+085F:	jr	nc,&H0866
+0860:	sbc	$0,$sy
+0861:	jr	z,&H0866
+0862:	cal	&H0636		;$10-$18 <- floating point constant 0
+0864:	adb	$29,&H05
+0866:	adc	$0,$sy
+0867:	jr	nc,&H086E
+0868:	phsw	$29
+0869:	ldw	$28,&H0099	;round to an integer part
+086B:	cal	&H091B		;rounding of a FP number in $10-$18
+086D:	ppsw	$28
+086E:	adb	$29,&H05
+0870:	rtn	nlz
+0871:	jr	&H08DC
+
+; = 0924
+; sine, $10-$18 <- SIN $10-$18
+; Angle mode specified in the ANGFL system variable (address &H1132).
+; An argument out of allowed range -8*PI..8*PI causes the BS Error via address
+; &H0D9B.
+0872:	ld	$9,&H02,jr &H0879
+; = 0926
+; cosine, $10-$18 <- COS $10-$18
+0874:	ld	$9,$sy
+0875:	ld	$29,$sx
+0876:	ld	$28,&H80,jr &H087B
+; = 092A
+; tangent, $10-$18 <- TAN $10-$18
+0878:	ld	$9,$sx
+0879:	cal	&H0987		;absolute value of a FP number $10-$18
+087B:	phs	$9
+087C:	cal	&H09AE		;$0-$8 <- PI/2 in current angle mode
+087E:	cal	&H06A6		;compare absolute values of two FP numbers
+0880:	jr	c,&H08A9	;skip if |$10-$18| < |$0-$8|
+;
+; convert the argument to angle range 0..PI/2
+0881:	ld	$19,$17
+0883:	ld	$20,$sx
+0884:	sbb	$19,$7,jr &H0889
+0886:	sbbw	$17,$sy
+0887:	dium	$10,7
+0889:	sbbm	$10,$sz,7
+088B:	jr	c,&H089F
+088C:	sbc	$19,$sy
+088D:	jr	nz,&H0892
+088E:	ad	$20,&H0A
+0890:	adc	$9,&HFF,jr &H0898
+0892:	jr	nc,&H089D
+0893:	ad	$20,$sy
+0894:	ad	$28,&H80
+0896:	jr	c,&H0899
+0897:	sbc	$9,$sy
+0898:	jr	nc,&H089B
+0899:	adb	$29,&H05
+089B:	sbc	$20,$sx
+089C:	jr	uz,&H0889
+089D:	jp	&H0D9B		;BS Error
+089F:	adbm	$10,$sz,7
+08A1:	sb	$19,$sy
+08A2:	jr	nc,&H0886
+08A3:	sbc	$20,&H06
+08A5:	jr	c,&H08A7
+08A6:	or	$28,$sy
+08A7:	cal	&H061D		;floating point normalisation
+;
+08A9:	cal	&H05CE		;$10-$18 <- $0-$8 - $10-$18
+08AB:	cal	&H06A6		;compare absolute values of two FP numbers
+08AD:	jr	c,&H08B2	;branch if |$10-$18| < |$0-$8|
+08AE:	cal	&H06B8		;swap two FP numbers
+08B0:	ad	$28,&H80
+08B2:	cal	&H0D89		;reserve
+08B4:	cal	&H09B0		;$0-$8 <- PI/180 in current angle mode
+08B6:	cal	&H0607		;FP multiplication, $10-$18 <- $10-$18 * $0-$8
+08B8:	sbc	$17,&H90
+08BA:	jr	nc,&H08BE
+08BB:	anc	$28,$sy
+08BC:	cal	nz,&H0636	;$10-$18 <- floating point constant 0
+08BE:	ld	$19,&HA0
+08C0:	cal	&H0700
+08C2:	sbw	$7,$7
+08C4:	cal	&H06B8		;swap two FP numbers
+08C6:	sbb	$17,$sy
+08C7:	cal	&H061D		;floating point normalisation
+08C9:	sbc	$28,&H80
+08CB:	cal	c,&H06B8	;swap two FP numbers
+08CD:	pps	$9
+08CE:	sbc	$9,$sx		;test for 0
+08CF:	jr	z,&H08D5
+08D0:	ldw	$19,&H0090
+08D2:	sbbcm	$7,$19,2
+08D4:	jr	nc,&H08DA
+08D5:	cal	&H0644		;FP division, $10-$18 <- $0-$8 / $10-$18
+08D7:	adb	$18,$29
+08D9:	jr	&H0919		;floating point normalisation
+; SIN(x) =  TAN(x) / SQR(1+TAN(x)^2)
+08DA:	cal	&H0997
+08DC:	cal	&H0642		;reciprocal, $10-$18 <- 1 / $10-$18
+08DE:	jr	&H08D7
+
+; = 0991
+; arcus sine, $10-$18 <- ASN $10-$18
+; Angle mode specified in the ANGFL system variable (address &H1132).
+; An argument out of allowed range -1..+1 causes the MA Error via address
+; &H0DA1.
+08DF:	ld	$9,&H04,jr &H08E4
+; = 0993
+; arcus cosine, $10-$18 <- ACS $10-$18
+08E1:	ld	$9,$sy,jr &H08E4
+; = 0995
+; arcus tangent, $10-$18 <- ATN $10-$18
+08E3:	ld	$9,$sx
+08E4:	cal	&H0669		;$0-$8 <- floating point constant 1
+08E6:	phs	$9
+08E7:	sbc	$9,$sx		;test for 0
+08E8:	jr	z,&H08F1	;skip for ATN
+; ASN (x) = ATN (x/SQR(1-x^2))
+08E9:	cal	&H0054		;push a FP number $10-$18 on the US
+08EB:	cal	&H0975		;$10-$18 <- SQR (1 - $10-$18^2)
+08ED:	cal	&H006C		;pop a FP number from the US to $0-$8
+08EF:	cal	&H06B8		;swap two FP numbers
+08F1:	cal	&H0987		;absolute value of a FP number $10-$18
+08F3:	cal	&H06A6		;compare absolute values of two FP numbers
+08F5:	jr	c,&H08F9	;skip if |$10-$18| < |$0-$8|
+08F6:	cal	&H06B8		;swap two FP numbers
+08F8:	ld	$28,$sy
+08F9:	cal	&H0646		;FP division, $10-$18 <- $10-$18 / $0-$8
+08FB:	cal	&H0669		;$0-$8 <- floating point constant 1
+08FD:	ld	$8,$sx
+08FE:	sbb	$17,$sy
+08FF:	ld	$19,&H20
+0901:	cal	&H0700
+0903:	cal	&H09B0		;$0-$8 <- PI/180 in current angle mode
+0905:	cal	&H0646		;FP division, $10-$18 <- $10-$18 / $0-$8
+0907:	pps	$9
+0908:	sbc	$28,$sx		;test for 0
+0909:	jr	z,&H0912
+090A:	cal	&H09AE		;$0-$8 <- PI/2 in current angle mode
+090C:	sbcw	$28,$sy
+090D:	jr	nz,&H0910
+090E:	sbc	$9,$sy
+090F:	jr	z,&H0919
+0910:	cal	&H05CE		;$10-$18 <- $0-$8 - $10-$18
+0912:	ad	$28,&H80
+0914:	rtn	c
+0915:	adb	$18,$29
+0917:	sbc	$9,$sy
+0918:	jr	z,&H090A
+0919:	jp	&H061D		;floating point normalisation
+
+; = 09CD
+; rounding of the floating point number in $10-$18,
+; expects in $28,$29 <- 99 - number_of_places_after_the_decimal_point
+091B:	ld	$7,&H13
+091D:	sbbw	$8,$8
+091F:	adbw	$28,$7
+0921:	sbcw	$28,$17
+0923:	jr	c,&H0919
+0924:	jr	z,&H0929
+0925:	didm	$16,8
+0927:	adbw	$17,$sy,jr &H0921
+0929:	adc	$9,&HB0
+092B:	jr	nc,&H0919
+092C:	adbm	$10,&H01,7,jr &H0919	;floating point normalisation
+
+; = 09E0
+092E:	cal	&H06B8		;swap two FP numbers $10-$18 <-> $0-$8
+0930:	sbw	$28,$28
+0932:	cal	&H0A2A
+0934:	jr	nz,&H0940
+0935:	ld	$29,&H80
+0937:	sbc	$8,&H05
+0939:	jr	c,&H0940
+093A:	anc	$28,$sy
+093B:	jr	z,&H093E
+093C:	or	$29,&H05
+093E:	sbb	$8,&H05
+0940:	cal	&H06B8		;swap two FP numbers $10-$18 <-> $0-$8
+0942:	sbc	$16,$sx
+0943:	jr	nz,&H0949
+0944:	sbc	$8,&H05
+0946:	jr	nc,&H0949
+0947:	sbc	$6,$sx
+0948:	rtn	nz
+0949:	cal	&H0A2A
+094B:	ld	$28,$sx
+094C:	jr	nz,&H0951
+094D:	sbc	$29,&H80
+094F:	jr	c,&H0951
+0950:	sb	$28,$sy
+0951:	phsw	$29
+0952:	cal	&H0064		;push a FP number $0-$8 on the user stack
+0954:	cal	&H0807		;function LOG
+0956:	cal	&H006C		;pop a FP number from the US to $0-$8
+0958:	ppsw	$28
+0959:	phs	$29
+095A:	cal	&H0842
+095C:	pps	$0
+095D:	adb	$18,$sz
+095E:	an	$18,&H0F,jr &H09A7
+
+; = 0A12
+; if $27=&H05 then change the sign of floating point number $0-$8
+0960:	adb	$8,$27
+0962:	an	$8,&H0F,jr &H09A7
+
+; = 0A16
+; calculate the sum in $0-$8 and difference in $10-$18 of two floating point
+; numbers in $0-$8 and $10-$18
+0964:	cal	&H0054		;push a FP number $10-$18 on the user stack
+0966:	cal	&H0064		;push a FP number $0-$8 on the user stack
+0968:	cal	&H05DA		;FP addition, $10-$18 <- $10-$18 + $0-$8
+096A:	phsm	$18,7
+096C:	phsw	$11
+096D:	cal	&H005C		;pop a FP number from the US to $10-$18
+096F:	cal	&H006C		;pop a FP number from the US to $0-$8
+0971:	cal	&H05D4		;FP subtraction, $10-$18 <- $10-$18 - $0-$8
+0973:	jp	&H06BF		;PPSW $0; PPSM $2,7
+
+; = 0A27
+; x <- SQR(1-x^2) where x = $10-$18, calculated as SQR((1+x)*(1-x))
+0975:	cal	&H0669		;$0-$8 <- floating point constant 1
+0977:	cal	&H0964		;$0-$8 <- sum, $10-$18 <- difference of two
+				;FP numbers $0-$8 and $10-$18
+0979:	cal	&H0607		;FP multiplication, $10-$18 <- $10-$18 * $0-$8
+097B:	jp	&H066D		;square root
+
+; = 0A2F
+097D:	cal	&H0054		;push a FP number $10-$18 on the US
+097F:	cal	&H0642		;reciprocal, $10-$18 <- 1 / $10-$18
+0981:	cal	&H0975		;$10-$18 <- SQR (1 - $10-$18^2)
+0983:	cal	&H006C		;pop a FP number from the US to $0-$8
+0985:	cal	&H0607		;FP multiplication, $10-$18 <- $10-$18 * $0-$8
+; absolute value of a FP number $10-$18
+; $28,$29 = &H0500 if the number was negative, otherwise &H0000
+0987:	sbw	$28,$28
+0989:	sbc	$18,&H05
+098B:	rtn	c
+098C:	sbb	$18,&H05
+098E:	ld	$29,&H05,jr &H09A7
+
+; = 0A42
+0990:	cal	&H06A6		;compare absolute values of two FP numbers
+0992:	jr	c,&H0997	;branch if |$10-$18| < |$0-$8|
+0993:	cal	&H0644		;FP division, $10-$18 <- $0-$8 / $10-$18
+0995:	phs	$30
+0996:	jr	&H099A
+0997:	cal	&H0646		;FP division, $10-$18 <- $10-$18 / $0-$8
+0999:	phs	$31
+099A:	cal	&H0603		;floating point square, $10-$18 <- $10-$18 ^ 2
+099C:	cal	&H05D8		;increment by 1, $10-$18 <- $10-$18 +1
+099E:	cal	&H066D		;square root
+09A0:	cal	&H006C		;pop a FP number from the US to $0-$8
+09A2:	cal	&H0064		;push a FP number $0-$8 on the user stack
+09A4:	pps	$9
+09A5:	sbc	$9,$sx		;test for 0
+09A6:	jr	nz,&H0985
+09A7:	rtn
+
+; = 0A5A
+; fetch various floating point constants to registers $0-$8
+09A8:	ld	$0,&H30,jr &H09B8	;PI
+09AA:	ld	$0,&H38,jr &H09B8	;LOG(e)
+09AC:	ld	$0,&H40,jr &H09B8	;71.7013
+09AE:	ld	$1,&H18,jr &H09B1	;PI/2 in current angle mode
+09B0:	ld	$1,$sx		;PI/180 in current angle mode
+09B1:	pre	ix,&H1132	;ANGFL, angle mode
+09B3:	ldd	$0,(ix+$sx)	;0 for DEG, 1 for RAD, 2 for GRA
+09B4:	diu	$0
+09B5:	bid	$0		;$0=0 for DEG, or 8 for RAD, or 16 for GRA
+09B6:	ad	$0,$1		;add index $1 to offset $0
+09B8:	pre	ix,&H0CE6	;table of floating point constants
+09BA:	gst	ua,$8
+09BB:	pst	ua,&H04
+09BD:	ldm	$0,(ix+$sz),8
+09BF:	pst	ua,$8
+; convert the floating point number from the compact 8-byte format to the
+; expanded 9-byte format
+09C0:	ld	$8,$sx
+09C1:	dium	$6,3
+09C3:	did	$6
+09C4:	rtn
+
+; = 0A77
+; $10-$18 <- floating point constant PI
+09C5:	cal	&H09A8
+09C7:	jp	&H06B8		;swap two FP numbers
+
+; = 0A7B
+; rounding the mantissa of a floating point number $10-$18 to 12 digits
+09C9:	ld	$10,$sx
+09CA:	adbm	$11,&H05,6
+09CC:	an	$11,&HF0
+09CE:	jp	&H061D		;floating point normalisation
+
+; = 0A82
+; function FIX
+09D0:	ldm	$19,$10,8
+09D2:	ld	$27,$18
+09D4:	sbbm	$10,$10,7
+09D6:	sbc	$18,&H05
+09D8:	jr	z,&H0A09
+09D9:	adc	$18,$sx
+09DA:	jr	z,&H0A09
+09DB:	sbc	$17,&H12
+09DD:	jr	nc,&H0A0B
+09DE:	ld	$28,&H12
+09E0:	sbb	$28,$17
+09E2:	ldm	$10,$19,7
+09E4:	didm	$16,7
+09E6:	sbb	$28,$sy
+09E7:	jr	nz,&H09E4
+09E8:	ld	$17,&H12
+09EA:	dium	$19,7
+09EC:	sbb	$26,$sy
+09ED:	jr	nc,&H09EA
+09EE:	an	$25,&H0F
+09F0:	sb	$27,$sy
+09F1:	ld	$28,$10
+09F3:	phs	$27
+09F4:	cal	&H061D		;floating point normalisation
+09F6:	pps	$27
+09F7:	phsm	$22,4
+09F9:	cal	&H0054		;push a FP number $10-$18 on the US
+09FB:	ppsm	$19,4
+09FD:	cal	&H0A21		;copy a FP number $10-$18 <- $19-$27
+09FF:	cal	&H061D		;floating point normalisation
+0A01:	ldm	$19,$10,8
+0A03:	ld	$27,$18
+0A05:	cal	&H005C		;pop a FP number from the US to $10-$18
+0A07:	orcm	$19,$19,7,jr &H09A7
+0A09:	sbw	$17,$17,jr &H0A07
+0A0B:	ld	$28,$sx
+0A0C:	jr	nz,&H0A0F
+0A0D:	ld	$28,$19
+0A0F:	cal	&H0A21		;copy a FP number $10-$18 <- $19-$27
+0A11:	sbbm	$19,$19,8
+0A13:	ld	$27,$sx,jr &H0A07
+
+; = 2372 (OM-53B)
+; function INT, prefix 5, code &H7D
+0A15:	cal	&H09D0		;function FIX
+0A17:	rtn	z
+0A18:	sbc	$27,&H05
+0A1A:	rtn	c
+0A1B:	cal	&H0669		;$0-$8 <- floating point constant 1
+0A1D:	jp	&H05D4		;FP subtraction, $10-$18 <- $10-$18 - $0-$8
+
+; = 2402 (OM-53B)
+; function FRAC, prefix 5, code &H7F
+0A1F:	cal	&H09D0		;function FIX
+; = 0AC7
+; copy a FP number $10-$18 <- $19-$27
+0A21:	ldm	$10,$19,8
+0A23:	ld	$18,$27,jr &H09A7
+
+; = 2332 (OM-53B)
+; function ABS, prefix 5, code &H7B
+; absolute value of a FP number $10-$18
+0A25:	sbc	$18,&H05
+0A27:	rtn	c
+0A28:	sb	$18,&H05,jr &H0A92
+
+0A2A:	cal	&H0054		;push a FP number $10-$18 on the US
+0A2C:	cal	&H09D0		;function FIX
+0A2E:	jp	&H005C		;pop a FP number from the US to $10-$18
+
+; = 0AD1
+; integer multiplication $5,6*$15,16 --> $0,1
+; BS Error if overflow occured
+0A30:	cal	&H0A35		;KBM16, multiplication $5,6*$15,16 --> $0,1
+0A32:	rtn	nc
+0A33:	jp	&H0D9B		;BS Error, subscript out of range
+
+; = 0AD6
+; KBM16, unsigned integer multiplication $0,$1 <- $5,$6 * $15,$16
+; Returns Carry flag set if the product is greater than 65535.
+0A35:	sbcw	$15,$5
+0A37:	jr	nc,&H0A3C
+; swap $5,$6 <-> $15,$16 to choose the smaller value for the multiplier
+0A38:	phsw	$6
+0A39:	ldw	$5,$15
+0A3B:	ppsw	$15
+0A3C:	sbw	$0,$sz		;initial product = 0
+; multiplication loop
+0A3D:	anc	$5,$sy		;if least significant bit of multiplier is 1
+0A3E:	jr	z,&H0A42
+0A3F:	adw	$0,$15		;... then add multiplicand to the product
+0A41:	rtn	c		;return if overflow occured
+0A42:	bidw	$6		;shift multiplier right 1 bit
+0A43:	jr	z,&H0A6B	;end of multiplication
+0A44:	biuw	$15		;shift multiplicand left 1 bit
+0A45:	jr	nc,&H0A3D	;back to the loop if no overflow occured
+0A46:	rtn			;overflow
+
+; = 0AE8
+; BXWY, signed integer division $15,$16 <- $15,$16 / $5,$6
+; returns Carry set if overflow occurs (division &H8000 / &HFFFF)
+; MA Error, mathematical error if division by 0
+0A47:	ld	$4,$sx		;sign of the quotient
+0A48:	anc	$6,&H80		;test the sign of the divisor
+0A4A:	jr	z,&H0A4D	;skip if the divisor positive
+0A4B:	cmpw	$5		;absolute value of the divisor
+0A4C:	inv	$4		;complement the sign of the quotient
+0A4D:	anc	$16,&H80	;test the sign of the dividend
+0A4F:	jr	z,&H0A52	;skip if the dividend positive
+0A50:	cmpw	$15		;absolute value of the dividend
+0A51:	inv	$4		;complement the sign of the quotient
+0A52:	sbcw	$5,$sy		;an attempt to divide by 0?
+0A53:	jp	c,&H0DA1	;MA Error, mathematical error if division by 0
+0A55:	sbbm	$0,$sz,3	;clear quotient $0,$1 and bit counter $2
+; align the divisor to the left, count the shifts in the $2 register
+0A57:	ad	$2,$sy
+0A58:	biuw	$5
+0A59:	jr	nc,&H0A57
+0A5A:	rodw	$6
+; main division loop
+; if dividend>=divisor then subtract the divisor from the dividend and
+; increment the quotient
+0A5B:	adw	$0,$sy		;increment the quotient
+0A5C:	sbw	$15,$5		;subtract the divisor from the dividend
+0A5E:	jr	nc,&H0A62	;branch if the subtraction succeeded
+; the dividend was less than the divisor, take back the subtraction
+0A5F:	sbw	$0,$sy		;decrement the quotient
+0A60:	adw	$15,$5		;add the divisor to the dividend
+0A62:	sb	$2,$sy		;decrement the bit counter
+0A63:	jr	nz,&H0A6F	;next bit
+; end of division
+0A64:	adc	$4,$sx		;sign of the quotient
+0A65:	jr	nz,&H0A6D	;branch if the quotient is negative
+0A66:	anc	$1,&H80		;test if quotient<32768
+0A68:	jp	nz,&H0368	;set the Carry flag if overflow occured
+; the quotient is within allowed range
+0A6A:	ldw	$15,$sz		;copy the quotient to $15,$16
+0A6B:	sbc	$30,$sx		;clear the carry flag
+0A6C:	rtn
+0A6D:	cmpw	$0,jr &H0A6A	;complement the quotient
+0A6F:	biuw	$0		;shift the quotient one bit up
+0A70:	bidw	$6,jr &H0A5B	;shift the divisor one bit down
+
+; = 0B13
+; NCP:
+; floating point comparison, $10..$18 - $0..$8
+0A72:	sbc	$18,&H05
+0A74:	jr	nc,&H0A7D
+0A75:	sbc	$8,&H05
+0A77:	jr	nc,&H0A7D
+0A78:	sbcw	$17,$7
+0A7A:	rtn	nz
+0A7B:	sbbcm	$10,$sz,7,jr &H0A92
+
+0A7D:	sbcw	$7,$17
+0A7F:	rtn	nz
+0A80:	sbcw	$5,$15,jr &H0A92
+
+; = 0B23
+; MCP:
+; string comparison
+; first string - length in $17, address in $15,$16
+; second string - length in $7, address in $5,$6
+0A82:	gre	iz,$2
+0A83:	pre	iz,$15
+0A84:	pre	ix,$5
+0A85:	sbc	$17,$sx
+0A86:	jr	z,&H0A93
+0A87:	sbc	$7,$sx
+0A88:	jr	z,&H0A90
+0A89:	ldi	$0,(ix+$sx)
+0A8A:	ldi	$1,(iz+$sx)
+0A8B:	sbc	$1,$sz
+0A8C:	jr	nz,&H0A91
+0A8D:	sb	$7,$sy
+0A8E:	sb	$17,$sy,jr &H0A86
+0A90:	sbc	$17,$sx
+0A91:	pre	iz,$2
+0A92:	rtn
+0A93:	sbc	$7,$sx
+0A94:	jr	z,&H0A91
+0A95:	sbc	$31,$sy,jr &H0A91
+
+; = 0B38
+; CNVR:
+; integer (signed word in $15,$16) to floating point (in $10..$18) conversion
+0A97:	ldw	$3,$15
+0A99:	ld	$2,$4
+0A9B:	sbbm	$10,$10,7
+0A9D:	anc	$4,&H80
+0A9F:	jr	z,&H0AA1
+0AA0:	cmpw	$3
+; = 0B42
+0AA1:	cal	&H0AB4		;binary to BCD conversion
+0AA3:	ldw	$17,&H0604
+0AA5:	adc	$16,$sx
+0AA6:	jr	nz,&H0AAE
+0AA7:	sb	$17,$sy
+0AA8:	jr	c,&H0AAC
+0AA9:	dium	$14,3
+0AAB:	jr	&H0AA5
+0AAC:	sbw	$17,$17,jr &H0AB1
+0AAE:	biu	$2
+0AAF:	rtn	c
+0AB0:	ld	$18,$sy
+0AB1:	rtn
+
+; = 0B53
+; integer binary to BCD conversion $3,$4 -> $14-$16
+0AB2:	sbbm	$14,$14,3
+; = 0B55
+0AB4:	ld	$0,&H10
+0AB6:	adbm	$14,$14,3
+0AB8:	biuw	$3
+0AB9:	jr	nc,&H0ABC
+0ABA:	adbm	$14,&H01,3
+0ABC:	sb	$0,$sy
+0ABD:	jr	nz,&H0AB6
+0ABE:	rtn
+
+; = 2065 (OM-53B)
+; convert a pair of floating point numbers to signed integer
+; $10-$18 -> $5,$6 and the number from the User Stack -> $15,$16
+0ABF:	cal	&H0AC5
+0AC1:	ldw	$5,$15
+0AC3:	cal	&H005C		;pop a FP number from the US to $10-$18
+; = 206E (OM-53B)
+; convert a floating point number in $10-$18 to a signed integer in $15,$16
+; BS Error when result out of range -32768<=x<=32767
+0AC5:	sbw	$10,$10		;clear the destination register pair
+0AC7:	sbc	$18,$sx
+0AC8:	jr	z,&H0AD7	;result=0 if the input number is equal 0
+0AC9:	sbc	$18,&H05
+0ACB:	jr	z,&H0AD7	;result=0 if mantissa and exponent negative
+0ACC:	cal	&H0ADC		;BCD to binary conversion
+0ACE:	ldw	$12,&H8000
+0AD0:	sbcw	$10,$12
+0AD2:	jr	z,&H0AD9	;special case result = &H8000
+0AD3:	jr	nc,&H0AF8	;BS Error if out of range
+0AD4:	sbc	$18,$sy
+0AD5:	jr	z,&H0AD7	;skip for positive numbers
+0AD6:	cmpw	$10
+0AD7:	ldw	$15,$10,jr &H0AB1
+; special case result = &H8000, valid if number negative
+0AD9:	sbc	$18,$sy
+0ADA:	jr	z,&H0AF8	;BS Error, subscript out of range if positive
+0ADB:	jr	&H0AD7
+
+; = 0B7D
+; Converts a packed BCD number of $17+1 digits in the $14-$16 register block
+; to an unsigned integer number in $10,11. The most significant digit of the
+; BCD number should be placed in the lower nibble of the $16 register, while
+; the upper nibble should contain 0000. The registers $10,$11 need to be
+; cleared with 0 before calling the function.
+; Conversion result exceeding 65535 causes a BS Error.
+0ADC:	sbc	$17,&H05	;up to 5 digits allowed
+0ADE:	jr	nc,&H0AF8	;BS Error
+0ADF:	phs	$18
+0AE0:	byuw	$17
+0AE1:	adw	$10,$16
+0AE3:	jr	c,&H0AF8	;BS Error
+0AE4:	sb	$18,$sy		;decrement the digit counter
+0AE5:	jr	c,&H0AF6
+0AE6:	ldw	$12,&H199A	;6554 decimal
+0AE8:	sbcw	$10,$12
+0AEA:	jr	nc,&H0AF8	;BS Error
+0AEB:	dium	$14,3		;shift the next digit to the $16 register
+0AED:	an	$16,&H0F
+; $10,$11 <- $10,$11 * 10
+0AEF:	biuw	$10		;*2
+0AF0:	ldw	$12,$10
+0AF2:	biuw	$10		;*4
+0AF3:	biuw	$10		;*8
+0AF4:	adw	$10,$12,jr &H0AE1	;*(8+2)
+0AF6:	pps	$18
+0AF7:	rtn
+
+0AF8:	jp	&H0D9B		;BS Error, subscript out of range
+
+; = 1B1D (OM-53B)
+; NISIN:
+; Conversion of a BCD number in $17 to its binary value.
+0AFA:	ld	$19,$17
+0AFC:	an	$17,&H0F
+0AFE:	did	$19
+0AFF:	cal	&H0B02
+0B01:	biu	$19
+0B02:	biu	$19
+0B03:	ad	$17,$19,jr &H0AB1
+
+; = 1FD1 (OM-53B)
+0B05:	ldd	$0,(iz+$sx)
+0B06:	gre	iz,$15
+0B07:	ld	$17,$sx
+0B08:	sbc	$0,$sx
+0B09:	rtn	z
+0B0A:	sbc	$1,$sz
+0B0B:	ldd	$0,(iz+$sy)
+0B0C:	rtn	z
+0B0D:	ad	$17,$sy,jr &H0B08
+
+0B0F:	anc	$24,&H20
+0B11:	jr	nz,&H0B19
+
+; = 2099 (OM-53B)
+0B12:	sbc	$19,&H05
+0B14:	jr	nc,&H0B1E
+0B15:	ld	$21,&H20	;' '
+0B17:	sti	$21,(ix+$sx)
+0B18:	rtn
+
+; = 20A4 (OM-53B)
+0B19:	sbc	$19,&H05
+0B1B:	jr	nc,&H0B1E
+0B1C:	ld	$21,&H2B,jr &H0B17	;'+'
+0B1E:	ld	$21,&H2D,jr &H0B17	;'-'
+
+; = 3DC0 (OM-53B)
+; part of a routine searching the BASIC variable name area for a specified name
+0B20:	ldm	$19,(ix+$sx),4	;$19,$20 <- DTTB, $21,$22 <- TOSDT
+0B22:	pre	ix,$19
+; scan loop
+0B23:	sbcw	$19,$21
+0B25:	jr	z,&H0B3D	;search failed, return with Carry cleared
+0B26:	ldiw	$0,(ix+$sx)	;$0 <- variable type, $1 <- name length
+0B27:	xrw	$0,$13
+0B29:	an	$0,&H9F
+0B2B:	orc	$1,$sz
+0B2C:	jr	nz,&H0B40	;branch if type and/or length don't match
+; compare the names
+0B2D:	gre	ix,$5
+0B2E:	ld	$7,$14		;length
+0B30:	pre	iz,$15
+0B31:	ldi	$0,(ix+$sx)
+0B32:	ldi	$1,(iz+$sx)
+0B33:	sbc	$1,$sz
+0B34:	jr	nz,&H0B3F	;branch if the names don't match
+0B35:	sb	$7,$sy
+0B36:	jr	nz,&H0B31
+0B37:	pre	ix,$5
+; found
+0B38:	ld	$13,(ix-&H02)	;$13 <- variable type
+0B3A:	ldw	$21,(ix+$14)	;$21,$22 <- pointer to the variable contents
+0B3C:	sbc	$31,$sy		;set Carry
+0B3D:	pre	iz,$2
+0B3E:	rtn
+; next variable name
+0B3F:	pre	ix,$5
+0B40:	ld	$0,(ix-$sy)	;name length
+0B41:	ldiw	$0,(ix+$sz)	;IX <- IX + name_length + 1
+0B42:	gre	ix,$19,jr &H0B23 ;back to the scan loop
+
+
+; *** Text editor routines ***
+
+; = 473D (PB-2000C)
+; move pointer IZ to the next text line
+; Carry cleared when the last line of the text, not termianted by CR, was
+; reached
+0B44:	cal	&H0B56		;increment pointer IZ by 32 characters
+0B46:	jr	c,&H0B50	;branch if the end of the line was reached
+0B47:	sbc	$2,$sx		;was pointer IZ moved by 32 characters?
+0B48:	jr	z,&H0B44	;loop if so
+0B49:	rtn			;Carry cleared
+; = 4747 (PB-2000C)
+; move pointer IZ to the end of the previous text line
+; Carry cleared when the beginning of the text was reached
+0B4A:	cal	&H0B64		;decrement pointer IZ by 32 characters
+0B4C:	jr	c,&H0B50	;branch if the end of the previous line reached
+0B4D:	sbc	$2,$sx		;was pointer IZ moved by 32 characters?
+0B4E:	jr	z,&H0B4A	;loop if so
+0B4F:	rtn			;Carry cleared
+0B50:	ldd	$0,(iz+$sy)
+0B51:	sbc	$0,&H0A		;LF
+0B53:	jr	nz,&H0B75
+0B54:	ldd	$0,(iz+$sy)	;IZ <- IZ + 1
+0B55:	jr	&H0B75		;return with Carry set
+
+; = 0B9B
+; Increment pointer IZ to a text file by up to 32 characters. Set Carry if
+; the end of the line was reached.
+0B56:	ldw	$2,&H0D20	;$2 <- 32, $3 <- CR
+; = 0B9D
+0B58:	ldi	$0,(iz+$sx)
+0B59:	sbc	$3,$sz		;CR?
+0B5A:	jr	z,&H0B61
+0B5B:	sbc	$0,&H1A		;EOF?
+0B5D:	jr	z,&H0B62
+0B5E:	sb	$2,$sy		;decrement the counter of characters
+0B5F:	jr	nz,&H0B58
+0B60:	rtn
+0B61:	sbc	$31,$sy		;set Carry
+0B62:	ldd	$0,(iz-$sy)	;IZ <- IZ - 1
+0B63:	rtn
+
+; = 475C (PB-2000C)
+; Decrement pointer IZ to a text file by up to 32 characters. Set Carry if
+; the end of the previous line was reached.
+; Expects the starting address of the file in $25,$26.
+0B64:	ldw	$2,&H0D20	;$2 <- 32, $3 <- CR
+0B66:	gre	iz,$0
+0B67:	sbcw	$25,$sz		;beginning of the file reached?
+0B68:	jr	z,&H0B76	;return if so
+0B69:	ldd	$0,(iz-$sy)
+0B6A:	sbc	$3,$sz		;CR
+0B6B:	jr	z,&H0B77
+0B6C:	sb	$2,$sy		;decrement the counter of characters
+0B6D:	jr	nz,&H0B66
+0B6E:	sbc	$0,&H0A		;LF?
+0B70:	jr	nz,&H0B7C
+0B71:	sbc	(iz-$sy),$3	;CR?
+0B72:	jr	nz,&H0B7C
+0B73:	ldd	$0,(iz-$sy)	;IZ <- IZ - 1
+0B74:	ad	$2,$sy		;increment the counter of characters
+0B75:	sbc	$31,$sy		;set Carry
+0B76:	rtn
+0B77:	ld	$3,&H0A		;$3 <- LF
+0B79:	sbc	(iz+$sy),$3	;LF?
+0B7A:	jr	nz,&H0B75
+0B7B:	jr	&H0B74
+0B7C:	sbc	$31,$sx		;set Carry
+0B7D:	rtn
+
+; = 0BB6
+; Move pointer IZ to the beginning of the next line of a text file.
+; Each line is assumed to be terminated with a CR character or a CR/LF pair.
+0B7E:	ldw	$0,&H0A0D	;$0 <- CR, $1 <- LF
+0B80:	ldi	$2,(iz+$sx)
+0B81:	sbc	$2,$sz		;CR?
+0B82:	jr	z,&H0B88
+0B83:	sbc	$2,&H1A		;EOF?
+0B85:	jr	nz,&H0B80
+0B86:	ldd	$2,(iz-$sy)	;IZ <- IZ - 1
+0B87:	rtn
+0B88:	sbc	(iz+$sx),$1	;LF?
+0B89:	rtn	nz
+0B8A:	ldd	$2,(iz+$sy)	;IZ <- IZ + 1
+0B8B:	rtn
+
+
+; = 8E99 (OM-53B)
+; search for a BASIC line with a number specified in $15,$16
+; expects the file starting address in $25
+; returns the address of the line in $19,$20 and Carry set if exact match
+0B8C:	pre	iz,$25,jr &H0B95	;IZ <- starting address
+0B8E:	sbc	(iz+$sx),$31	;end of the BASIC program?
+0B8F:	jr	z,&H0B98	;return if so
+0B90:	sbcw	(iz+$sy),$15	;compare the line number with $15,$16
+0B91:	jr	z,&H0B97	;set Carry and return when found
+0B92:	jr	nc,&H0B98
+; advance the IX pointer to the beginning of the next line
+0B93:	ldi	$0,(iz+$sx)	;$0 <- line length
+0B94:	ldd	$1,(iz+$sz)	;IZ <- IZ + line length
+0B95:	gre	iz,$19,jr &H0B8E
+0B97:	sbc	$31,$sy
+0B98:	rtn
+
+; = 7F35 (OM-53B)
+0B99:	ld	$2,$sy,jr &H0B9C
+
+; = 7F38 (OM-53B)
+; command DATA, prefix 4, code &H80
+; command REM, prefix 4, code &HA9
+0B9B:	ld	$2,$sx
+0B9C:	ldw	$3,&H031F
+0B9E:	ldi	$0,(iz+$sx)
+0B9F:	sbc	$3,$sz
+0BA0:	jr	c,&H0B9E
+0BA1:	sbc	$2,$sz
+0BA2:	jr	nc,&H0BAA
+0BA3:	sbc	$4,$sz
+0BA4:	jr	z,&H0BA8
+0BA5:	jr	nc,&H0B9E
+0BA6:	ldd	$0,(iz+$sy)
+0BA7:	jr	&H0B9E
+0BA8:	ldiw	$0,(iz+$sx)
+0BA9:	jr	&H0B9E
+0BAA:	ldd	$1,(iz-$sy)
+0BAB:	rtn
+
+; = 7FB0 (OM-53B)
+0BAC:	ldw	$2,&H031F
+0BAE:	ld	$4,&H04
+0BB0:	ldi	$0,(iz+$sx)
+0BB1:	adc	$0,$sx
+0BB2:	jp	z,&H0DA7	;DA error, no data for READ
+0BB4:	ldiw	$0,(iz+$sx)
+0BB5:	ldi	$0,(iz+$sx)
+0BB6:	sbc	$2,$sz
+0BB7:	jr	c,&H0BB5
+0BB8:	adc	$0,$sx
+0BB9:	jr	z,&H0BB0
+0BBA:	sbc	$3,$sz
+0BBB:	jr	z,&H0BB4
+0BBC:	jr	nc,&H0BB5
+0BBD:	ldi	$1,(iz+$sx)
+0BBE:	sbc	$4,$sz
+0BBF:	jr	nz,&H0BB5
+0BC0:	sbc	$1,&H80
+0BC2:	jr	nz,&H0BB5
+0BC3:	gre	iz,$15
+0BC4:	rtn
+
+; some test code?
+0BC5:	sbc	$1,&H02
+0BC7:	jr	c,&H0BCD
+0BC8:	jr	z,&H0BCB
+0BC9:	ld	$0,&H5A,jr &H0BD1
+0BCB:	ld	$0,&HA5,jr &H0BD1
+0BCD:	ld	$0,&HFF,jr &H0BD1
+0BCF:	ld	$0,&H00
+0BD1:	ld	$1,$0
+0BD3:	psr	sx,0
+0BD4:	psr	sy,26
+0BD5:	psr	sz,27
+0BD6:	pre	ix,$0
+0BD7:	pre	iy,$0
+0BD8:	pre	iz,$0
+0BD9:
+0BDA:
+0BDB:	ldw	$2,$sx
+0BDC:	ldm	$4,$0,4
+0BDE:	ldm	$8,$0,8
+0BE0:	ldm	$16,$8,8
+0BE2:	ppo	&HC0
+0BE4:	ldw	$26,&H100F
+0BE6:	ldw	$28,&H0BEA
+0BE8:	jp	&H0BEF
+0BEA:	slw
+0BEB:	ldw	$26,&H0810
+0BED:	ldw	$28,&H0BF6
+0BEF:	gre	ky,$24
+0BF0:	an	$24,$sy
+0BF1:	jr	nz,&H0BEF
+0BF2:	gre	ky,$24
+0BF3:	an	$24,$sz
+0BF4:	jr	z,&H0BF2
+0BF5:	jp	$28
+0BF6:	ldm	$24,$0,8
+0BF8:	off
+0BF9:	jr	&H0BF8
+0BFA:	ldw	$10,&H5A0F
+0BFC:	slw
+0BFD:	pre	iz,$10
+0BFE:	jp	&HA000

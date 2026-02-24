@@ -1,0 +1,1603 @@
+; ROM of the FX-870P/VX-4 microcomputer, bank 2
+
+; font tables, character codes &H20-&HFF, 6 bytes for each character
+
+; Japanese version
+0000:	00 00 00 00 00 00	;code &H20, character ' '
+0006	00 00 F2 00 00 00	;code &H21, character '!'
+...
+0534:	00 00 00 00 00 00	;code &HFE
+053A:	00 00 00 00 00 00	;code &HFF
+
+; English version
+0540:	00 00 00 00 00 00	;code &H20, character ' '
+0546	00 00 F2 00 00 00	;code &H21, character '!'
+...
+0A74:	00 38 38 38 00 00	;code &HFE
+0A7A:	00 00 00 00 00 00	;code &HFF
+
+0A80:	'+', &H08, &H00
+0A83:	'-', &H08, &H01
+0A86:	'*', &H04, &H02
+0A89:	'/', &H04, &H03
+0A8C:	'<', &H09, &H02
+0A8F:	'>', &H09, &H04
+0A92:	'=', &H09, &H01
+0A95:	'^', &H01, &H06
+0A98:	&H5C, &H04, &H04	;Yen sign, integer division
+0A9B:	&HFF
+
+0A9C:	db	"??", "OM", "SN", "ST", "TC", "BV", "NR", "RW"
+0AAC:	db	"BF", "BN", "NF", "LB", "FL", "OV", "MA", "DD"
+0ABC:	db	"BS", "FC", "UL", "TM", "RE", "PR", "DA", "FO"
+0ACC:	db	"NX", "GS", "FM", "FD", "OP", "AM", "FR", "PO"
+0ADC:	db	"DF"
+
+0ADE:	                                             D0 1C
+0AE0:	D0 1C D0 1C  D0 20 D0 20  D0 20 D0 20  D0 20 D0 20  P.P.P P P P P P 
+0AF0:	D0 22 D1 22  D2 22 D3 22  D4 22 D5 22  D6 22 D7 22  P"Q"R"S"T"U"V"W"
+0B00:	D8 22 D9 22  DA 22 DB 22  DC 22 DD 22  DE 22 DF 22  X"Y"Z"["\"]"^"_"
+0B10:	E0 22 E1 22  E2 22 E3 22  E4 22 D0 1C  D0 1C D0 1C  `"a"b"c"d"P.P.P.
+0B20:	D0 38 D0 38  D0 38 D0 38  D0 38 D0 38  D0 3C D1 3C  P8P8P8P8P8P8P<Q<
+0B30:	D2 3C D3 3C  D4 3C D5 3C  D6 3C D7 3C  D8 3C D9 3C  R<S<T<U<V<W<X<Y<
+0B40:	DA 3C DB 3C  DC 3C DD 3C  DE 3C DF 3C  E0 3C E1 3C  Z<[<\<]<^<_<`<a<
+0B50:	E2 3C E3 3C  E4 3C 00 00  00 00 00 00  00 00 00 00  b<c<d<..........
+0B60:	1A 1A 1A 1A  1A 1A 1A 1A  1A 1A 26 C8  31 30 DE C5  ..........&H10^E
+0B70:	5E B2 5E B3
+
+0B74:	0BA8		;keywords starting with 'A'
+0B76:	0BD8		;keywords starting with 'B' ...
+0B78:	0BE1, 0C23, 0C59, 0C8F	;'C' to 'F'
+0B80:	0CB6, 0CC5, 0CD2, 0EA9	;'G' to 'J'
+8B88:	0CEA, 0CF3, 0D37, 0D5B	;'K' to 'N'
+0B90:	0D79, 0D8C, 0EA9, 0DB0	;'O' to 'R'
+0B98:	0DF3, 0E55, 0E74, 0E7E	;'S' to 'V'
+0BA0:	0E96, 0EA1, 0EA9, 0EA9	;'W' to 'Z'
+
+; table of keywords and codes
+; &H00 marks the end of the block of keywords with the same prefix
+0BA8:	db	'ANGL', 'E'+&H80, &H6E		;prefix &H04, code &H6E
+0BAE:	db	&H00
+0BAF:	db	'AB', 'S'+&H80, &H7B		;prefix &H05, code &H7B
+0BB3:	db	'AS', 'N'+&H80, &H6E		;prefix &H05, code &H6E
+0BB7:	db	'AC', 'S'+&H80, &H6F		;prefix &H05, code &H6F
+0BBB:	db	'AT', 'N'+&H80, &H70		;prefix &H05, code &H70
+0BBF:	db	'AS', 'C'+&H80, &H94		;prefix &H05, code &H94
+0BC3:	db	&H00
+0BC4:	db	&H00
+0BC5:	db	'AL', 'L'+&H80, &HBB		;prefix &H07, code &HBB
+0BC9:	db	'A', 'S'+&H80, &HBC		;prefix &H07, code &HBC
+0BCC:	db	'APPEN', 'D'+&H80, &HBD		;prefix &H07, code &HBD
+0BD3:	db	'AN', 'D'+&H80, &HC4		;prefix &H07, code &HC4
+0BD7:	db	&H00
+;
+0BD8:	db	'BEE', 'P'+&H80, &H70		;prefix &H04, code &H70
+0BDD:	db	&H00
+0BDE:	db	&H00
+0BDF:	db	&H00
+0BE0:	db	&H00
+;
+0BE1:	db	'CALCJM', 'P'+&H80, &H9F	;prefix &H04, code &H9F
+0BE9:	db	'CLEA', 'R'+&H80, &H6A		;prefix &H04, code &H6A
+0BEF:	db	'CHAI', 'N'+&H80, &H69		;prefix &H04, code &H69
+0BF5:	db	'CL', 'S'+&H80, &H71		;prefix &H04, code &H71
+0BF9:	db	'CLOS', 'E'+&H80, &H72		;prefix &H04, code &H72
+0BFF:	db	'CON', 'T'+&H80, &H50		;prefix &H04, code &H50
+0C04:	db	&H00
+0C05:	db	'CO', 'S'+&H80, &H6C		;prefix &H05, code &H6C
+0C09:	db	'CN', 'T'+&H80, &H51		;prefix &H05, code &H51
+0C0D:	db	'CO', 'R'+&H80, &H5F		;prefix &H05, code &H5F
+0C11:	db	'CU', 'R'+&H80, &H63		;prefix &H05, code &H63
+0C15:	db	&H00
+0C16:	db	'CALC', '$'+&H80, &HAD		;prefix &H06, code &HAD
+0C1C:	db	'CHR', '$'+&H80, &HA0		;prefix &H06, code &HA0
+0C21:	db	&H00
+0C22:	db	&H00
+;
+0C23:	db	'DEFSE', 'G'+&H80, &H78		;prefix &H04, code &H78
+0C2A:	db	'DE', 'F'+&H80, &H76		;prefix &H04, code &H76
+0C2E:	db	'DI', 'M'+&H80, &H7C		;prefix &H04, code &H7C
+0C32:	db	'DELET', 'E'+&H80, &H55		;prefix &H04, code &H55
+0C39:	db	'DAT', 'A'+&H80, &H80		;prefix &H04, code &H80
+0C3E:	db	&H00
+0C3F:	db	'DEG', 'R'+&H80, &H81		;prefix &H05, code &H81
+0C44:	db	'DE', 'G'+&H80, &H9C		;prefix &H05, code &H9C
+0C48:	db	'DM', 'S'+&H80, &H82		;prefix &H05, code &H82
+0C4C:	db	'DSK', 'F'+&H80, &H61		;prefix &H05, code &H61
+0C51:	db	&H00
+0C52:	db	'DMS', '$'+&H80, &H97		;prefix &H06, code &H97
+0C57:	db	&H00
+0C58:	db	&H00
+;
+0C59:	db	'EDI', 'T'+&H80, &H6F		;prefix &H04, code &H6F
+0C5E:	db	'ERAS', 'E'+&H80, &H85		;prefix &H04, code &H85
+0C64:	db	'ERRO', 'R'+&H80, &H86		;prefix &H04, code &H86
+0C6A:	db	'EN', 'D'+&H80, &H87		;prefix &H04, code &H87
+0C6E:	db	&H00
+0C6F:	db	'ER', 'R'+&H80, &H50		;prefix &H05, code &H50
+0C73:	db	'EX', 'P'+&H80, &H79		;prefix &H05, code &H79
+0C77:	db	'ER', 'L'+&H80, &H4F		;prefix &H05, code &H4F
+0C7B:	db	'EO', 'F'+&H80, &H8A		;prefix &H05, code &H8A
+0C7F:	db	'EO', 'X'+&H80, &H69		;prefix &H05, code &H69
+0C83:	db	'EO', 'Y'+&H80, &H6A		;prefix &H05, code &H6A
+0C87:	db	&H00
+0C88:	db	&H00
+0C89:	db	'ELS', 'E'+&H80, &H48		;prefix &H07, code &H48
+0C8E:	db	&H00
+;
+0C8F:	db	'FORMA', 'T'+&H80, &H8B		;prefix &H04, code &H8B
+0C96:	db	'FO', 'R'+&H80, &H81		;prefix &H04, code &H81
+0C9A:	db	'FILE', 'S'+&H80, &HB5		;prefix &H04, code &HB5
+0CA0:	db	&H00
+0CA1:	db	'FAC', 'T'+&H80, &H67		;prefix &H05, code &H67
+0CA6:	db	'FI', 'X'+&H80, &H7E		;prefix &H05, code &H7E
+0CAA:	db	'FRA', 'C'+&H80, &H7F		;prefix &H05, code &H7F
+0CAF:	db	'FR', 'E'+&H80, &H8D		;prefix &H05, code &H8D
+0CB3:	db	&H00
+0CB4:	db	&H00
+0CB5:	db	&H00
+;
+0CB6:	db	'GOT', 'O'+&H80, &H49		;prefix &H04, code &H49
+0CBB:	db	'GOSU', 'B'+&H80, &H4A		;prefix &H04, code &H4A
+0CC1:	db	&H00
+0CC2:	db	&H00
+0CC3:	db	&H00
+0CC4:	db	&H00
+;
+0CC5:	db	&H00
+0CC6:	db	'HY', 'P'+&H80, &HAC		;prefix &H05, code &HAC
+0CCA:	db	&H00
+0CCB:	db	'HEX', '$'+&H80, &HA3		;prefix &H06, code &HA3
+0CD0:	db	&H00
+0CD1:	db	&H00
+;
+0CD2:	db	'I', 'F'+&H80, &H8D		;prefix &H04, code &H8D
+0CD5:	db	&H00
+0CD6:	db	'IN', 'T'+&H80, &H7D		;prefix &H05, code &H7D
+0CDA:	db	&H00
+0CDB:	db	'INPU', 'T'+&H80, &H9B		;prefix &H06, code &H9B
+0CE1:	db	'INKEY', '$'+&H80, &HA8		;prefix &H06, code &HA8
+0CE8:	db	&H00
+0CE9:	db	&H00
+;
+0CEA:	db	'KIL', 'L'+&H80, &H8E		;prefix &H04, code &H8E
+0CEF:	db	&H00
+0CF0:	db	&H00
+0CF1:	db	&H00
+0CF2:	db	&H00
+;
+0CF3:	db	'LIS', 'T'+&H80, &H57		;prefix &H04, code &H57
+0CF8:	db	'LLIS', 'T'+&H80, &H58		;prefix &H04, code &H58
+0CFE:	db	'LOA', 'D'+&H80, &H59		;prefix &H04, code &H59
+0D03:	db	'LE', 'T'+&H80, &H8F		;prefix &H04, code &H8F
+0D07:	db	'LIN', 'E'+&H80, &H90		;prefix &H04, code &H90
+0D0C:	db	'LOCAT', 'E'+&H80, &H91		;prefix &H04, code &H91
+0D13:	db	'LPRIN', 'T'+&H80, &HA4		;prefix &H04, code &HA4
+0D1A:	db	&H00
+0D1B:	db	'LO', 'G'+&H80, &H78		;prefix &H05, code &H78
+0D1F:	db	'L', 'N'+&H80, &H77		;prefix &H05, code &H77
+0D22:	db	'LE', 'N'+&H80, &H95		;prefix &H05, code &H95
+0D26:	db	'LR', 'A'+&H80, &H5D		;prefix &H05, code &H5D
+0D2A:	db	'LR', 'B'+&H80, &H5E		;prefix &H05, code &H5E
+0D2E:	db	&H00
+0D2F:	db	'LEFT', '$'+&H80, &H9E		;prefix &H06, code &H9E
+0D35:	db	&H00
+0D36:	db	&H00
+;
+0D37:	db	'MOD', 'E'+&H80, &HB0		;prefix &H04, code &HB0
+0D3C:	db	'MERG', 'E'+&H80, &H5A		;prefix &H04, code &H5A
+0D42:	db	&H00
+0D43:	db	'MEAN', 'X'+&H80, &H57		;prefix &H05, code &H57
+0D49:	db	'MEAN', 'Y'+&H80, &H58		;prefix &H05, code &H58
+0D4F:	db	&H00
+0D50:	db	'MID', '$'+&H80, &H9C		;prefix &H06, code &H9C
+0D55:	db	&H00
+0D56:	db	'MO', 'D'+&H80, &HC7		;prefix &H07, code &HC7
+0D5A:	db	&H00
+;
+0D5B:	db	'NEX', 'T'+&H80, &H82		;prefix &H04, code &H82
+0D60:	db	'NE', 'W'+&H80, &H6B		;prefix &H04, code &H6B
+0D64:	db	'NAM', 'E'+&H80, &H96		;prefix &H04, code &H96
+0D69:	db	&H00
+0D6A:	db	'NC', 'R'+&H80, &HAB		;prefix &H05, code &HAB
+0D6E:	db	'NP', 'R'+&H80, &HAA		;prefix &H05, code &HAA
+0D72:	db	&H00
+0D73:	db	&H00
+0D74:	db	'NO', 'T'+&H80, &HC3		;prefix &H07, code &HC3
+0D78:	db	&H00
+;
+0D79:	db	'OPE', 'N'+&H80, &H97		;prefix &H04, code &H97
+0D7E:	db	'OU', 'T'+&H80, &H99		;prefix &H04, code &H99
+0D82:	db	'O', 'N'+&H80, &H9A		;prefix &H04, code &H9A
+0D85:	db	&H00
+0D86:	db	&H00
+0D87:	db	&H00
+0D88:	db	'O', 'R'+&H80, &HC5		;prefix &H07, code &HC5
+0D8B:	db	&H00
+;
+0D8C:	db	'POK', 'E'+&H80, &H63		;prefix &H04, code &H63
+0D91:	db	'PRIN', 'T'+&H80, &HA3		;prefix &H04, code &HA3
+0D97:	db	'PU', 'T'+&H80, &HA5		;prefix &H04, code &HA5
+0D9B:	db	'PAS', 'S'+&H80, &H53		;prefix &H04, code &H53
+0DA0:	db	&H00
+0DA1:	db	'P', 'I'+&H80, &H60		;prefix &H05, code &H60
+0DA4:	db	'PEE', 'K'+&H80, &H86		;prefix &H05, code &H86
+0DA9:	db	'PO', 'L'+&H80, &HA8		;prefix &H05, code &HA8
+0DAD:	db	&H00
+0DAE:	db	&H00
+0DAF:	db	&H00
+;
+0DB0:	db	'RETUR', 'N'+&H80, &H4B		;prefix &H04, code &H4B
+0DB7:	db	'RESUM', 'E'+&H80, &H4C		;prefix &H04, code &H4C
+0DBE:	db	'RESTOR', 'E'+&H80, &H4D	;prefix &H04, code &H4D
+0DC6:	db	'RENU', 'M'+&H80, &H5C		;prefix &H04, code &H5C
+0DCC:	db	'RU', 'N'+&H80, &H6D		;prefix &H04, code &H6D
+0DD0:	db	'REA', 'D'+&H80, &HA8		;prefix &H04, code &HA8
+0DD5:	db	'RE', 'M'+&H80, &HA9		;prefix &H04, code &HA9
+0DD9:	db	&H00
+0DDA:	db	'RAN', '#'+&H80, &H93		;prefix &H05, code &H93
+0DDF:	db	'RE', 'C'+&H80, &HA7		;prefix &H05, code &HA7
+0DE3:	db	'ROUN', 'D'+&H80, &H90		;prefix &H05, code &H90
+0DE9:	db	&H00
+0DEA:	db	'RIGHT', '$'+&H80, &H9D		;prefix &H06, code &H9D
+0DF1:	db	&H00
+0DF2:	db	&H00
+;
+0DF3:	db	'SE', 'T'+&H80, &HAC		;prefix &H04, code &HAC
+0DF7:	db	'STO', 'P'+&H80, &HAE		;prefix &H04, code &HAE
+0DFC:	db	'SYSTE', 'M'+&H80, &H52		;prefix &H04, code &H52
+0E03:	db	'SAV', 'E'+&H80, &H6C		;prefix &H04, code &H6C
+0E08:	db	'STA', 'T'+&H80, &HAD		;prefix &H04, code &HAD
+0E0D:	db	&H00
+0E0E:	db	'SI', 'N'+&H80, &H6B		;prefix &H05, code &H6B
+0E12:	db	'SQ', 'R'+&H80, &H7A		;prefix &H05, code &H7A
+0E16:	db	'SUMX', 'Y'+&H80, &H56		;prefix &H05, code &H56
+0E1C:	db	'SUMX', '2'+&H80, &H54		;prefix &H05, code &H54
+0E22:	db	'SUM', 'X'+&H80, &H52		;prefix &H05, code &H52
+0E27:	db	'SUMY', '2'+&H80, &H55		;prefix &H05, code &H55
+0E2D:	db	'SUM', 'Y'+&H80, &H53		;prefix &H05, code &H53
+0E32:	db	'SDX', 'N'+&H80, &H5B		;prefix &H05, code &H5B
+0E37:	db	'SD', 'X'+&H80, &H59		;prefix &H05, code &H59
+0E3B:	db	'SDY', 'N'+&H80, &H5C		;prefix &H05, code &H5C
+0E40:	db	'SD', 'Y'+&H80, &H5A		;prefix &H05, code &H5A
+0E44:	db	'SG', 'N'+&H80, &H7C		;prefix &H05, code &H7C
+0E48:	db	&H00
+0E49:	db	'STR', '$'+&H80, &HA1		;prefix &H06, code &HA1
+0E4E:	db	&H00
+0E4F:	db	'STE', 'P'+&H80, &HC0		;prefix &H07, code &HC0
+0E54:	db	&H00
+;
+0E55:	db	'TRO', 'N'+&H80, &H5D		;prefix &H04, code &H5D
+0E5A:	db	'TROF', 'F'+&H80, &H5F		;prefix &H04, code &H5F
+0E60:	db	&H00
+0E61:	db	'TA', 'N'+&H80, &H6D		;prefix &H05, code &H6D
+0E65:	db	&H00
+0E66:	db	&H00
+0E67:	db	'THE', 'N'+&H80, &H47		;prefix &H07, code &H47
+0E6C:	db	'TA', 'B'+&H80, &HB6		;prefix &H07, code &HB6
+0E70:	db	'T', 'O'+&H80, &HC1		;prefix &H07, code &HC1
+0E73:	db	&H00
+;
+0E74:	db	&H00
+0E75:	db	&H00
+0E76:	db	&H00
+0E77:	db	'USIN', 'G'+&H80, &HC2		;prefix &H07, code &HC2
+0E7D:	db	&H00
+;
+0E7E:	db	'VERIF', 'Y'+&H80, &H60		;prefix &H04, code &H60
+0E85:	db	'VA', 'R'+&H80, &HB2		;prefix &H04, code &HB2
+0E89:	db	&H00
+0E8A:	db	'VAL', 'F'+&H80, &H92		;prefix &H05, code &H92
+0E8F:	db	'VA', 'L'+&H80, &H96		;prefix &H05, code &H96
+0E93:	db	&H00
+0E94:	db	&H00
+0E95:	db	&H00
+;
+0E96:	db	'WRITE', '#'+&H80, &H4E		;prefix &H04, code &H4E
+0E9D:	db	&H00
+0E9E:	db	&H00
+0E9F:	db	&H00
+0EA0:	db	&H00
+;
+0EA1:	db	&H00
+0EA2:	db	&H00
+0EA3:	db	&H00
+0EA4:	db	'XO', 'R'+&H80, &HC6		;prefix &H07, code &HC6
+0EA8:	db	&H00
+
+0EA9:	db	&H00, &H00, &H00, &H00, &HFF
+
+; three question marks used to LIST unrecognized codes
+0EAE:	db	'??', '?'+H80
+
+; key code pairs (caps on and off) for the KI12..KI3 inputs
+; 1. without a red shift
+; KO2
+0EB1:	db	&H13, &H13,	&HE6, &HE6,	&HE8, &HE8,	&H1F, &H1F,
+0EB9:	db	&H1C, &H1C,	&H14, &H14,	&HEB, &HEB,	&HED, &HED,
+0EC1:	db	&H9A, &H9A,	&HA1, &HA1
+; KO3
+0EC5:	db	&HEE, &HEE,	&HE7, &HE7,	&H1E, &H1E,	&H1D, &H1D,
+0ECD:	db	&H12, &H12,	'7',  '7',	&H87, &H87,	&H88, &H88,
+0ED5:	db	&H91, &H91,	&HFB, &HFB
+; KO4
+0ED9:	db	'Q',  'q',	'E',  'e',	'T',  't',	'U',  'u',
+0EE1:	db	'O',  'o',	&HE0, &HE0,	&HE2, &HE2,	&H92, &H92,
+0EE9:	db	&H8A, &H8A,	&H8B, &H8B
+; KO5
+0EED:	db	'W',  'w',	'R',  'r',	'Y',  'y',	'I',  'i',
+0EF5:	db	'P',  'p',	'4',  '4',	&HE4, &HE4,	'(',  '(',
+0EFD:	db	')',  ')',	&H8C, &H8C
+; KO6
+0F01:	db	&HFA, &HFA,	'S',  's',	'F',  'f',	'H',  'h',
+0F09:	db	'K',  'k',	&HE9, &HE9,	'8',  '8',	'9',  '9',
+0F11:	db	'^',  '^',	&H0C, &H0C
+; KO7
+0F15:	db	'A',  'a',	'D',  'd',	'G',  'g',	'J',  'j',
+0F1D:	db	'L',  'l',	'1',  '1',	'5',  '5',	'6',  '6',
+0F25:	db	&H08, &H08,	'/',  '/'
+; KO8
+0F29:	db	&H16, &H16,	'X',  'x',	'V',  'v',	'N',  'n',
+0F31:	db	',',  ',',	' ',  ' ',	'2',  '2',	'3',  '3',
+0F39:	db	'*',  '*',	'-',  '-'
+; KO9
+0F3D:	db	'Z',  'z',	'C',  'c',	'B',  'b',	'M',  'm',
+0F45:	db	'=',  '=',	'0',  '0',	'.',  '.',	&HA0, &HA0,
+0F4D:	db	'+',  '+',	&H0D, &H0D
+; 2. with a red shift
+; KO2
+0F51:	db	&H13, &HE6,	&HE8, &H01,	&H06, &H14,	&HEC, &HEA,
+0F59:	db	&H9B, &HA2,	&HEF, &HE7,	&H10, &H02,	&H11, &HF7,
+0F61:	db	&H9F, &H89,	&H90, &HFC
+; KO3
+0F65:	db	'!',  '#',	'%',  ''',	'|',  &HE1,	&HE3, &H93,
+0F6D:	db	&H8D, &H8E,	'"',  '$',	'&',  '\',	'`',  &HF4,
+0F75:	db	&HE5, &H9E,	&H99, &H8F
+; KO4
+0F79:	db	&HFA, '~',	'{',  '[',	'<',  &HE9,	&HF8, &HF9,
+0F81:	db	&H94, &H0B,	'@',  '?',	'}',  ']',	'>',  &HF1,
+0F89:	db	&HF5, &HF6,	&H05, &H98
+; KO5
+0F8D:	db	&H15, &H81,	&H83, &H84,	';',  '_',	&HF2, &HF3,
+0F95:	db	&H97, &H9D,	&H80, &H82,	&H85, &H86,	':',  &HF0,
+0F9D:	db	&H95, &H96,	&H9C, &HFD
+
+
+0FA1:	0FA9	;table of the "prefix 4" addresses of keyword names
+0FA3:	10AB	;table of the "prefix 5" addresses of keyword names
+0FA5:	11AD	;table of the "prefix 6" addresses of keyword names
+0FA7:	12AF	;table of the "prefix 7" addresses of keyword names
+
+; table of the "prefix 4" addresses of keyword names, keyword codes &H47-&HC7
+0FA9:	0EAE, 0EAE, 0CB6, 0CBB	;47:none, 48:none, 49:GOTO, 4A:GOSUB
+0FB1:	0DB0, 0DB7, 0DBE, 0E96	;4B:RETURN, 4C:RESUME, 4D:RESTORE, 4E:WRITE#
+0FB9:	0EAE, 0BFF, 0EAE, 0DFC	;4F:none, 50:CONT, 51:none, 52:SYSTEM
+0FC1:	0D9B, 0EAE, 0C32, 0EAE	;53:PASS, 54:none, 55:DELETE, 56:none
+0FC9:	0CF3, 0CF8, 0CFE, 0D3C	;57:LIST, 58:LLIST, 59:LOAD, 5A:MERGE
+0FD1:	0EAE, 0DC6, 0E55, 0EAE	;5B:none, 5C:RENUM, 5D:TRON, 5E:none
+0FD9:	0E5A, 0E7E, 0EAE, 0EAE	;5F:TROFF, 60:VERIFY, 61:none, 62:none
+0FE1:	0D8C, 0EAE, 0EAE, 0EAE	;63:POKE, 64:none, 65:none, 66:none
+0FE9:	0EAE, 0EAE, 0BEF, 0BE9	;67:none, 68:none, 69:CHAIN, 6A:CLEAR
+0FF1:	0D60, 0E03, 0DCC, 0BA8	;6B:NEW, 6C:SAVE, 6D:RUN, 6E:ANGLE
+0FF9:	0C59, 0BD8, 0BF5, 0BF9	;6F:EDIT, 70:BEEP, 71:CLS, 72:CLOSE
+1001:	0EAE, 0EAE, 0EAE, 0C2A	;73:none, 74:none, 75:none, 76:DEF
+1009:	0EAE, 0C23, 0EAE, 0EAE	;77:none, 78:DEFSEG, 79:none, 7A:none
+1011:	0EAE, 0C2E, 0EAE, 0EAE	;7B:none, 7C:DIM, 7D:none, 7E:none
+1019:	0EAE, 0C39, 0C96, 0D5B	;7F:none, 80:DATA, 81:FOR, 82:NEXT
+1021:	0EAE, 0EAE, 0C5E, 0C64	;83:none, 84:none, 85:ERASE, 86:ERROR
+1029:	0C6A, 0EAE, 0EAE, 0EAE	;87:END, 88:none, 89:none, 8A:none
+1031:	0C8F, 0EAE, 0CD2, 0CEA	;8B:FORMAT, 8C:none, 8D:IF, 8E:KILL
+1039:	0D03, 0D07, 0D0C, 0EAE	;8F:LET, 90:LINE, 91:LOCATE, 92:none
+1041:	0EAE, 0EAE, 0EAE, 0D64	;93:none, 94:none, 95:none, 96:NAME
+1049:	0D79, 0EAE, 0D7E, 0D82	;97:OPEN, 98:none, 99:OUT, 9A:ON
+1051:	0EAE, 0EAE, 0EAE, 0EAE	;9B:none, 9C:none, 9D:none, 9E:none
+1059:	0BE1, 0EAE, 0EAE, 0EAE	;9F:CALCJMP, A0:none, A1:none, A2:none
+1061:	0D91, 0D13, 0D97, 0EAE	;A3:PRINT, A4:LPRINT, A5:PUT, A6:none
+1069:	0EAE, 0DD0, 0DD5, 0EAE	;A7:none, A8:READ, A9:REM, AA:none
+1071:	0EAE, 0DF3, 0E08, 0DF7	;AB:none, AC:SET, AD:STAT, AE:STOP
+1079:	0EAE, 0D37, 0EAE, 0E85	;AF:none, B0:MODE, B1:none, B2:VAR
+1081:	0EAE, 0EAE, 0C9A, 0EAE	;B3:none, B4:none, B5:FILES, B6:none
+1089:	0EAE, 0EAE, 0EAE, 0EAE	;B7:none, B8:none, B9:none, BA:none
+1091:	0EAE, 0EAE, 0EAE, 0EAE	;BB:none, BC:none, BD:none, BE:none
+1099:	0EAE, 0EAE, 0EAE, 0EAE	;BF:none, C0:none, C1:none, C2:none
+10A1:	0EAE, 0EAE, 0EAE, 0EAE	;C3:none, C4:none, C5:none, C6:none
+10A9:	0EAE			;C7:none
+
+; table of the "prefix 5" addresses of keyword names, keyword codes &H47-&HC7
+10AB:	0EAE, 0EAE, 0EAE, 0EAE	;47:none, 48:none, 49:none, 4A:none
+10B3:	0EAE, 0EAE, 0EAE, 0EAE	;4B:none, 4C:none, 4D:none, 4E:none
+10BB:	0C77, 0C6F, 0C09, 0E22	;4F:ERL, 50:ERR, 51:CNT, 52:SUMX
+10C3:	0E2D, 0E1C, 0E27, 0E16	;53:SUMY, 54:SUMX2, 55:SUMY2, 56:SUMXY
+10CB:	0D43, 0D49, 0E37, 0E40	;57:MEANX, 58:MEANY, 59:SDX, 5A:SDY
+10D3:	0E32, 0E3B, 0D26, 0D2A	;5B:SDXN, 5C:SDYN, 5D:LRA, 5E:LRB
+10DB:	0C0D, 0DA1, 0C4C, 0EAE	;5F:COR, 60:PI, 61:DSKF, 62:none
+10E3:	0C11, 0EAE, 0EAE, 0EAE	;63:CUR, 64:none, 65:none, 66:none
+10EB:	0CA1, 0EAE, 0C7F, 0C83	;67:FACT, 68:none, 69:EOX, 6A:EOY
+10F3:	0E0E, 0C05, 0E61, 0BB3	;6B:SIN, 6C:COS, 6D:TAN, 6E:ASN
+10FB:	0BB7, 0BBB, 0EAE, 0EAE	;6F:ACS, 70:ATN, 71:none, 72:none
+1103:	0EAE, 0EAE, 0EAE, 0EAE	;73:none, 74:none, 75:none, 76:none
+110B:	0D1F, 0D1B, 0C73, 0E12	;77:LN, 78:LOG, 79:EXP, 7A:SQR
+1113:	0BAF, 0E44, 0CD6, 0CA6	;7B:ABS, 7C:SGN, 7D:INT, 7E:FIX
+111B:	0CAA, 0EAE, 0C3F, 0C48	;7F:FRAC, 80:none, 81:DEGR, 82:DMS
+1123:	0EAE, 0EAE, 0EAE, 0DA4	;83:none, 84:none, 85:none, 86:PEEK
+112B:	0EAE, 0EAE, 0EAE, 0C7B	;87:none, 88:none, 89:none, 8A:EOF
+1133:	0EAE, 0EAE, 0CAF, 0EAE	;8B:none, 8C:none, 8D:FRE, 8E:none
+113B:	0EAE, 0DE3, 0EAE, 0E8A	;8F:none, 90:ROUND, 91:none, 92:VALF
+1143:	0DDA, 0BBF, 0D22, 0E8F	;93:RAN#, 94:ASC, 95:LEN, 96:VAL
+114B:	0EAE, 0EAE, 0EAE, 0EAE	;97:none, 98:none, 99:none, 9A:none
+1153:	0CC6, 0C44, 0EAE, 0EAE	;9B:HYP, 9C:DEG, 9D:none, 9E:none
+115B:	0EAE, 0EAE, 0EAE, 0EAE	;9F:none, A0:none, A1:none, A2:none
+1163:	0EAE, 0EAE, 0EAE, 0EAE	;A3:none, A4:none, A5:none, A6:none
+116B:	0DDF, 0DA9, 0EAE, 0D6E	;A7:REC, A8:POL, A9:none, AA:NPR
+1173:	0D6A, 0CC6, 0EAE, 0EAE	;AB:NCR, AC:HYP, AD:none, AE:none
+117B:	0EAE, 0EAE, 0EAE, 0EAE	;AF:none, B0:none, B1:none, B2:none
+1183:	0EAE, 0EAE, 0EAE, 0EAE	;B3:none, B4:none, B5:none, B6:none
+118B:	0EAE, 0EAE, 0EAE, 0EAE	;B7:none, B8:none, B9:none, BA:none
+1193:	0EAE, 0EAE, 0EAE, 0EAE	;BB:none, BC:none, BD:none, BE:none
+119B:	0EAE, 0EAE, 0EAE, 0EAE	;BF:none, C0:none, C1:none, C2:none
+11A3:	0EAE, 0EAE, 0EAE, 0EAE	;C3:none, C4:none, C5:none, C6:none
+11AB:	0EAE			;C7:none
+
+; table of the "prefix 6" addresses of keyword names, keyword codes &H47-&HC7
+11AD:	0EAE, 0EAE, 0EAE, 0EAE	;47:none, 48:none, 49:none, 4A:none
+11B5:	0EAE, 0EAE, 0EAE, 0EAE	;4B:none, 4C:none, 4D:none, 4E:none
+11BD:	0EAE, 0EAE, 0EAE, 0EAE	;4F:none, 50:none, 51:none, 52:none
+11C5:	0EAE, 0EAE, 0EAE, 0EAE	;53:none, 54:none, 55:none, 56:none
+11CD:	0EAE, 0EAE, 0EAE, 0EAE	;57:none, 58:none, 59:none, 5A:none
+11D5:	0EAE, 0EAE, 0EAE, 0EAE	;5B:none, 5C:none, 5D:none, 5E:none
+11DD:	0EAE, 0EAE, 0EAE, 0EAE	;5F:none, 60:none, 61:none, 62:none
+11E5:	0EAE, 0EAE, 0EAE, 0EAE	;63:none, 64:none, 65:none, 66:none
+11ED:	0EAE, 0EAE, 0EAE, 0EAE	;67:none, 68:none, 69:none, 6A:none
+11F5:	0EAE, 0EAE, 0EAE, 0EAE	;6B:none, 6C:none, 6D:none, 6E:none
+11FD:	0EAE, 0EAE, 0EAE, 0EAE	;6F:none, 70:none, 71:none, 72:none
+1205:	0EAE, 0EAE, 0EAE, 0EAE	;73:none, 74:none, 75:none, 76:none
+120D:	0EAE, 0EAE, 0EAE, 0EAE	;77:none, 78:none, 79:none, 7A:none
+1215:	0EAE, 0EAE, 0EAE, 0EAE	;7B:none, 7C:none, 7D:none, 7E:none
+121D:	0EAE, 0EAE, 0EAE, 0EAE	;7F:none, 80:none, 81:none, 82:none
+1225:	0EAE, 0EAE, 0EAE, 0EAE	;83:none, 84:none, 85:none, 86:none
+122D:	0EAE, 0EAE, 0EAE, 0EAE	;87:none, 88:none, 89:none, 8A:none
+1235:	0EAE, 0EAE, 0EAE, 0EAE	;8B:none, 8C:none, 8D:none, 8E:none
+123D:	0EAE, 0EAE, 0EAE, 0EAE	;8F:none, 90:none, 91:none, 92:none
+1245:	0EAE, 0EAE, 0EAE, 0EAE	;93:none, 94:none, 95:none, 96:none
+124D:	0C52, 0EAE, 0EAE, 0EAE	;97:DMS$, 98:none, 99:none, 9A:none
+1255:	0CDB, 0D50, 0DEA, 0D2F	;9B:INPUT, 9C:MID$, 9D:RIGHT$, 9E:LEFT$
+125D:	0EAE, 0C1C, 0E49, 0EAE	;9F:none, A0:CHR$, A1:STR$, A2:none
+1265:	0CCB, 0EAE, 0EAE, 0EAE	;A3:HEX$, A4:none, A5:none, A6:none
+126D:	0EAE, 0CE1, 0EAE, 0EAE	;A7:none, A8:INKEY$, A9:none, AA:none
+1275:	0EAE, 0EAE, 0C16, 0EAE	;AB:none, AC:none, AD:CALC$, AE:none
+127D:	0EAE, 0EAE, 0EAE, 0EAE	;AF:none, B0:none, B1:none, B2:none
+1285:	0EAE, 0EAE, 0EAE, 0EAE	;B3:none, B4:none, B5:none, B6:none
+128D:	0EAE, 0EAE, 0EAE, 0EAE	;B7:none, B8:none, B9:none, BA:none
+1295:	0EAE, 0EAE, 0EAE, 0EAE	;BB:none, BC:none, BD:none, BE:none
+129D:	0EAE, 0EAE, 0EAE, 0EAE	;BF:none, C0:none, C1:none, C2:none
+12A5:	0EAE, 0EAE, 0EAE, 0EAE	;C3:none, C4:none, C5:none, C6:none
+12AD:	0EAE			;C7:none
+
+; table of the "prefix 7" addresses of keyword names, keyword codes &H47-&HC7
+12AF:	0E67, 0C89, 0EAE, 0EAE	;47:THEN, 48:ELSE, 49:none, 4A:none
+12B7:	0EAE, 0EAE, 0EAE, 0EAE	;4B:none, 4C:none, 4D:none, 4E:none
+12BF:	0EAE, 0EAE, 0EAE, 0EAE	;4F:none, 50:none, 51:none, 52:none
+12C7:	0EAE, 0EAE, 0EAE, 0EAE	;53:none, 54:none, 55:none, 56:none
+12CF:	0EAE, 0EAE, 0EAE, 0EAE	;57:none, 58:none, 59:none, 5A:none
+12D7:	0EAE, 0EAE, 0EAE, 0EAE	;5B:none, 5C:none, 5D:none, 5E:none
+12DF:	0EAE, 0EAE, 0EAE, 0EAE	;5F:none, 60:none, 61:none, 62:none
+12E7:	0EAE, 0EAE, 0EAE, 0EAE	;63:none, 64:none, 65:none, 66:none
+12EF:	0EAE, 0EAE, 0EAE, 0EAE	;67:none, 68:none, 69:none, 6A:none
+12F7:	0EAE, 0EAE, 0EAE, 0EAE	;6B:none, 6C:none, 6D:none, 6E:none
+12FF:	0EAE, 0EAE, 0EAE, 0EAE	;6F:none, 70:none, 71:none, 72:none
+1307:	0EAE, 0EAE, 0EAE, 0EAE	;73:none, 74:none, 75:none, 76:none
+130F:	0EAE, 0EAE, 0EAE, 0EAE	;77:none, 78:none, 79:none, 7A:none
+1317:	0EAE, 0EAE, 0EAE, 0EAE	;7B:none, 7C:none, 7D:none, 7E:none
+131F:	0EAE, 0EAE, 0EAE, 0EAE	;7F:none, 80:none, 81:none, 82:none
+1327:	0EAE, 0EAE, 0EAE, 0EAE	;83:none, 84:none, 85:none, 86:none
+132F:	0EAE, 0EAE, 0EAE, 0EAE	;87:none, 88:none, 89:none, 8A:none
+1337:	0EAE, 0EAE, 0EAE, 0EAE	;8B:none, 8C:none, 8D:none, 8E:none
+133F:	0EAE, 0EAE, 0EAE, 0EAE	;8F:none, 90:none, 91:none, 92:none
+1347:	0EAE, 0EAE, 0EAE, 0EAE	;93:none, 94:none, 95:none, 96:none
+134F:	0EAE, 0EAE, 0EAE, 0EAE	;97:none, 98:none, 99:none, 9A:none
+1357:	0EAE, 0EAE, 0EAE, 0EAE	;9B:none, 9C:none, 9D:none, 9E:none
+135F:	0EAE, 0EAE, 0EAE, 0EAE	;9F:none, A0:none, A1:none, A2:none
+1367:	0EAE, 0EAE, 0EAE, 0EAE	;A3:none, A4:none, A5:none, A6:none
+136F:	0EAE, 0EAE, 0EAE, 0EAE	;A7:none, A8:none, A9:none, AA:none
+1377:	0EAE, 0EAE, 0EAE, 0EAE	;AB:none, AC:none, AD:none, AE:none
+137F:	0EAE, 0EAE, 0EAE, 0EAE	;AF:none, B0:none, B1:none, B2:none
+1387:	0EAE, 0EAE, 0EAE, 0E6C	;B3:none, B4:none, B5:none, B6:TAB
+138F:	0EAE, 0EAE, 0EAE, 0EAE	;B7:none, B8:none, B9:none, BA:none
+1397:	0BC5, 0BC9, 0BCC, 0EAE	;BB:ALL, BC:AS, BD:APPEND, BE:none
+139F:	0EAE, 0E4F, 0E70, 0E77	;BF:none, C0:STEP, C1:TO, C2:USING
+13A7:	0D74, 0BD3, 0D88, 0EA4	;C3:NOT, C4:AND, C5:OR, C6:XOR
+13AF:	0D56			;C7:MOD
+
+13B1:	   91 4D FC  4D E9 4B FF  4B CC 4D C6  4D 59 4C 1B  ..M|MiK.KLMFMYL.
+13C0:	0D 1F 0D 73  0C 0E 0E 05  0C 61 0E B3  0B B7 0B BB  ...s.....a.3.7.;
+13D0:	0B 11 0C 12  0E C6 0C F3  4D A1 0C DA  0D A1 0D 6E  .....F.sM!.Z.!.n
+13E0:	8D 6A 8D CB  8C 3F 0C 48  0C A9 8D DF  8D 6A 0B 6C  .j.K.?.H.)._.j.l
+13F0:	0B 6F 0B 70  0B 72 0B 42  50 53 20 5B  20 20 20 20  .o.p.r.BPS [    
+1400:	5D 20 50 61  72 69 74 79  20 5B 20 5D  20 44 61 74  ] Parity [ ] Dat
+1410:	61 20 20 20  5B 20 5D 53  74 6F 70 20  20 20 5B 20  a   [ ]Stop   [ 
+1420:	5D 20 43 54  53 20 20 5B  20 20 20 5D  20 44 53 52  ] CTS  [   ] DSR
+1430:	20 20 5B 20  20 20 5D 43  44 20 20 20  5B 20 20 20    [   ]CD   [   
+1440:	5D 20 42 75  73 79 20 5B  20 20 20 5D  20 53 49 2F  ] Busy [   ] SI/
+1450:	53 4F 5B 20  20 20 5D 45  6E 64 20 20  5B 20 20 20  SO[   ]End  [   
+1460:	5D 20 4D 54  70 68 61 73  65 5B 20 5D  20 4D 54 73  ] MTphase[ ] MTs
+1470:	70 65 65 64  5B 20 5D 34  38 30 30 32  34 30 30 31  peed[ ]480024001
+1480:	32 30 30 20  36 30 30 20  33 30 30 20  31 35 30 20  200 600 300 150 
+1490:	20 37 35 20  20 20 20 20  20 20 20 20  20 20 01 02   75           
+
+149E:	db	&H01	;number of notation variations
+	db	&H02	;string length
+	db	&H01	;I/O device type
+	db	&H00	;I/O device option
+	db	'0:'
+14A4:	db	&H02, &H05, &H02, &H00
+	db	'COM0:', 'com0:'
+14B2:	db	&H04, &H08, &H03, &H00
+	db	'CAS0:(F)', 'cas0:(F)', 'CAS0:(f)', 'cas0:(f)'
+14D6:	db	&H04, &H08, &H03, &H02
+	db	'CAS1:(F)', 'cas1:(F)', 'CAS1:(f)', 'cas1:(f)'
+14FA:	db	&H04, &H08, &H03, &H04
+	db	'CAS0:(S)', 'cas0:(S)', 'CAS0:(s)', 'cas0:(s)'
+151E:	db	&H04, &H08, &H03, &H06
+	db	'CAS1:(S)', 'cas1:(S)', 'CAS1:(s)', 'cas1:(s)'
+1542:	db	&H02, &H05, &H03, &H01
+	db	'CAS0:', 'cas0:'
+155E:	db	&H00, &H00, &H01, &H00
+
+1562:	db	'CAS0:(', 'CAS1:(', 'cas0:(', 'cas1:('
+
+; illegal file name characters
+157A:	db	"*+,/:;<=>?[\]|  &H7F, &H00, &H01
+
+; table of CASL opcodes and mnemonics
+158C:	db	&H10, 'LD  '
+1591:	db	&H11, 'ST  '
+1596:	db	&H12, 'LEA '
+159B:	db	&H20, 'ADD '
+15A0:	db	&H21, 'SUB '
+15A5:	db	&H30, 'AND '
+15AA:	db	&H31, 'OR  '
+15AF:	db	&H32, 'EOR '
+15B4:	db	&H40, 'CPA '
+15B9:	db	&H41, 'CPL '
+15BE:	db	&H50, 'SLA '
+15C3:	db	&H51, 'SRA '
+15C8:	db	&H52, 'SLL '
+15CD:	db	&H53, 'SRL '
+15D2:	db	&H60, 'JPZ '
+15D7:	db	&H61, 'JMI '
+15DC:	db	&H62, 'JNZ '
+15E1:	db	&H63, 'JZE '
+15E6:	db	&H64, 'JMP '
+15EB:	db	&H70, 'PUSH'
+15F0:	db	&H71, 'POP '
+15F5:	db	&H80, 'CALL'
+15FA:	db	&H81, 'RET '
+15FF:	db	&H90, 'EXIT'
+1604:	db	&H91, 'IN  '
+1609:	db	&H92, 'OUT '
+160E:	db	&H00, '****'
+
+; table of CASL mnemonics and opcodes
+1613:	db	'STAR', 'T'+&H80, &H02
+1619:	db	'L', 'D'+&H80, &H10
+161C:	db	'S', 'T'+&H80, &H11
+161F:	db	'LE', 'A'+&H80, &H12
+1623:	db	'AD', 'D'+&H80, &H20
+1627:	db	'SU', 'B'+&H80, &H21
+162B:	db	'I', 'N'+&H80, &H04
+162E:	db	'OU', 'T'+&H80, &H05
+1632:	db	'D', 'C'+&H80, &H06
+1635:	db	'D', 'S'+&H80, &H07
+1638:	db	'AN', 'D'+&H80, &H30
+163C:	db	'O', 'R'+&H80, &H31
+163F:	db	'EO', 'R'+&H80, &H32
+1643:	db	'JP', 'Z'+&H80, &H60
+1647:	db	'JM', 'I'+&H80, &H61
+164B:	db	'JN', 'Z'+&H80, &H62
+164F:	db	'JZ', 'E'+&H80, &H63
+1653:	db	'JM', 'P'+&H80, &H64
+1657:	db	'PUS', 'H'+&H80, &H70
+165C:	db	'PO', 'P'+&H80, &H71
+1660:	db	'CAL', 'L'+&H80, &H80
+1665:	db	'RE', 'T'+&H80, &H81
+1669:	db	'CP', 'A'+&H80, &H40
+166D:	db	'CP', 'L'+&H80, &H41
+1671:	db	'SL', 'A'+&H80, &H50
+1675:	db	'SR', 'A'+&H80, &H51
+1679:	db	'SL', 'L'+&H80, &H52
+167D:	db	'SR', 'L'+&H80, &H53
+1681:	db	'EXI', 'T'+&H80, &H03
+1686:	db	'EN', 'D'+&H80, &H01
+
+; register names
+168A:	db	'GR', '0'+&H80
+168D:	db	'GR', '1'+&H80
+1690:	db	'GR', '2'+&H80
+1693:	db	'GR', '3'+&H80
+1696:	db	'GR', '4'+&H80
+
+; prefixes of hexadecimal, octal and binary numbers
+1699:	db	'&', 'H'+&H80
+169B:	db	'&', 'O'+&H80
+169D:	db	'&', 'B'+&H80
+
+169F:	db	"ALOSMOROCOTS"		;table of 2-letter acronyms
+
+16AB:	db	"Bad code", &H0D, &H01
+16B5:	db	"Out of address", &H0D ,&H01
+16C5:	db	"Stack over", &H0D, &H01
+
+16D1:	dw	&H16AB, &H16B5, &H16C5
+
+16D7:	db	"error", &H01
+16DD:	db	"Break point", &H0D, &H0A, &H01
+16EB:	db	"address?", &H01
+16F4:	db	"data?", &H01
+16FA:	db	"go?", &H01
+
+16FE:	db	"GR0?", &H01
+1703:	db	"GR1?", &H01
+1708:	db	"GR2?", &H01
+170D:	db	"GR3?", &H01
+1712:	db	"GR4?", &H01
+
+1717:	dw	&H16FE, &H1703, &H1708, &H170D, &H1712
+
+1721:	db	"            < CASL >", &H0D, &H0D
+	db	&H01, ">Assemble/Source/Cal", &H01
+
+174D:	db	"            < CASL >", &H0D, &H0D
+1763:	db	" Go/Dump/Source/Cal/Print/Trace", &H0D
+1783:	db	"  PC:", &H01
+
+1789:	db	"            < CASL >", &H0D, &H0D
+178F:	db	"  Object/Register/Break point", &H0D, &H01
+
+17BE:	                                             C6 17  /Break point..F.
+17C0:	D2 17 DD 17  E9 17 5B 6F  66 66 5D 20  5B 6F 66 66  R.].i.[off] [off
+17D0:	5D 01 5B 6F  66 66 5D 20  5B 6F 6E 5D  01 5B 6F 6E  ].[off] [on].[on
+17E0:	5D 20 20 5B  6F 66 66 5D  01 5B 6F 6E  5D 20 20 5B  ]  [off].[on]  [
+17F0:	6F 6E 5D 01  20 20 20 20  20 20 20 20  20 20 20 20  on].
+
+17F4:	db	"             < C >", &H0D, &H0D
+1808:	db	&H01, ">Run/Lo
+1810:	61 64 2F 53  6F 75 72 63  65 2F 43 61  6C 01 20 20  ad/Source/Cal.  
+1820:	20 20 20 20  20 20 20 20  3C 20 46 78  20 6D 65 6E          < Fx men
+1830:	75 20 3E 0D  31 3A 53 54  41 54 28 78  29 0D 32 3A  u >.1:STAT(x).2:
+1840:	53 54 41 54  28 78 2C 79  29 0D 33 3A  54 72 61 69  STAT(x,y).3:Trai
+1850:	6E 69 6E 67  20 42 6F 61  72 64 01 20  20 20 20 20  ning Board.     
+1860:	20 20 20 20  20 3C 20 46  78 20 6D 65  6E 75 20 3E       < Fx menu >
+1870:	0D 0D 31 3A  53 54 41 54  28 78 29 0D  32 3A 53 54  ..1:STAT(x).2:ST
+1880:	41 54 28 78  2C 79 29 01  20 20 20 20  20 20 3C 20  AT(x,y).      < 
+1890:	53 74 61 74  69 73 74 69  63 73 20 5B  78 3B 66 5D  Statistics [x;f]
+18A0:	20 3E 0D 0D  20 49 6E 70  75 74 20 2F  20 44 65 6C   >.. Input / Del
+18B0:	65 74 65 20  2F 20 43 6C  65 61 72 20  2F 20 4C 69  ete / Clear / Li
+18C0:	73 74 20 20  20 50 72 69  6E 74 20 2F  20 54 2D 73  st   Print / T-s
+18D0:	63 6F 72 65  20 2F 20 46  72 65 71 75  65 6E 63 79  core / Frequency
+18E0:	01 20 20 20  20 20 20 3C  20 53 74 61  74 69 73 74  .      < Statist
+18F0:	69 63 73 20  5B 78 5D 20  3E 0D 0D 20  49 6E 70 75  ics [x] >.. Inpu
+1900:	74 20 2F 20  44 65 6C 65  74 65 20 2F  20 43 6C 65  t / Delete / Cle
+1910:	61 72 20 2F  20 4C 69 73  74 20 20 20  50 72 69 6E  ar / List   Prin
+1920:	74 20 2F 20  54 2D 73 63  6F 72 65 20  2F 20 46 72  t / T-score / Fr
+1930:	65 71 75 65  6E 63 79 0A  01 49 6E 70  75 74 20 64  equency..Input d
+1940:	61 74 61 20  28 78 29 20  20 20 20 20  20 20 5B 45  ata (x)       [E
+1950:	58 45 5D 3A  6D 65 6E 75  20 01 78 3F  01 49 6E 70  XE]:menu .x?.Inp
+1960:	75 74 20 64  61 74 61 20  28 78 29 20  20 20 20 20  ut data (x)     
+1970:	20 20 5B 45  58 45 5D 3A  6D 65 6E 75  20 01 78 3F    [EXE]:menu .x?
+1980:	0D 66 3F 01  44 65 6C 65  74 65 20 64  61 74 61 20  .f?.Delete data 
+1990:	28 78 29 20  20 20 20 20  20 5B 45 58  45 5D 3A 6D  (x)      [EXE]:m
+19A0:	65 6E 75 20  01 78 3F 01  44 65 6C 65  74 65 20 64  enu .x?.Delete d
+19B0:	61 74 61 20  28 78 29 20  20 20 20 20  20 5B 45 58  ata (x)      [EX
+19C0:	45 5D 3A 6D  65 6E 75 20  01 78 3F 0D  66 3F 01 20  E]:menu .x?.f?. 
+19D0:	20 20 20 20  20 3C 20 53  74 61 74 69  73 74 69 63       < Statistic
+19E0:	73 20 5B 78  5D 20 3E 0D  0D 54 2D 73  63 6F 72 65  s [x] >..T-score
+19F0:	20 20 20 20  20 20 20 20  20 20 20 20  20 20 5B 45                [E
+1A00:	58 45 5D 3A  6D 65 6E 75  20 78 3F 01  20 20 20 20  XE]:menu x?.    
+1A10:	20 20 3C 20  53 74 61 74  69 73 74 69  63 73 20 5B    < Statistics [
+1A20:	78 5D 20 3E  0D 0D 43 6C  65 61 72 20  64 61 74 61  x] >..Clear data
+1A30:	20 28 59 2F  4E 29 20 3F  01 20 20 20  20 20 20 3C   (Y/N) ?.      <
+1A40:	20 53 74 61  74 69 73 74  69 63 73 20  5B 78 5D 20   Statistics [x] 
+1A50:	3E 0D 0D 50  72 69 6E 74  20 2E 20 2E  20 2E 01 43  >..Print . . ..C
+1A60:	4E 54 20 20  20 20 3A 6E  20 20 20 20  3D 01 43 4E  NT    :n    =.CN
+1A70:	54 20 20 20  20 3D 01 53  55 4D 58 20  20 20 3A 84  T    =.SUMX   :.
+1A80:	78 20 20 20  3D 01 53 55  4D 58 20 20  20 3D 01 53  x   =.SUMX   =.S
+1A90:	55 4D 58 32  20 20 3A 84  78 92 20 20  3D 01 53 55  UMX2  :.x.  =.SU
+1AA0:	4D 58 32 20  20 3D 01 4D  45 41 4E 58  20 20 3A 84  MX2  =.MEANX  :.
+1AB0:	78 2F 6E 20  3D 01 4D 45  41 4E 58 20  20 3D 01 53  x/n =.MEANX  =.S
+1AC0:	44 58 4E 20  20 20 3A 78  8E 6E 20 20  3D 01 53 44  DXN   :x.n  =.SD
+1AD0:	58 4E 20 20  20 3D 01 53  44 58 20 20  20 20 3A 78  XN   =.SDX    :x
+1AE0:	8E 6E FF 20  3D 01 53 44  58 20 20 20  20 3D 01 20  .n. =.SDX    =. 
+1AF0:	20 20 20 20  3C 20 53 74  61 74 69 73  74 69 63 73      < Statistics
+1B00:	20 5B 78 2C  79 3B 66 5D  20 3E 0D 0D  20 49 6E 70   [x,y;f] >.. Inp
+1B10:	75 74 20 2F  20 44 65 6C  65 74 65 20  2F 20 43 6C  ut / Delete / Cl
+1B20:	65 61 72 20  2F 20 4C 69  73 74 20 20  20 50 72 69  ear / List   Pri
+1B30:	6E 74 20 2F  20 65 6F 58  20 2F 20 65  6F 59 20 2F  nt / eoX / eoY /
+1B40:	20 46 72 65  71 75 65 6E  63 79 01 20  20 20 20 20   Frequency.     
+1B50:	3C 20 53 74  61 74 69 73  74 69 63 73  20 5B 78 2C  < Statistics [x,
+1B60:	79 5D 20 3E  0D 0D 20 49  6E 70 75 74  20 2F 20 44  y] >.. Input / D
+1B70:	65 6C 65 74  65 20 2F 20  43 6C 65 61  72 20 2F 20  elete / Clear / 
+1B80:	4C 69 73 74  20 20 20 50  72 69 6E 74  20 2F 20 65  List   Print / e
+1B90:	6F 58 20 2F  20 65 6F 59  20 2F 20 46  72 65 71 75  oX / eoY / Frequ
+1BA0:	65 6E 63 79  01 49 6E 70  75 74 20 64  61 74 61 20  ency.Input data 
+1BB0:	28 78 2C 79  29 20 20 20  20 20 5B 45  58 45 5D 3A  (x,y)     [EXE]:
+1BC0:	6D 65 6E 75  20 01 78 3F  1C 1C 1C 1C  1C 1C 1C 1C  menu .x?........
+1BD0:	1C 1C 1C 1C  1C 3A 79 3F  01 49 6E 70  75 74 20 64  .....:y?.Input d
+1BE0:	61 74 61 20  28 78 2C 79  29 20 20 20  20 20 5B 45  ata (x,y)     [E
+1BF0:	58 45 5D 3A  6D 65 6E 75  20 01 78 3F  1C 1C 1C 1C  XE]:menu .x?....
+1C00:	1C 1C 1C 1C  1C 1C 1C 1C  1C 3A 79 3F  0D 66 3F 01  .........:y?.f?.
+1C10:	44 65 6C 65  74 65 20 64  61 74 61 20  28 78 2C 79  Delete data (x,y
+1C20:	29 20 20 20  20 5B 45 58  45 5D 3A 6D  65 6E 75 20  )    [EXE]:menu 
+1C30:	01 78 3F 1C  1C 1C 1C 1C  1C 1C 1C 1C  1C 1C 1C 1C  .x?.............
+1C40:	3A 79 3F 01  44 65 6C 65  74 65 20 64  61 74 61 20  :y?.Delete data 
+1C50:	28 78 2C 79  29 20 20 20  20 5B 45 58  45 5D 3A 6D  (x,y)    [EXE]:m
+1C60:	65 6E 75 20  01 78 3F 1C  1C 1C 1C 1C  1C 1C 1C 1C  enu .x?.........
+1C70:	1C 1C 1C 1C  3A 79 3F 0D  66 3F 01 20  20 20 20 20  ....:y?.f?.     
+1C80:	3C 20 53 74  61 74 69 73  74 69 63 73  20 5B 78 2C  < Statistics [x,
+1C90:	79 5D 20 3E  0D 0D 43 6C  65 61 72 20  64 61 74 61  y] >..Clear data
+1CA0:	20 28 59 2F  4E 29 20 3F  01 20 20 20  20 20 3C 20   (Y/N) ?.     < 
+1CB0:	53 74 61 74  69 73 74 69  63 73 20 5B  78 2C 79 5D  Statistics [x,y]
+1CC0:	20 3E 0D 0D  50 72 69 6E  74 20 2E 20  2E 20 2E 01   >..Print . . ..
+1CD0:	43 4E 54 20  20 20 20 3A  6E 20 20 20  20 3D 01 43  CNT    :n    =.C
+1CE0:	4E 54 20 20  20 20 3D 01  53 55 4D 58  20 20 20 3A  NT    =.SUMX   :
+1CF0:	84 78 20 20  20 3D 01 53  55 4D 58 20  20 20 3D 01  .x   =.SUMX   =.
+1D00:	53 55 4D 59  20 20 20 3A  84 79 20 20  20 3D 01 53  SUMY   :.y   =.S
+1D10:	55 4D 59 20  20 20 3D 01  53 55 4D 58  32 20 20 3A  UMY   =.SUMX2  :
+1D20:	84 78 92 20  20 3D 01 53  55 4D 58 32  20 20 3D 01  .x.  =.SUMX2  =.
+1D30:	53 55 4D 59  32 20 20 3A  84 79 92 20  20 3D 01 53  SUMY2  :.y.  =.S
+1D40:	55 4D 59 32  20 20 3D 01  53 55 4D 58  59 20 20 3A  UMY2  =.SUMXY  :
+1D50:	84 78 79 20  20 3D 01 53  55 4D 58 59  20 20 3D 01  .xy  =.SUMXY  =.
+1D60:	4D 45 41 4E  58 20 20 3A  84 78 2F 6E  20 3D 01 4D  MEANX  :.x/n =.M
+1D70:	45 41 4E 58  20 20 3D 01  4D 45 41 4E  59 20 20 3A  EANX  =.MEANY  :
+1D80:	84 79 2F 6E  20 3D 01 4D  45 41 4E 59  20 20 3D 01  .y/n =.MEANY  =.
+1D90:	53 44 58 4E  20 20 20 3A  78 8E 6E 20  20 3D 01 53  SDXN   :x.n  =.S
+1DA0:	44 58 4E 20  20 20 3D 01  53 44 59 4E  20 20 20 3A  DXN   =.SDYN   :
+1DB0:	79 8E 6E 20  20 3D 01 53  44 59 4E 20  20 20 3D 01  y.n  =.SDYN   =.
+1DC0:	53 44 58 20  20 20 20 3A  78 8E 6E FF  20 3D 01 53  SDX    :x.n. =.S
+1DD0:	44 58 20 20  20 20 3D 01  53 44 59 20  20 20 20 3A  DX    =.SDY    :
+1DE0:	79 8E 6E FF  20 3D 01 53  44 59 20 20  20 20 3D 01  y.n. =.SDY    =.
+1DF0:	4C 52 41 20  20 20 20 3A  61 20 20 20  20 3D 01 4C  LRA    :a    =.L
+1E00:	52 41 20 20  20 20 3D 01  4C 52 42 20  20 20 20 3A  RA    =.LRB    :
+1E10:	62 20 20 20  20 3D 01 4C  52 42 20 20  20 20 3D 01  b    =.LRB    =.
+1E20:	43 4F 52 20  20 20 20 3A  72 20 20 20  20 3D 01 43  COR    :r    =.C
+1E30:	4F 52 20 20  20 20 3D 01  20 20 20 20  20 3C 20 53  OR    =.     < S
+1E40:	74 61 74 69  73 74 69 63  73 20 5B 78  2C 79 5D 20  tatistics [x,y] 
+1E50:	3E 0A 0D 43  4F 52 3D 01  28 79 3D 61  2B 62 78 29  >..COR=.(y=a+bx)
+1E60:	0D 45 73 74  69 6D 61 74  69 6F 6E 20  6F 66 20 78  .Estimation of x
+1E70:	20 20 20 20  20 20 5B 45  58 45 5D 3A  6D 65 6E 75        [EXE]:menu
+1E80:	0D 79 3F 01  20 20 20 20  20 3C 20 53  74 61 74 69  .y?.     < Stati
+1E90:	73 74 69 63  73 20 5B 78  2C 79 5D 20  3E 0A 0D 43  stics [x,y] >..C
+1EA0:	4F 52 3D 01  28 79 3D 61  2B 62 78 29  0D 45 73 74  OR=.(y=a+bx).Est
+1EB0:	69 6D 61 74  69 6F 6E 20  6F 66 20 79  20 20 20 20  imation of y    
+1EC0:	20 20 5B 45  58 45 5D 3A  6D 65 6E 75  0D 78 3F 01    [EXE]:menu.x?.
+1ED0:	3A FF 3D 01  3A FF 3D 01  43 4E 54 20  20 20 20 20  :.=.:.=.CNT     
+1EE0:	20 20 3D 01  53 55 4D 58  20 20 20 20  20 20 3D 01    =.SUMX      =.
+1EF0:	53 55 4D 58  32 20 20 20  20 20 3D 01  4D 45 41 4E  SUMX2     =.MEAN
+1F00:	58 20 20 20  20 20 3D 01  53 44 58 4E  20 20 20 20  X     =.SDXN    
+1F10:	20 20 3D 01  53 44 58 20  20 20 20 20  20 20 3D 01    =.SDX       =.
+1F20:	43 4E 54 20  20 20 20 20  20 20 3D 01  53 55 4D 58  CNT       =.SUMX
+1F30:	20 20 20 20  20 20 3D 01  53 55 4D 59  20 20 20 20        =.SUMY    
+1F40:	20 20 3D 01  53 55 4D 58  32 20 20 20  20 20 3D 01    =.SUMX2     =.
+1F50:	53 55 4D 59  32 20 20 20  20 20 3D 01  53 55 4D 58  SUMY2     =.SUMX
+1F60:	59 20 20 20  20 20 3D 01  4D 45 41 4E  58 20 20 20  Y     =.MEANX   
+1F70:	20 20 3D 01  4D 45 41 4E  59 20 20 20  20 20 3D 01    =.MEANY     =.
+1F80:	53 44 58 4E  20 20 20 20  20 20 3D 01  53 44 59 4E  SDXN      =.SDYN
+1F90:	20 20 20 20  20 20 3D 01  53 44 58 20  20 20 20 20        =.SDX     
+1FA0:	20 20 3D 01  53 44 59 20  20 20 20 20  20 20 3D 01    =.SDY       =.
+1FB0:	4C 52 41 20  20 20 20 20  20 20 3D 01  4C 52 42 20  LRA       =.LRB 
+1FC0:	20 20 20 20  20 20 3D 01  43 4F 52 20  20 20 20 20        =.COR     
+1FD0:	20 20 3D 01  5F 1A 77 1A  8F 1A A7 1A  BF 1A D7 1A    =._.w...'.?.W.
+1FE0:	D0 1C E8 1C  00 1D 18 1D  30 1D 48 1D  60 1D 78 1D  P.h.....0.H.`.x.
+1FF0:	90 1D A8 1D  C0 1D D8 1D  F0 1D 08 1E  20 1E 84 19  ..(.@.X.p... ...
+2000:	39 19 10 1C  A5 1B A8 19  5D 19 44 1C  D9 1B 43 4E  9...%.(.].D.Y.CN
+2010:	54 3D 01 46  72 65 71 20  3A 20 6F 6E  0D 01 46 72  T=.Freq : on..Fr
+2020:	65 71 20 3A  6F 66 66 0D  01 64 61 74  61 20 6F 76  eq :off..data ov
+2030:	65 72 20 20  20 20 20 20  20 20 20 20  20 20 20 20  er              
+2040:	20 20 20 20  20 20 20 20  20 20 20 20  20 20 20 20                  
+2050:	20 20 20 20  20 20 20 20  20 20 20 20  20 20 20 20                  
+2060:	01 3A 54 3D  01 12 54 8C  4A 12 00 12  4A 84 48 10 00  .:T=..T.J...J.H..
+
+2071:	db	">Save / Load / Merge / Copy", &H0D
+208D:	db	"   Edit / New  / Print / Device", &H01
+20AD:	db	">RS232C / MT / Disk / Switch", &H01
+20CA:	db	">RS232C / MT / Switch", &H01
+20E0:	3E 4C 4F 41  44 22 01 3E  53 41 56 45  22 01 3E 4D  >LOAD".>SAVE".>M
+20F0:	45 52 47 45  22 01 3E 4E  65 77 20 28  59 2F 4E 29  ERGE".
+20F6:	db	">New (Y/N) ?", &H01
+2103:	db	">Print . . .", &H01
+2110:	5B 52 53 32  33 32 43 5D  01 20 20 5B  44 69 73 6B  [RS232C].  [Disk
+2120:	5D 01 20 20  20 20 5B 4D  54 5D 01 3F  21 48 21 51  ].    [MT].?!H!Q
+2130:	21 5A 21 10  21 19 21 22  21 43 4F 4D  30 3A 01 43  !Z!.!.!"!COM0:.C
+2140:	41 53 30 3A  28 46 29 01  43 41 53 31  3A 28 46 29  AS0:(F).CAS1:(F)
+2150:	01 43 41 53  30 3A 28 53  29 01 43 41  53 31 3A 28  .CAS0:(S).CAS1:(
+2160:	53 29 01 30  3A 01 2C 45  2C 38 2C 32  2C 01 2C 4F  S).0:.,E,8,2,.,O
+2170:	2C 38 2C 32  2C 01 2C 4E  2C 38 2C 32  2C 01 2C 4E  ,8,2,.,N,8,2,.,N
+2180:	2C 38 2C 32  2C 01 2C 45  2C 37 2C 32  2C 01 2C 4F  ,8,2,.,E,7,2,.,O
+2190:	2C 37 2C 32  2C 01 2C 4E  2C 37 2C 32  2C 01 2C 4E  ,7,2,.,N,7,2,.,N
+21A0:	2C 37 2C 32  2C 01 2C 45  2C 38 2C 31  2C 01 2C 4F  ,7,2,.,E,8,1,.,O
+21B0:	2C 38 2C 31  2C 01 2C 4E  2C 38 2C 31  2C 01 2C 4E  ,8,1,.,N,8,1,.,N
+21C0:	2C 38 2C 31  2C 01 2C 45  2C 37 2C 31  2C 01 2C 4F  ,8,1,.,E,7,1,.,O
+21D0:	2C 37 2C 31  2C 01 2C 4E  2C 37 2C 31  2C 01 2C 4E  ,7,1,.,N,7,1,.,N
+21E0:	2C 37 2C 31  2C 01 66 21  6E 21 76 21  7E 21 86 21  ,7,1,.f!n!v!~!.!
+21F0:	8E 21 96 21  9E 21 A6 21  AE 21 B6 21  BE 21 C6 21  .!.!.!&!.!6!>!F!
+2200:	CE 21 D6 21  DE 21 4E 2C  4E 2C 4E 2C  4E 2C 4E 01  N!V!^!N,N,N,N,N.
+2210:	4E 2C 4E 2C  4E 2C 4E 2C  53 01 4E 2C  4E 2C 4E 2C  N,N,N,N,S.N,N,N,
+2220:	42 2C 4E 01  4E 2C 4E 2C  4E 2C 42 2C  53 01 43 2C  B,N.N,N,N,B,S.C,
+2230:	4E 2C 4E 2C  4E 2C 4E 01  43 2C 4E 2C  4E 2C 4E 2C  N,N,N,N.C,N,N,N,
+2240:	53 01 43 2C  4E 2C 4E 2C  42 2C 4E 01  43 2C 4E 2C  S.C,N,N,B,N.C,N,
+2250:	4E 2C 42 2C  53 01 4E 2C  44 2C 4E 2C  4E 2C 4E 01  N,B,S.N,D,N,N,N.
+2260:	4E 2C 44 2C  4E 2C 4E 2C  53 01 4E 2C  44 2C 4E 2C  N,D,N,N,S.N,D,N,
+2270:	42 2C 4E 01  4E 2C 44 2C  4E 2C 42 2C  53 01 43 2C  B,N.N,D,N,B,S.C,
+2280:	44 2C 4E 2C  4E 2C 4E 01  43 2C 44 2C  4E 2C 4E 2C  D,N,N,N.C,D,N,N,
+2290:	53 01 43 2C  44 2C 4E 2C  42 2C 4E 01  43 2C 44 2C  S.C,D,N,B,N.C,D,
+22A0:	4E 2C 42 2C  53 01 4E 2C  4E 2C 43 2C  4E 2C 4E 01  N,B,S.N,N,C,N,N.
+22B0:	4E 2C 4E 2C  43 2C 4E 2C  53 01 4E 2C  4E 2C 43 2C  N,N,C,N,S.N,N,C,
+22C0:	42 2C 4E 01  4E 2C 4E 2C  43 2C 42 2C  53 01 43 2C  B,N.N,N,C,B,S.C,
+22D0:	4E 2C 43 2C  4E 2C 4E 01  43 2C 4E 2C  43 2C 4E 2C  N,C,N,N.C,N,C,N,
+22E0:	53 01 43 2C  4E 2C 43 2C  42 2C 4E 01  43 2C 4E 2C  S.C,N,C,B,N.C,N,
+22F0:	43 2C 42 2C  53 01 4E 2C  44 2C 43 2C  4E 2C 4E 01  C,B,S.N,D,C,N,N.
+2300:	4E 2C 44 2C  43 2C 4E 2C  53 01 4E 2C  44 2C 43 2C  N,D,C,N,S.N,D,C,
+2310:	42 2C 4E 01  4E 2C 44 2C  43 2C 42 2C  53 01 43 2C  B,N.N,D,C,B,S.C,
+2320:	44 2C 43 2C  4E 2C 4E 01  43 2C 44 2C  43 2C 4E 2C  D,C,N,N.C,D,C,N,
+2330:	53 01 43 2C  44 2C 43 2C  42 2C 4E 01  43 2C 44 2C  S.C,D,C,B,N.C,D,
+2340:	43 2C 42 2C  53 01 06 22  10 22 1A 22  24 22 2E 22  C,B,S.."."."$"."
+2350:	38 22 42 22  4C 22 56 22  60 22 6A 22  74 22 7E 22  8"B"L"V"`"j"t"~"
+2360:	88 22 92 22  9C 22 A6 22  B0 22 BA 22  C4 22 CE 22  ."."."&"0":"D"N"
+2370:	D8 22 E2 22  EC 22 F6 22  00 23 0A 23  14 23 1E 23  X"b"l"v".#.#.#.#
+2380:	28 23 32 23  3C 23
+
+2386:	db	"********************************"
+23A6:	db	"        All reset/Memory", &H0D
+23BF:	db	"        RAM :  8KB + ", &H01
+
+23D5:	db	"********************************"
+23E5:	db	"      All reset/Memory", &H0D
+240E:	db	"        RAM : 32KB + ", &H01, " 0KB", &H0D
+
+2429:	db	********************************"
+244B:	db	&H01, " 8KB", &H0D
+
+244F	db	"********************************"
+246F:	db	&H01, "32KB", &H0D
+
+2475:	db	"********************************"
+
+2495:	                01 05 50  52 49 4E 54  20 4F 46 46  *****..PRINT OFF
+24A0:	20 20 20 54  52 41 43 45  20 4F 46 46  0D 05 43 4C     TRACE OFF..CL
+24B0:	45 41 52 20  01 05 50 52  49 4E 54 20  4F 46 46 20  EAR ..PRINT OFF 
+24C0:	20 20 54 52  41 43 45 20  4F 4E 0D 05  43 4C 45 41    TRACE ON..CLEA
+24D0:	52 20 01 05  50 52 49 4E  54 20 4F 4E  20 20 20 20  R ..PRINT ON    
+24E0:	54 52 41 43  45 20 4F 46  46 0D 05 43  4C 45 41 52  TRACE OFF..CLEAR
+24F0:	20 01 05 50  52 49 4E 54  20 4F 4E 20  20 20 20 54   ..PRINT ON    T
+2500:	52 41 43 45  20 4F 4E 0D  05 43 4C 45  41 52 20 01  RACE ON..CLEAR .
+2510:	96 24 B5 24  D3 24 F2 24  96 24 B5 24  D3 24 F2 24  .$5$S$r$.$5$S$r$
+2520:	96 24 B5 24  D3 24 F2 24  0D 05 46 52  45 45 20 01  .$5$S$r$..FREE .
+2530:	20 56 3A 01  20 24 3A 01  2D 2D 2D 2D  2D 2D 2D 2D   V:. $:.--------
+2540:	2D 2D 2D 2D  2D 2D 2D 2D  2D 2D 2D 2D  2D 2D 2D 2D  ----------------
+2550:	2D 2D 2D 2D  2D 2D 2D 2D  20 20 20 20  20 20 20 20  --------        
+2560:	4C 4F 57 20  42 41 54 54  45 52 59 20  21 21 21 20  LOW BATTERY !!! 
+2570:	20 20 20 20  20 20 20 20  20 20 20 20  20 20 20 C3                 C
+2580:	DE DD C1 20  A6 20 BA B3  B6 DD BC C3  B8 C0 DE BB  ^]A & :36]<C8@^;
+2590:	B2 20 20 20  20 20 20 20  2D 2D 2D 2D  2D 2D 2D 2D  2       --------
+25A0:	2D 2D 2D 2D  2D 2D 2D 2D  2D 2D 2D 2D  2D 2D 2D 2D  ----------------
+25B0:	2D 2D 2D 2D  2D 2D 2D 2D  0B 01 2D 2D  2D 2D 2D 2D  --------..------
+25C0:	2D 2D 2D 2D  2D 2D 2D 2D  2D 2D 2D 2D  2D 2D 2D 2D  ----------------
+25D0:	2D 2D 2D 2D  2D 2D 2D 2D  2D 2D 20 20  20 20 20 20  ----------      
+25E0:	20 20 4C 4F  57 20 42 41  54 54 45 52  59 20 21 21    LOW BATTERY !!
+25F0:	21 20 20 20  20 20 20 20  20 20 20 20  20 20 20 52  !              R
+2600:	65 70 6C 61  63 65 20 74  68 65 20 62  61 74 74 65  eplace the batte
+2610:	72 69 65 73  20 21 20 20  20 20 2D 2D  2D 2D 2D 2D  ries !    ------
+2620:	2D 2D 2D 2D  2D 2D 2D 2D  2D 2D 2D 2D  2D 2D 2D 2D  ----------------
+2630:	2D 2D 2D 2D  2D 2D 2D 2D  2D 2D 0B 01  42 56 20 65  ----------..BV e
+2640:	72 72 6F 72  01 54 72 61  69 6E 69 6E  67 20 42 6F  rror.Training Bo
+2650:	61 72 64 0D  01 53 6F 75  72 63 65 20  46 69 6C 65  ard..Source File
+2660:	20 28 30 2D  39 29 20 2D  3E 01 30 3A  52 4F 4D 20   (0-9) ->.0:ROM 
+2670:	20 20 31 3A  4C 43 44 20  20 20 32 3A  4B 45 59 20    1:LCD   2:KEY 
+2680:	20 20 33 3A  49 2F 4F 0D  34 3A 52 41  4D 20 20 20    3:I/O.4:RAM   
+2690:	35 3A 52 41  4D 57 20 20  36 3A 52 41  4D 52 20 20  5:RAMW  6:RAMR  
+26A0:	37 3A 44 49  53 50 0D 38  3A 33 50 69  6E 43 6F 6E  7:DISP.8:3PinCon
+26B0:	6E 65 63 74  6F 72 20 39  3A 44 49 53  50 4C 4F 4F  nector 9:DISPLOO
+26C0:	50 0D 45 58  45 3A 49 2F  4F 20 4C 4F  4F 50 01 30  P.EXE:I/O LOOP.0
+26D0:	3A 42 5A 20  20 20 20 20  20 31 3A 46  44 44 20 20  :BZ      1:FDD  
+26E0:	20 20 20 32  3A 50 52 54  0D 33 3A 52  53 28 4F 55     2:PRT.3:RS(OU
+26F0:	54 29 20 34  3A 52 53 28  49 4E 29 20  20 35 3A 52  T) 4:RS(IN)  5:R
+2700:	53 28 49 4E  4F 55 54 29  0D 36 3A 4D  54 28 4F 55  S(INOUT).6:MT(OU
+2710:	54 29 20 37  3A 4D 54 28  43 41 53 30  29 38 3A 4D  T) 7:MT(CAS0)8:M
+2720:	54 28 43 41  53 31 29 0D  39 3A 52 53  32 33 32 43  T(CAS1).9:RS232C
+2730:	20 4D 54 20  43 48 45 43  4B 01 FF FF  FF FF FF FF   MT CHECK.......
+2740:	FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  ................
+2750:	FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  ................
+2760:	FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  ................
+2770:	FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  ................
+2780:	FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  ................
+2790:	FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  ................
+27A0:	FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  ................
+27B0:	FF FF FF FF  FF FF FF FF  FF FF 0B 01  00 00 AA 0A  ..............*.
+27C0:	55 15 FF 1F  00 20 AA 2A  55 55 FF 9F  00 80 AA AA  U.... **UU....**
+27D0:	55 D5 FF FF  0C 3C 20 52  4F 4D 20 54  45 53 54 20  UU...< ROM TEST 
+27E0:	3E 0D 4A 41  50 41 4E 0D  20 20 28 50  41 44 33 3A  >.JAPAN.  (PAD3:
+27F0:	43 4C 4F 53  45 20 50 41  44 34 3A 4F  50 45 4E 29  CLOSE PAD4:OPEN)
+2800:	0D 50 6C 65  61 73 65 20  70 75 73 68  20 61 6E 79  .Please push any
+2810:	20 6B 65 79  21 01 0C 3C  20 52 4F 4D  20 54 45 53   key!..< ROM TES
+2820:	54 20 3E 0D  57 4F 52 4C  44 0D 20 20  28 50 41 44  T >.WORLD.  (PAD
+2830:	33 3A 4F 50  45 4E 20 50  41 44 34 3A  43 4C 4F 53  3:OPEN PAD4:CLOS
+2840:	45 29 0D 50  6C 65 61 73  65 20 70 75  73 68 20 61  E).Please push a
+2850:	6E 79 20 6B  65 79 21 01  0C 3C 20 52  41 4D 28 50  ny key!..< RAM(P
+2860:	41 44 31 2C  32 29 20 54  45 53 54 20  3E 0D 52 41  AD1,2) TEST >.RA
+2870:	4D 20 38 4B  42 0D 20 20  28 50 41 44  31 3A 43 4C  M 8KB.  (PAD1:CL
+2880:	4F 53 45 20  50 41 44 32  3A 4F 50 45  4E 29 0D 50  OSE PAD2:OPEN).P
+2890:	6C 65 61 73  65 20 70 75  73 68 20 61  6E 79 20 6B  lease push any k
+28A0:	65 79 21 01  0C 3C 20 52  41 4D 28 50  41 44 31 2C  ey!..< RAM(PAD1,
+28B0:	32 29 20 54  45 53 54 20  3E 0D 52 41  4D 20 33 32  2) TEST >.RAM 32
+28C0:	4B 42 0D 20  20 28 50 41  44 31 3A 4F  50 45 4E 20  KB.  (PAD1:OPEN 
+28D0:	50 41 44 32  3A 43 4C 4F  53 45 29 0D  50 6C 65 61  PAD2:CLOSE).Plea
+28E0:	73 65 20 70  75 73 68 20  61 6E 79 20  6B 65 79 21  se push any key!
+28F0:	01 3C 20 52  41 4D 20 43  48 45 43 4B  20 3E 0D 50  .< RAM CHECK >.P
+2900:	41 43 4B 20  33 32 4B 42  0D 01 3C 20  52 41 4D 20  ACK 32KB..< RAM 
+2910:	43 48 45 43  4B 20 3E 0D  50 41 43 4B  20 38 4B 42  CHECK >.PACK 8KB
+2920:	0D 01 3C 20  52 41 4D 20  43 48 45 43  4B 20 3E 0D  ..< RAM CHECK >.
+2930:	50 41 43 4B  20 30 4B 42  0D 01 0D 54  45 53 54 20  PACK 0KB...
+
+293A:	db	&H0D, "TEST NG!!", &H0D, "Please push EXE key", &H01
+2959:	db	"FDD CHECK !!", &H01
+2966:	db	"0:CHECK I/O Connector", &H0D
+297C:	db	"1:CHECH I/O BUS (FDD)", &H01
+2990:	29 01 FB 01  43 20 4C 61  6E 67 75 61  67 65 20 6B  ).{.C Language k
+29A0:	65 79 01 EA  43 41 53 4C  01 EB 46 78  01 ED 44 45  ey.jCASL.kFx.mDE
+29B0:	47 52 01 9A  82 01 91 78  5E 32 01 A1  4D 4F 44 45  GR.....x^2.!MODE
+29C0:	01 FB 6C 6F  67 01 87 6C  6E 01 88 68  79 70 01 92  .{log..ln..hyp..
+29D0:	73 69 6E 01  8A 63 6F 73  01 8B 74 61  6E 01 8C 4D  sin..cos..tan..M
+29E0:	52 01 E2 4D  2B 01 E4 28  01 28 29 01  29 5E 01 5E  R.bM+.d(.().)^.^
+29F0:	43 4C 53 01  0C 37 01 37  38 01 38 39  01 39 42 53  CLS..7.78.89.9BS
+2A00:	01 08 42 52  4B 01 03 34  01 34 35 01  35 36 01 36  ..BRK..4.45.56.6
+2A10:	2A 01 2A 2F  01 2F 31 01  31 32 01 32  33 01 33 2B  *.*/./1.12.23.3+
+2A20:	01 2B 2D 01  2D 30 01 30  2E 01 2E 45  01 A0 45 58  .+-.-0.0...E. EX
+2A30:	45 01 0D 4F  46 46 01 13  4D 45 4D 4F  01 EE 49 4E  E..OFF..MEMO.nIN
+2A40:	01 E6 4F 55  54 01 E7 43  41 4C 43 01  E8 55 70 01  .fOUT.gCALC.hUp.
+2A50:	1E 44 6F 77  6E 01 1F 4C  65 66 74 01  1D 52 69 67  .Down..Left..Rig
+2A60:	68 74 01 1C  49 4E 53 01  12 73 68 69  66 74 01 14  ht..INS..shift..
+2A70:	51 01 51 57  01 57 45 01  45 52 01 52  54 01 54 59  Q.QW.WE.ER.RT.TY
+2A80:	01 59 55 01  55 49 01 49  4F 01 4F 50  01 50 45 4E  .YU.UI.IO.OP.PEN
+2A90:	47 01 E0 41  01 41 53 01  53 44 01 44  46 01 46 47  G.`A.AS.SD.DF.FG
+2AA0:	01 47 48 01  48 4A 01 4A  4B 01 4B 4C  01 4C 41 4E  .GH.HJ.JK.KL.LAN
+2AB0:	53 01 E9 43  41 50 53 01  16 5A 01 5A  58 01 58 43  S.iCAPS..Z.ZX.XC
+2AC0:	01 43 56 01  56 42 01 42  4E 01 4E 4D  01 4D 2C 01  .CV.VB.BN.NM.M,.
+2AD0:	2C 3D 01 3D  53 50 43 01  20 FF 80 80  80 80 80 80  ,=.=SPC. .......
+2AE0:	80 80 80 80  80 80 80 80  80 80 80 80  80 80 80 80  ................
+2AF0:	80 80 80 80  80 80 80 80  80 80 80 80  80 80 80 80  ................
+2B00:	80 80 80 80  80 80 80 80  80 80 80 80  80 80 80 80  ................
+2B10:	80 80 80 80  80 80 80 80  80 80 80 80  80 80 80 80  ................
+2B20:	80 80 80 80  80 80 80 80  80 80 80 80  80 80 80 80  ................
+2B30:	80 80 80 80  80 80 80 80  80 80 80 80  80 80 80 80  ................
+2B40:	80 80 80 80  80 80 80 80  80 80 80 80  80 80 80 80  ................
+2B50:	80 80 80 80  80 80 80 80  80 80 80 80  80 80 80 80  ................
+2B60:	80 80 80 80  80 80 80 80  80 80 80 80  80 80 80 80  ................
+2B70:	80 80 80 80  80 80 80 80  80 80 80 80  80 80 80 80  ................
+2B80:	80 80 80 80  80 80 80 80  80 80 80 80  80 80 80 80  ................
+2B90:	80 80 80 80  80 80 80 FF  FF FF 00 00  00 00 00 00  ................
+2BA0:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+2BB0:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+2BC0:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+2BD0:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+2BE0:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+2BF0:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+2C00:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+2C10:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+2C20:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+2C30:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+2C40:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+2C50:	00 00 00 00  00 00 00 FF  FF FF 00 00  00 00 00 00  ................
+2C60:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+2C70:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+2C80:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+2C90:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+2CA0:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+2CB0:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+2CC0:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+2CD0:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+2CE0:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+2CF0:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+2D00:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+2D10:	00 00 00 00  00 00 00 FF  FF FF 01 01  01 01 01 01  ................
+2D20:	01 01 01 01  01 01 01 01  01 01 01 01  01 01 01 01  ................
+2D30:	01 01 01 01  01 01 01 01  01 01 01 01  01 01 01 01  ................
+2D40:	01 01 01 01  01 01 01 01  01 01 01 01  01 01 01 01  ................
+2D50:	01 01 01 01  01 01 01 01  01 01 01 01  01 01 01 01  ................
+2D60:	01 01 01 01  01 01 01 01  01 01 01 01  01 01 01 01  ................
+2D70:	01 01 01 01  01 01 01 01  01 01 01 01  01 01 01 01  ................
+2D80:	01 01 01 01  01 01 01 01  01 01 01 01  01 01 01 01  ................
+2D90:	01 01 01 01  01 01 01 01  01 01 01 01  01 01 01 01  ................
+2DA0:	01 01 01 01  01 01 01 01  01 01 01 01  01 01 01 01  ................
+2DB0:	01 01 01 01  01 01 01 01  01 01 01 01  01 01 01 01  ................
+2DC0:	01 01 01 01  01 01 01 01  01 01 01 01  01 01 01 01  ................
+2DD0:	01 01 01 01  01 01 01 FF  FF
+
+; bit patterns to check the I/O connector
+; connector wiring: P3 to P5, P2 to DCD, DTR to CTS, RTS to DSR
+; 0: expected state of P5 input
+; 1: expected state of DCD, DSR, CTS inputs
+; 2: data sent to PD output port
+; 3: data sent to DTR, RTS output port
+2DD9:	00 10 E1 00
+2DDD:	00 00 E5 00
+2DE1:	20 10 E9 00
+2DE5:	20 00 ED 00
+2DE9:	00 14 E1 20
+2DED:	00 04 E5 20
+2DF1:	20 14 E9 20
+2DF5:	20 04 ED 20
+2DF9:	00 18 E1 02
+2DFD:	00 08 E5 02
+2E01:	20 18 E9 02
+2E05:	20 08 ED 02
+2E09:	00 1C E1 22
+2E0D:	00 0C E5 22
+2E11:	20 1C E9 22
+2E15:	20 0C ED 22
+2E19:	FF FF ED 00
+
+2E1D:	db	&H0C, "Please set 3Pin Ca
+2E30:	62 6C 65 0D  50 6C 65 61  73 65 20 70  75 73 68 20  ble.Please push 
+2E40:	61 6E 79 20  6B 65 79 01  01 01 31 30  20 43 4C 53  any key...10 CLS
+2E50:	3A 49 3D 30  00 32 30 20  50 52 49 4E  54 22 31 3A  :I=0.20 PRINT"1:
+2E60:	43 48 41 52  41 43 54 45  52 20 50 52  49 4E 54 20  CHARACTER PRINT 
+2E70:	22 00 33 30  20 50 52 49  4E 54 22 32  3A 20 27 48  ".30 PRINT"2: 'H
+2E80:	27 20 50 52  49 4E 54 22  3A 49 4E 50  55 54 20 49  ' PRINT":INPUT I
+2E90:	00 34 30 20  49 46 20 49  3D 31 20 54  48 45 4E 20  .40 IF I=1 THEN 
+2EA0:	36 30 00 35  30 20 49 46  20 49 3D 32  20 54 48 45  60.50 IF I=2 THE
+2EB0:	4E 20 31 30  30 00 36 30  20 43 4C 53  3A 50 52 49  N 100.60 CLS:PRI
+2EC0:	4E 54 22 50  52 49 4E 54  20 4F 55 54  22 00 37 30  NT"PRINT OUT".70
+2ED0:	20 46 4F 52  20 41 3D 33  32 20 54 4F  20 31 32 37   FOR A=32 TO 127
+2EE0:	3A 4C 50 52  49 4E 54 20  43 48 52 24  28 41 29 3B  :LPRINT CHR$(A);
+2EF0:	3A 4E 45 58  54 00 38 30  20 46 4F 52  20 41 3D 26  :NEXT.80 FOR A=&
+2F00:	48 41 30 20  54 4F 20 26  48 44 46 3A  4C 50 52 49  HA0 TO &HDF:LPRI
+2F10:	4E 54 20 43  48 52 24 28  41 29 3B 3A  4E 45 58 54  NT CHR$(A);:NEXT
+2F20:	3A 4C 50 52  49 4E 54 00  39 30 20 47  4F 54 4F 37  :LPRINT.90 GOTO7
+2F30:	30 00 31 30  30 20 43 4C  53 3A 50 52  49 4E 54 20  0.100 CLS:PRINT 
+2F40:	22 50 52 49  4E 54 20 27  48 27 22 00  31 31 30 20  "PRINT 'H'".110 
+2F50:	4C 50 52 49  4E 54 20 22  48 22 3B 3A  47 4F 54 4F  LPRINT "H";:GOTO
+2F60:	31 31 30 00  01 31 30 20  43 4C 53 00  32 30 20 50  110..10 CLS.20 P
+2F70:	52 49 4E 54  22 52 53 32  33 32 43 20  4F 55 54 22  RINT"RS232C OUT"
+2F80:	00 33 30 20  4F 50 45 4E  20 22 43 4F  4D 30 3A 35  .30 OPEN "COM0:5
+2F90:	2C 45 2C 38  2C 31 22 20  46 4F 52 20  4F 55 54 50  ,E,8,1" FOR OUTP
+2FA0:	55 54 20 41  53 20 23 31  00 34 30 20  46 4F 52 20  UT AS #1.40 FOR 
+2FB0:	41 3D 33 32  20 54 4F 20  31 32 37 3A  50 52 49 4E  A=32 TO 127:PRIN
+2FC0:	54 20 23 31  2C 43 48 52  24 28 41 29  3B 3A 4E 45  T #1,CHR$(A);:NE
+2FD0:	58 54 00 35  30 20 46 4F  52 20 41 3D  26 48 41 30  XT.50 FOR A=&HA0
+2FE0:	20 54 4F 20  26 48 44 46  3A 50 52 49  4E 54 20 23   TO &HDF:PRINT #
+2FF0:	31 2C 43 48  52 24 28 41  29 3B 3A 4E  45 58 54 00  1,CHR$(A);:NEXT.
+3000:	36 30 20 47  4F 54 4F 20  34 30 00 01  31 30 20 43  60 GOTO 40..10 C
+3010:	4C 53 00 32  30 20 50 52  49 4E 54 22  52 53 32 33  LS.20 PRINT"RS23
+3020:	32 43 20 49  4E 22 00 33  30 20 4F 50  45 4E 20 22  2C IN".30 OPEN "
+3030:	43 4F 4D 30  3A 35 2C 45  2C 38 2C 31  22 20 46 4F  COM0:5,E,8,1" FO
+3040:	52 20 49 4E  50 55 54 20  41 53 20 23  31 00 34 30  R INPUT AS #1.40
+3050:	20 46 4F 52  20 41 3D 33  32 20 54 4F  20 31 32 37   FOR A=32 TO 127
+3060:	3A 49 46 20  49 4E 50 55  54 24 28 31  2C 31 29 3C  :IF INPUT$(1,1)<
+3070:	3E 43 48 52  24 28 41 29  20 54 48 45  4E 20 31 30  >CHR$(A) THEN 10
+3080:	30 20 45 4C  53 45 20 4E  45 58 54 00  35 30 20 46  0 ELSE NEXT.50 F
+3090:	4F 52 20 41  3D 26 48 41  30 20 54 4F  20 26 48 44  OR A=&HA0 TO &HD
+30A0:	46 3A 49 46  20 49 4E 50  55 54 24 28  31 2C 31 29  F:IF INPUT$(1,1)
+30B0:	3C 3E 43 48  52 24 28 41  29 20 54 48  45 4E 20 31  <>CHR$(A) THEN 1
+30C0:	30 30 20 45  4C 53 45 20  4E 45 58 54  00 36 30 20  00 ELSE NEXT.60 
+30D0:	47 4F 54 4F  20 34 30 00  31 30 30 20  50 52 49 4E  GOTO 40.100 PRIN
+30E0:	54 22 52 53  20 4E 47 21  21 22 00 31  31 30 20 47  T"RS NG!!".110 G
+30F0:	4F 54 4F 20  31 31 30 00  01 31 30 20  43 4C 53 00  OTO 110..10 CLS.
+3100:	32 30 20 50  52 49 4E 54  22 52 53 32  33 32 43 20  20 PRINT"RS232C 
+3110:	49 4E 20 4F  55 54 22 00  33 30 20 4F  50 45 4E 20  IN OUT".30 OPEN 
+3120:	22 43 4F 4D  30 3A 35 2C  45 2C 38 2C  31 22 20 41  "COM0:5,E,8,1" A
+3130:	53 20 23 31  00 34 30 20  46 4F 52 20  41 3D 33 32  S #1.40 FOR A=32
+3140:	20 54 4F 20  31 32 37 3A  50 52 49 4E  54 20 23 31   TO 127:PRINT #1
+3150:	2C 43 48 52  24 28 41 29  3B 3A 49 46  20 49 4E 50  ,CHR$(A);:IF INP
+3160:	55 54 24 28  31 2C 31 29  3C 3E 43 48  52 24 28 41  UT$(1,1)<>CHR$(A
+3170:	29 20 54 48  45 4E 20 31  30 30 20 45  4C 53 45 20  ) THEN 100 ELSE 
+3180:	4E 45 58 54  00 35 30 20  46 4F 52 20  41 3D 26 48  NEXT.50 FOR A=&H
+3190:	41 30 20 54  4F 20 26 48  44 46 3A 50  52 49 4E 54  A0 TO &HDF:PRINT
+31A0:	20 23 31 2C  43 48 52 24  28 41 29 3B  3A 49 46 20   #1,CHR$(A);:IF 
+31B0:	49 4E 50 55  54 24 28 31  2C 31 29 3C  3E 43 48 52  INPUT$(1,1)<>CHR
+31C0:	24 28 41 29  20 54 48 45  4E 20 31 30  30 20 45 4C  $(A) THEN 100 EL
+31D0:	53 45 20 4E  45 58 54 00  36 30 20 47  4F 54 4F 20  SE NEXT.60 GOTO 
+31E0:	34 30 00 31  30 30 20 50  52 49 4E 54  22 52 53 20  40.100 PRINT"RS 
+31F0:	4E 47 21 21  22 00 31 31  30 20 47 4F  54 4F 20 31  NG!!".110 GOTO 1
+3200:	31 30 00 01  31 30 20 43  4C 53 00 32  30 20 50 52  10..10 CLS.20 PR
+3210:	49 4E 54 20  22 4D 54 20  4F 55 54 22  00 33 30 20  INT "MT OUT".30 
+3220:	4F 50 45 4E  20 22 43 41  53 30 3A 4D  54 43 4B 22  OPEN "CAS0:MTCK"
+3230:	20 46 4F 52  20 4F 55 54  50 55 54 20  41 53 20 23   FOR OUTPUT AS #
+3240:	31 00 34 30  20 46 4F 52  20 41 3D 33  32 20 54 4F  1.40 FOR A=32 TO
+3250:	20 31 32 37  3A 50 52 49  4E 54 20 23  31 2C 43 48   127:PRINT #1,CH
+3260:	52 24 28 41  29 3B 3A 4E  45 58 54 00  35 30 20 46  R$(A);:NEXT.50 F
+3270:	4F 52 20 41  3D 26 48 41  30 20 54 4F  20 26 48 44  OR A=&HA0 TO &HD
+3280:	46 3A 50 52  49 4E 54 20  23 31 2C 43  48 52 24 28  F:PRINT #1,CHR$(
+3290:	41 29 3B 3A  4E 45 58 54  00 36 30 20  43 4C 4F 53  A);:NEXT.60 CLOS
+32A0:	45 00 36 35  20 50 52 49  4E 54 20 22  4D 54 20 57  E.65 PRINT "MT W
+32B0:	52 49 54 45  20 45 4E 44  22 00 37 30  20 50 52 49  RITE END".70 PRI
+32C0:	4E 54 20 22  50 6C 65 61  73 65 20 70  75 73 68 20  NT "Please push 
+32D0:	42 52 4B 20  6B 65 79 22  00 38 30 20  47 4F 54 4F  BRK key".80 GOTO
+32E0:	20 38 30 00  01 31 30 20  43 4C 53 00  32 30 20 50   80..10 CLS.20 P
+32F0:	52 49 4E 54  22 4D 54 20  49 4E 28 43  41 53 30 29  RINT"MT IN(CAS0)
+3300:	22 00 33 30  20 4F 50 45  4E 20 22 43  41 53 30 3A  ".30 OPEN "CAS0:
+3310:	4D 54 43 4B  22 20 46 4F  52 20 49 4E  50 55 54 20  MTCK" FOR INPUT 
+3320:	41 53 20 23  31 00 34 30  20 46 4F 52  20 41 3D 33  AS #1.40 FOR A=3
+3330:	32 20 54 4F  20 31 32 37  3A 49 46 20  49 4E 50 55  2 TO 127:IF INPU
+3340:	54 24 28 31  2C 31 29 3C  3E 43 48 52  24 28 41 29  T$(1,1)<>CHR$(A)
+3350:	20 54 48 45  4E 20 31 30  30 20 45 4C  53 45 20 4E   THEN 100 ELSE N
+3360:	45 58 54 00  35 30 20 46  4F 52 20 41  3D 26 48 41  EXT.50 FOR A=&HA
+3370:	30 20 54 4F  20 26 48 44  46 3A 49 46  20 49 4E 50  0 TO &HDF:IF INP
+3380:	55 54 24 28  31 2C 31 29  3C 3E 43 48  52 24 28 41  UT$(1,1)<>CHR$(A
+3390:	29 20 54 48  45 4E 20 31  30 30 20 45  4C 53 45 20  ) THEN 100 ELSE 
+33A0:	4E 45 58 54  00 36 30 20  43 4C 4F 53  45 3A 50 52  NEXT.60 CLOSE:PR
+33B0:	49 4E 54 22  4D 54 20 4F  4B 22 00 37  30 20 50 52  INT"MT OK".70 PR
+33C0:	49 4E 54 22  50 6C 65 61  73 65 20 70  75 73 68 20  INT"Please push 
+33D0:	42 52 4B 20  6B 65 79 22  00 38 30 20  47 4F 54 4F  BRK key".80 GOTO
+33E0:	20 38 30 00  31 30 30 20  50 52 49 4E  54 22 4D 54   80.100 PRINT"MT
+33F0:	20 4E 47 21  21 22 00 31  31 30 20 47  4F 54 4F 20   NG!!".110 GOTO 
+3400:	31 31 30 00  01 31 30 20  43 4C 53 00  32 30 20 50  110..10 CLS.20 P
+3410:	52 49 4E 54  22 4D 54 20  49 4E 28 43  41 53 31 29  RINT"MT IN(CAS1)
+3420:	22 00 33 30  20 4F 50 45  4E 20 22 43  41 53 31 3A  ".30 OPEN "CAS1:
+3430:	4D 54 43 4B  22 20 46 4F  52 20 49 4E  50 55 54 20  MTCK" FOR INPUT 
+3440:	41 53 20 23  31 00 34 30  20 46 4F 52  20 41 3D 33  AS #1.40 FOR A=3
+3450:	32 20 54 4F  20 31 32 37  3A 49 46 20  49 4E 50 55  2 TO 127:IF INPU
+3460:	54 24 28 31  2C 31 29 3C  3E 43 48 52  24 28 41 29  T$(1,1)<>CHR$(A)
+3470:	20 54 48 45  4E 20 31 30  30 20 45 4C  53 45 20 4E   THEN 100 ELSE N
+3480:	45 58 54 00  35 30 20 46  4F 52 20 41  3D 26 48 41  EXT.50 FOR A=&HA
+3490:	30 20 54 4F  20 26 48 44  46 3A 49 46  20 49 4E 50  0 TO &HDF:IF INP
+34A0:	55 54 24 28  31 2C 31 29  3C 3E 43 48  52 24 28 41  UT$(1,1)<>CHR$(A
+34B0:	29 20 54 48  45 4E 20 31  30 30 20 45  4C 53 45 20  ) THEN 100 ELSE 
+34C0:	4E 45 58 54  00 36 30 20  43 4C 4F 53  45 3A 50 52  NEXT.60 CLOSE:PR
+34D0:	49 4E 54 22  4D 54 20 4F  4B 22 00 37  30 20 50 52  INT"MT OK".70 PR
+34E0:	49 4E 54 22  50 6C 65 61  73 65 20 70  75 73 68 20  INT"Please push 
+34F0:	42 52 4B 20  6B 65 79 22  00 38 30 20  47 4F 54 4F  BRK key".80 GOTO
+3500:	20 38 30 00  31 30 30 20  50 52 49 4E  54 22 4D 54   80.100 PRINT"MT
+3510:	20 4E 47 21  21 22 00 31  31 30 20 47  4F 54 4F 20   NG!!".110 GOTO 
+3520:	31 31 30 00  01 31 30 20  43 4C 53 00  32 30 20 50  110..10 CLS.20 P
+3530:	52 49 4E 54  22 52 53 32  33 32 43 20  49 4E 20 4F  RINT"RS232C IN O
+3540:	55 54 22 00  33 30 20 4F  50 45 4E 20  22 43 4F 4D  UT".30 OPEN "COM
+3550:	30 3A 35 2C  45 2C 38 2C  31 22 20 41  53 20 23 31  0:5,E,8,1" AS #1
+3560:	00 34 30 20  46 4F 52 20  41 3D 33 32  20 54 4F 20  .40 FOR A=32 TO 
+3570:	31 32 37 3A  50 52 49 4E  54 20 23 31  2C 43 48 52  127:PRINT #1,CHR
+3580:	24 28 41 29  3B 3A 49 46  20 49 4E 50  55 54 24 28  $(A);:IF INPUT$(
+3590:	31 2C 31 29  3C 3E 43 48  52 24 28 41  29 20 54 48  1,1)<>CHR$(A) TH
+35A0:	45 4E 20 31  30 30 30 20  45 4C 53 45  20 4E 45 58  EN 1000 ELSE NEX
+35B0:	54 00 35 30  20 46 4F 52  20 41 3D 26  48 41 30 20  T.50 FOR A=&HA0 
+35C0:	54 4F 20 26  48 44 46 3A  50 52 49 4E  54 20 23 31  TO &HDF:PRINT #1
+35D0:	2C 43 48 52  24 28 41 29  3B 3A 49 46  20 49 4E 50  ,CHR$(A);:IF INP
+35E0:	55 54 24 28  31 2C 31 29  3C 3E 43 48  52 24 28 41  UT$(1,1)<>CHR$(A
+35F0:	29 20 54 48  45 4E 20 31  30 30 30 20  45 4C 53 45  ) THEN 1000 ELSE
+3600:	20 4E 45 58  54 00 31 30  30 20 43 4C  4F 53 45 3A   NEXT.100 CLOSE:
+3610:	43 4C 53 00  31 31 30 20  50 52 49 4E  54 22 4D 54  CLS.110 PRINT"MT
+3620:	20 4F 55 54  20 50 4C 45  41 53 45 20  53 57 20 53   OUT PLEASE SW S
+3630:	45 54 22 00  31 32 30 20  41 24 3D 49  4E 50 55 54  ET".120 A$=INPUT
+3640:	24 28 31 29  00 31 33 30  20 4F 50 45  4E 20 22 43  $(1).130 OPEN "C
+3650:	41 53 30 3A  4D 54 43 4B  22 20 46 4F  52 20 4F 55  AS0:MTCK" FOR OU
+3660:	54 50 55 54  20 41 53 20  23 31 00 31  34 30 20 46  TPUT AS #1.140 F
+3670:	4F 52 20 41  3D 33 32 20  54 4F 20 31  32 37 3A 50  OR A=32 TO 127:P
+3680:	52 49 4E 54  20 23 31 2C  43 48 52 24  28 41 29 3B  RINT #1,CHR$(A);
+3690:	3A 4E 45 58  54 00 31 35  30 20 46 4F  52 20 41 3D  :NEXT.150 FOR A=
+36A0:	26 48 41 30  20 54 4F 20  26 48 44 46  3A 50 52 49  &HA0 TO &HDF:PRI
+36B0:	4E 54 20 23  31 2C 43 48  52 24 28 41  29 3B 3A 4E  NT #1,CHR$(A);:N
+36C0:	45 58 54 00  31 36 30 20  43 4C 4F 53  45 00 31 37  EXT.160 CLOSE.17
+36D0:	30 20 43 4C  53 00 31 38  30 20 50 52  49 4E 54 22  0 CLS.180 PRINT"
+36E0:	4D 54 20 49  4E 28 43 41  53 30 29 20  50 4C 45 41  MT IN(CAS0) PLEA
+36F0:	53 45 20 4D  54 20 3C 3C  22 00 31 39  30 20 41 24  SE MT <<".190 A$
+3700:	3D 49 4E 50  55 54 24 28  31 29 00 32  30 30 20 4F  =INPUT$(1).200 O
+3710:	50 45 4E 20  22 43 41 53  30 3A 4D 54  43 4B 22 20  PEN "CAS0:MTCK" 
+3720:	46 4F 52 20  49 4E 50 55  54 20 41 53  20 23 31 00  FOR INPUT AS #1.
+3730:	32 31 30 20  46 4F 52 20  41 3D 33 32  20 54 4F 20  210 FOR A=32 TO 
+3740:	31 32 37 3A  49 46 20 49  4E 50 55 54  24 28 31 2C  127:IF INPUT$(1,
+3750:	31 29 3C 3E  43 48 52 24  28 41 29 20  54 48 45 4E  1)<>CHR$(A) THEN
+3760:	20 32 30 30  30 20 45 4C  53 45 20 4E  45 58 54 00   2000 ELSE NEXT.
+3770:	32 32 30 20  46 4F 52 20  41 3D 26 48  41 30 20 54  220 FOR A=&HA0 T
+3780:	4F 20 26 48  44 46 3A 49  46 20 49 4E  50 55 54 24  O &HDF:IF INPUT$
+3790:	28 31 2C 31  29 3C 3E 43  48 52 24 28  41 29 20 54  (1,1)<>CHR$(A) T
+37A0:	48 45 4E 20  32 30 30 30  20 45 4C 53  45 20 4E 45  HEN 2000 ELSE NE
+37B0:	58 54 00 32  33 30 20 43  4C 4F 53 45  3A 20 50 52  XT.230 CLOSE: PR
+37C0:	49 4E 54 22  49 2F 4F 20  4F 4B 21 21  22 00 32 34  INT"I/O OK!!".24
+37D0:	30 20 47 4F  54 4F 20 32  34 30 00 31  30 30 30 20  0 GOTO 240.1000 
+37E0:	43 4C 53 3A  50 52 49 4E  54 22 52 53  20 4E 47 21  CLS:PRINT"RS NG!
+37F0:	21 22 00 31  30 31 30 20  50 52 49 4E  54 22 50 6C  !".1010 PRINT"Pl
+3800:	65 61 73 65  20 61 6E 79  20 6B 65 79  22 3A 41 24  ease any key":A$
+3810:	3D 49 4E 50  55 54 24 28  31 29 00 31  30 32 30 20  =INPUT$(1).1020 
+3820:	47 4F 54 4F  20 31 30 30  00 32 30 30  30 20 43 4C  GOTO 100.2000 CL
+3830:	53 3A 50 52  49 4E 54 20  22 4D 54 20  4E 47 21 21  S:PRINT "MT NG!!
+3840:	22 00 32 30  31 30 20 47  4F 54 4F 20  32 30 31 30  ".2010 GOTO 2010
+3850:	00 01 73 65  61 72 63 68  3F 20 6C 69  6E 65 3F 20  ..search? line? 
+3860:	3E 43 6F 70  79 20 20 20  20 74 6F 20  5B 20 3F 3F  >Copy    to [ ??
+3870:	20 5D 01 09  43 6F 70 69  65 64 20 21  21 13 43 61   ]..Copied !!.Ca
+3880:	6E 6E 6F 74  20 62 65 20  63 6F 70 69  65 64 20 21  nnot be copied !
+3890:	21 05 4C 6F  61 64 20 00  05 00 00 73  74 64 69 6E  !.Load ....stdin
+38A0:	00 06 00 00  73 74 64 6F  75 74 00 06  00 00 73 74  ....stdout....st
+38B0:	64 65 72 72  00 06 00 00  73 74 64 70  72 6E 64 65  derr....stdprnde
+38C0:	66 69 6E 65  00 30 03 21  3A 03 25 2E  03 26 29 03  fine.0.!:.%..&).
+38D0:	28 5B 03 29  2D 03 2A 3B  03 2B 56 03  2C 2F 03 2D  ([.)-.*;.+V.,/.-
+38E0:	2B 03 2E 39  03 2F 5F 03  3A 3F 03 3C  4B 03 3D 40  +..9./_.:?.<K.=@
+38F0:	03 3E 4A 03  3F 2A 03 5B  5C 03 5D 46  03 5E 47 03  .>J.?*.[\.]F.^G.
+3900:	7C 31 03 7E  60 03 3B 5D  03 7B 5E 03  7D 00 44 03  |1.~`.;].{^.}.D.
+3910:	21 3D 50 03  25 3D 48 03  26 26 53 03  26 3D 4E 03  !=P.%=H.&&S.&=N.
+3920:	2A 3D 32 03  2B 2B 4C 03  2B 3D 34 03  2D 2D 4D 03  *=2.++L.+=4.--M.
+3930:	2D 3D 2C 03  2D 3E 4F 03  2F 3D 3E 03  3C 3C 41 03  -=,.->O./=>.<<A.
+3940:	3C 3D 43 03  3D 3D 42 03  3E 3D 3D 03  3E 3E 54 03  <=C.==B.>==.>>T.
+3950:	5E 3D 55 03  7C 3D 49 03  7C 7C 1B 02  64 6F 18 02  ^=U.|=I.||..do..
+3960:	69 66 00 52  03 3C 3C 3D  51 03 3E 3E  3D 1C 02 66  if.R.<<=Q.>>=..f
+3970:	6F 72 0B 01  69 6E 74 65  05 61 62 73  67 05 63 6F  or..inte.absg.co
+3980:	73 68 05 65  78 70 69 05  6C 6F 67 6A  05 70 6F 77  sh.expi.logj.pow
+3990:	6B 05 73 69  6E 6C 05 74  61 6E 00 01  00 61 75 74  k.sinl.tan...aut
+39A0:	6F 1E 02 63  61 73 65 09  01 63 68 61  72 19 02 65  o..case..char..e
+39B0:	6C 73 65 13  01 65 6E 75  6D 23 02 67  6F 74 6F 0C  lse..enum#.goto.
+39C0:	01 6C 6F 6E  67 08 01 76  6F 69 64 6D  05 61 63 6F  .long..voidm.aco
+39D0:	73 6E 05 61  73 69 6E 6F  05 61 74 61  6E 70 05 62  sn.asino.atanp.b
+39E0:	65 65 70 71  05 63 6F 73  68 73 05 65  78 69 74 75  eepq.coshs.exitu
+39F0:	05 66 72 65  65 76 05 67  65 74 63 77  05 67 65 74  .freev.getcw.get
+3A00:	73 78 05 70  75 74 63 79  05 70 75 74  73 7A 05 73  sx.putcy.putsz.s
+3A10:	69 6E 68 7B  05 73 71 72  74 7C 05 74  61 6E 68 00  inh{.sqrt|.tanh.
+3A20:	20 02 62 72  65 61 6B 12  01 63 6F 6E  73 74 0E 01   .break..const..
+3A30:	66 6C 6F 61  74 0A 01 73  68 6F 72 74  11 01 75 6E  float..short..un
+3A40:	69 6F 6E 1A  02 77 68 69  6C 65 7D 05  61 62 6F 72  ion..while}.abor
+3A50:	74 7E 05 61  63 6F 73 68  7F 05 61 6E  67 6C 65 80  t~.acosh..angle.
+3A60:	05 61 73 69  6E 68 81 05  61 74 61 6E  68 83 05 66  .asinh..atanh..f
+3A70:	67 65 74 63  84 05 66 67  65 74 73 86  05 66 70 75  getc..fgets..fpu
+3A80:	74 63 87 05  66 70 75 74  73 89 05 67  65 74 63 68  tc..fputs..getch
+3A90:	8A 05 6C 6F  67 31 30 8B  05 73 63 61  6E 66 00 0F  ..log10..scanf..
+3AA0:	01 64 6F 75  62 6C 65 03  00 65 78 74  65 72 6E 22  .double..extern"
+3AB0:	02 72 65 74  75 72 6E 14  01 73 69 67  6E 65 64 36  .return..signed6
+3AC0:	03 73 69 7A  65 6F 66 02  00 73 74 61  74 69 63 10  .sizeof..static.
+3AD0:	01 73 74 72  75 63 74 1D  02 73 77 69  74 63 68 8C  .struct..switch.
+3AE0:	05 63 61 6C  6C 6F 63 66  05 63 6C 72  73 63 72 8F  .callocf.clrscr.
+3AF0:	05 66 66 6C  75 73 68 90  05 66 73 63  61 6E 66 92  .fflush..fscanf.
+3B00:	05 67 6F 74  6F 78 79 93  05 6D 61 6C  6C 6F 63 94  .gotoxy..malloc.
+3B10:	05 70 72 69  6E 74 66 95  05 69 6E 70  6F 72 74 97  .printf..inport.
+3B20:	05 73 73 63  61 6E 66 98  05 73 74 72  63 61 74 99  .sscanf..strcat.
+3B30:	05 73 74 72  63 68 72 9A  05 73 74 72  63 6D 70 9B  .strchr..strcmp.
+3B40:	05 73 74 72  63 70 79 9C  05 73 74 72  6C 65 6E 00  .strcpy..strlen.
+3B50:	96 05 6F 75  74 70 6F 72  74 1F 02 64  65 66 61 75  ..outport..defau
+3B60:	6C 74 05 00  74 79 70 65  64 65 66 9E  05 62 72 65  lt..typedef..bre
+3B70:	61 6B 70 74  9F 05 66 70  72 69 6E 74  66 A0 05 67  akpt..fprintf .g
+3B80:	65 74 63 68  61 72 A1 05  70 75 74 63  68 61 72 A2  etchar!.putchar"
+3B90:	05 73 70 72  69 6E 74 66  00 21 02 63  6F 6E 74 69  .sprintf.!.conti
+3BA0:	6E 75 65 04  00 72 65 67  69 73 74 65  72 0D 01 75  nue..register..u
+3BB0:	6E 73 69 67  6E 65 64 15  01 76 6F 6C  61 74 69 6C  nsigned..volatil
+3BC0:	65 A3 05 63  6C 65 61 72  65 72 72 00  01 02 03 03  e#.clearerr.....
+3BD0:	04 05 06 07  07 08 09 0A  0B 07 07 0C  0C 0C 0D 0D  ................
+3BE0:	0E 0E 0F 0F  0F 0F 10 10  11 12 13 14  15 16 17 17  ................
+3BF0:	17 17 17 17  17 17 17 17  17 18 21 01  00 11 11 11  ..........!.....
+3C00:	11 11 01 11  01 01 01 01  01 01 01 01  01 01 01 01  ................
+3C10:	01 01 01 50  00 01 00 10  10 10 01 21  01 02 11 11  ...P.......!....
+3C20:	11 11 11 01  11 01 11 01  01 01 01 01  01 01 01 01  ................
+3C30:	01 01 01 01  00 00 01 00  10 10 10 01  01 01 00 01  ................
+3C40:	01 01 01 01  01 01 01 01  01 01 01 01  01 01 01 01  ................
+3C50:	01 01 01 01  01 00 00 01  00 10 10 00  01 21 01 02  .............!..
+3C60:	11 11 11 11  11 01 11 01  01 01 01 01  01 01 01 01  ................
+3C70:	01 01 01 01  01 01 00 00  01 00 10 10  10 01 21 01  ..............!.
+3C80:	02 11 11 11  11 11 01 11  01 01 01 01  01 01 01 01  ................
+3C90:	01 01 01 01  01 01 01 00  00 01 00 10  10 10 01 21  ...............!
+3CA0:	01 02 11 11  11 11 11 01  11 01 01 01  01 01 01 01  ................
+3CB0:	01 01 01 01  01 01 01 01  00 00 01 00  10 10 10 01  ................
+3CC0:	21 01 02 11  11 11 11 11  01 11 01 01  01 01 01 01  !...............
+3CD0:	01 01 01 01  01 01 01 01  01 00 00 01  00 10 10 10  ................
+3CE0:	01 21 01 02  11 01 01 01  01 01 01 01  01 01 01 01  .!..............
+3CF0:	01 01 01 01  01 01 01 01  01 01 00 00  01 00 10 10  ................
+3D00:	10 01 01 01  02 31 31 31  01 01 01 01  01 11 11 11  .....111........
+3D10:	11 11 11 11  11 11 11 01  11 11 01 10  10 01 10 00  ................
+3D20:	00 00 01 21  01 02 11 01  01 01 01 01  01 01 01 01  ...!............
+3D30:	01 01 01 01  01 01 01 01  01 01 01 01  00 00 01 00  ................
+3D40:	10 10 10 01  01 01 02 31  31 31 01 01  01 01 01 11  .......111......
+3D50:	11 11 11 11  11 11 11 11  11 01 11 11  01 10 10 01  ................
+3D60:	10 00 00 00  01 21 01 02  12 12 12 12  12 02 12 02  .....!..........
+3D70:	02 01 01 01  01 01 01 01  01 01 01 01  01 01 00 00  ................
+3D80:	01 00 10 10  10 01 21 01  02 12 12 12  12 12 02 12  ......!.........
+3D90:	02 02 02 01  01 01 01 01  01 01 01 01  01 01 01 00  ................
+3DA0:	00 01 00 10  10 10 01 21  01 02 12 12  12 12 12 02  .......!........
+3DB0:	12 02 02 02  02 01 01 01  01 01 01 01  01 01 01 01  ................
+3DC0:	00 00 01 00  10 10 10 01  21 01 02 12  12 12 12 12  ........!.......
+3DD0:	02 12 02 02  02 02 02 01  01 01 01 01  01 01 01 01  ................
+3DE0:	01 00 00 01  00 10 10 10  01 21 01 02  12 12 12 12  .........!......
+3DF0:	12 02 12 02  02 02 02 02  02 01 01 01  01 01 01 01  ................
+3E00:	01 01 00 00  01 00 10 10  10 01 21 01  02 12 12 12  ..........!.....
+3E10:	12 12 02 12  02 02 02 02  02 02 02 01  01 01 01 01  ................
+3E20:	01 01 01 00  00 01 00 10  10 10 01 21  01 02 12 12  ...........!....
+3E30:	12 12 12 02  12 02 02 02  02 02 02 02  02 01 01 01  ................
+3E40:	01 01 01 01  00 00 01 00  10 10 10 01  21 01 02 12  ............!...
+3E50:	12 12 12 12  02 12 02 02  02 02 02 02  02 02 02 01  ................
+3E60:	01 01 01 01  01 00 00 01  00 10 10 10  01 21 01 02  .............!..
+3E70:	12 12 12 12  12 02 12 02  02 02 02 02  02 02 02 02  ................
+3E80:	02 01 01 01  01 01 00 00  01 00 10 10  10 01 21 01  ..............!.
+3E90:	02 12 12 12  12 12 02 12  02 02 02 02  02 02 02 02  ................
+3EA0:	02 02 02 01  01 01 01 00  00 01 00 10  10 10 01 21  ...............!
+3EB0:	01 02 12 12  12 12 12 02  12 02 02 02  02 02 02 02  ................
+3EC0:	02 02 02 02  01 01 01 01  00 00 01 00  10 10 10 01  ................
+3ED0:	21 01 02 12  12 12 12 12  02 12 02 02  02 02 02 02  !...............
+3EE0:	02 02 02 02  02 01 01 01  01 00 00 02  00 10 10 10  ................
+3EF0:	01 26 01 02  12 12 12 12  12 02 12 02  02 02 02 02  .&..............
+3F00:	02 02 02 02  02 02 01 02  02 01 00 00  02 00 10 10  ................
+3F10:	10 01 21 01  00 11 11 11  11 11 00 11  00 01 01 01  ..!.............
+3F20:	01 01 01 01  01 01 01 01  01 01 01 00  00 01 00 10  ................
+3F30:	10 10 01 03  00 02 32 32  32 02 42 02  42 02 12 12  ......222.B.B...
+3F40:	12 12 12 12  12 12 12 12  00 12 12 03  10 10 02 10  ................
+3F50:	00 00 00 04  00 13 02 32  32 32 02 42  02 42 02 12  .......222.B.B..
+3F60:	12 12 12 12  12 12 12 12  12 00 12 12  00 10 10 02  ................
+3F70:	10 00 00 00  00 20 00 02  12 12 12 12  12 02 12 02  ..... ..........
+3F80:	02 02 02 02  02 02 02 02  02 02 05 02  02 00 00 00  ................
+3F90:	00 00 10 10  10 00 00 00  02 02 02 02  02 02 02 02  ................
+3FA0:	02 02 02 02  02 02 02 02  02 02 02 00  02 02 00 00  ................
+3FB0:	00 02 00 00  00 00 04 10  00 00 00 00  00 00 00 00  ................
+3FC0:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+3FD0:	00 00 00 00  00 00 00 00  10 10 00 30  30 30 00 40  ...........000.@
+3FE0:	00 40 00 10  10 10 10 10  10 10 10 10  10 00 10 10  .@..............
+3FF0:	00 10 10 00  10 00 00 00  00 00 10 00  30 30 30 00  ............000.
+4000:	00 00 00 00  10 10 10 10  10 10 10 10  10 10 00 10  ................
+4010:	10 00 10 10  00 10 00 00  00 00 20 00  00 10 10 10  .......... .....
+4020:	10 10 00 10  00 00 00 00  00 00 00 00  00 00 00 00  ................
+4030:	00 00 00 10  00 00 10 10  10 10 00 03  04 03 04 05  ................
+4040:	06 08 08 00  00 0F 0F 04  04 04 04 05  06 08 08 00  ................
+4050:	00 0F 0F 03  04 03 04 05  06 08 08 00  00 0F 0F 04  ................
+4060:	04 04 04 05  06 08 08 00  00 0F 0F 05  05 05 05 05  ................
+4070:	06 08 08 00  00 0F 0F 06  06 06 06 06  06 08 08 00  ................
+4080:	00 0F 0F 08  08 08 08 08  08 08 08 00  00 00 00 08  ................
+4090:	08 08 08 08  08 08 08 00  00 00 00 00  00 00 00 00  ................
+40A0:	00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00  ................
+40B0:	00 00 00 F0  F0 F0 F0 F0  F0 00 00 00  00 FF FF F0  ...pppppp......p
+40C0:	F0 F0 F0 F0  F0 00 00 00  00 FF FF 00  00 03 01 03  ppppp...........
+40D0:	00 00 00 00  00 00 00 00  00 08 41 08  00 00 00 08  ..........A.....
+40E0:	41 08 00 00  00 08 41 08  00 00 00 08  02 08 08 00  A.....A.........
+40F0:	00 08 41 08  00 00 00 08  41 08 00 00  00 08 41 08  ..A.....A.....A.
+4100:	00 00 00 08  41 08 00 00  00 08 41 08  00 00 00 00  ....A.....A.....
+4110:	01 04 00 00  00 08 41 08  00 00 00 00  04 03 03 03  ......A.........
+4120:	03 00 00 00  00 00 00 03  01 11 00 00  00 03 01 11  ................
+4130:	00 00 00 03  01 11 00 00  00 11 01 11  00 00 00 03  ................
+4140:	02 03 11 00  00 03 01 11  00 00 00 08  41 08 00 00  ............A...
+4150:	00 08 41 08  00 00 00 08  41 08 00 00  00 00 00 00  ..A.....A.......
+4160:	00 00 00 08  41 08 00 00  00 00 01 04  00 00 00 08  ....A...........
+4170:	41 08 00 00  00 08 41 08  00 00 00 00  04 03 03 03  A.....A.........
+4180:	03 03 01 11  00 00 00 11  03 11 03 11  00 11 02 11  ................
+4190:	11 00 00 03  02 03 11 00  00 03 02 11  11 00 00 03  ................
+41A0:	04 11 03 03  11 03 00 00  00 00 00 08  41 08 00 00  ............A...
+41B0:	00 03 81 11  00 00 00 11  02 04 04 00  00 03 01 11  ................
+41C0:	00 00 00 03  01 11 00 00  00 03 01 11  00 00 00 03  ................
+41D0:	82 11 11 00  00 03 04 11  03 03 11 00  02 03 03 00  ................
+41E0:	00 11 01 04  00 00 00 03  81 11 00 00  00 03 01 03  ................
+41F0:	00 00 00 00  02 03 03 00  00 03 82 11  11 00 00 11  ................
+4200:	02 11 11 00  00 11 02 11  03 00 00 03  02 11 11 00  ................
+4210:	00 11 02 11  11 00 00 03  01 11 00 00  00 03 02 03  ................
+4220:	11 00 00 00  00 00 00 00  00 03 82 11  11 00 00 03  ................
+4230:	00 00 00 00  00 03 01 03  00 00 00 03  82 11 11 00  ................
+4240:	00 00 01 11  00 00 00 23  4E 41 4E 00  05 42 72 65  .......#NAN..Bre
+4250:	61 6B 07 42  72 65 61 6B  20 3F 05 63  68 61 72 20  ak.Break ?.char 
+4260:	04 69 6E 74  20 05 6C 6F  6E 67 20 09  75 6E 73 69  .int .long .unsi
+4270:	67 6E 65 64  20 06 66 6C  6F 61 74 20  07 64 6F 75  gned .float .dou
+4280:	62 6C 65 20  02 2A 20 28  20 20 5B 20  20 2E 20 20  ble .* (  [  .  
+4290:	2D 3E 20 2A  20 20 26 20  20 2D 20 20  21 20 20 7E  -> *  &  -  !  ~
+42A0:	20 20 2B 2B  20 2B 2B 20  2D 2D 20 2D  2D 20 20 20    ++ ++ -- --   
+42B0:	20 28 20 20  2A 20 20 2F  20 20 25 20  20 2B 20 20   (  *  /  %  +  
+42C0:	2D 20 20 3E  3E 20 3C 3C  20 3C 20 20  3E 20 20 3C  -  >> << <  >  <
+42D0:	3D 20 3E 3D  20 3D 3D 20  21 3D 20 26  20 20 5E 20  = >= == != &  ^ 
+42E0:	20 7C 20 20  26 26 20 7C  7C 20 3F 3A  20 3D 20 20   |  && || ?: =  
+42F0:	2B 3D 20 2D  3D 20 2A 3D  20 2F 3D 20  25 3D 20 3E  += -= *= /= %= >
+4300:	3E 3D 3C 3C  3D 26 3D 20  5E 3D 20 7C  3D 20 2C 20  >=<<=&= ^= |= , 
+4310:	20 02 26 26  02 7C 7C 06  73 69 7A 65  6F 66 0C 0F   .&&.||.sizeof..
+4320:	4D 65 6D 6F  72 79 20 6F  76 65 72 66  6C 6F 77 02  Memory overflow.
+4330:	11 49 6C 6C  65 67 61 6C  20 66 69 6C  65 20 6E 61  .Illegal file na
+4340:	6D 65 0D 0E  49 6C 6C 65  67 61 6C 20  64 65 76 69  me..Illegal devi
+4350:	63 65 12 10  44 69 66 66  65 72 65 6E  74 20 64 65  ce..Different de
+4360:	76 69 63 65  0D 1B 49 6C  6C 65 67 61  6C 20 66 69  vice..Illegal fi
+4370:	6C 65 20 64  69 73 63 72  69 6D 69 6E  61 74 69 6F  le discriminatio
+4380:	6E 18 0D 54  6F 6F 20 6D  61 6E 79 20  66 69 6C 65  n..Too many file
+4390:	02 0E 46 69  6C 65 20 6E  6F 74 20 66  6F 75 6E 64  ..File not found
+43A0:	11 13 46 69  6C 65 20 61  6C 72 65 61  64 79 20 65  ..File already e
+43B0:	78 69 73 74  73 23 13 57  72 69 74 65  20 70 72 6F  xists#.Write pro
+43C0:	74 65 63 74  20 65 72 72  6F 72 0D 0A  4F 70 65 6E  tect error..Open
+43D0:	20 65 72 72  6F 72 13 0D  49 2F 4F 20  6E 6F 74 20   error..I/O not 
+43E0:	72 65 61 64  79 05 14 49  2F 4F 20 72  65 61 64 2F  ready..I/O read/
+43F0:	77 72 69 74  65 20 65 72  72 6F 72 1C  0C 46 44 44  write error..FDD
+4400:	20 6E 6F 20  73 70 61 63  65 24 10 46  44 44 20 66   no space$.FDD f
+4410:	6F 72 6D 61  74 20 65 72  72 6F 72 05  0F 46 44 44  ormat error..FDD
+4420:	20 64 72 69  76 65 20 65  72 72 6F 72  25 0F 42 75   drive error%.Bu
+4430:	66 66 65 72  20 6F 76 65  72 66 6C 6F  77 25 0D 46  ffer overflow%.F
+4440:	72 61 6D 69  6E 67 20 65  72 72 6F 72  25 14 50 61  raming error%.Pa
+4450:	72 69 74 79  2F 6F 76 65  72 72 75 6E  20 65 72 72  rity/overrun err
+4460:	6F 72 22 13  41 72 69 74  68 6D 65 74  69 63 20 6F  or".Arithmetic o
+4470:	76 65 72 66  6C 6F 77 26  0B 4C 6F 77  20 62 61 74  verflow&.Low bat
+4480:	74 65 72 79  FF 11 43 20  75 6E 64 65  66 69 6E 65  tery..C undefine
+4490:	64 20 65 72  72 6F 72 FF  0F 49 6C 6C  65 67 61 6C  d error..Illegal
+44A0:	20 63 6F 6D  6D 61 6E 64  FF 0F 42 75  66 66 65 72   command..Buffer
+44B0:	20 6F 76 65  72 66 6C 6F  77 FF 0C 53  79 6E 74 61   overflow..Synta
+44C0:	78 20 65 72  72 6F 72 FF  11 55 6E 6B  6E 6F 77 6E  x error..Unknown
+44D0:	20 63 68 61  72 61 63 74  65 72 FF 15  49 6C 6C 65   character..Ille
+44E0:	67 61 6C 20  63 68 61 72  20 63 6F 6E  73 74 61 6E  gal char constan
+44F0:	74 FF 0E 49  6C 6C 65 67  61 6C 20 73  74 72 69 6E  t..Illegal strin
+4500:	67 FF 17 49  6C 6C 65 67  61 6C 20 65  73 63 61 70  g..Illegal escap
+4510:	65 20 73 65  71 75 65 6E  63 65 FF 14  49 6C 6C 65  e sequence..Ille
+4520:	67 61 6C 20  70 72 65 70  72 6F 63 65  73 73 6F 72  gal preprocessor
+4530:	FF 15 49 6C  6C 65 67 61  6C 20 73 74  6F 72 61 67  ..Illegal storag
+4540:	65 20 63 6C  61 73 73 FF  0C 49 6C 6C  65 67 61 6C  e class..Illegal
+4550:	20 74 79 70  65 FF 13 49  6C 6C 65 67  61 6C 20 70   type..Illegal p
+4560:	6F 69 6E 74  65 72 20 44  43 4C FF 14  49 6C 6C 65  ointer DCL..Ille
+4570:	67 61 6C 20  66 75 6E 63  74 69 6F 6E  20 44 43 4C  gal function DCL
+4580:	FF 11 49 6C  6C 65 67 61  6C 20 61 72  72 61 79 20  ..Illegal array 
+4590:	44 43 4C FF  16 49 6C 6C  65 67 61 6C  20 69 6E 69  DCL..Illegal ini
+45A0:	74 69 61 6C  69 7A 61 74  69 6F 6E FF  14 49 6C 6C  tialization..Ill
+45B0:	65 67 61 6C  20 61 72 67  75 6D 65 6E  74 20 44 43  egal argument DC
+45C0:	4C FE 09 75  6E 64 65 66  69 6E 65 64  FE 09 72 65  L~.undefined~.re
+45D0:	64 65 66 69  6E 65 64 FE  0E 6E 6F 74  20 61 20 66  defined~.not a f
+45E0:	75 6E 63 74  69 6F 6E FE  0E 6E 6F 74  20 61 20 76  unction~.not a v
+45F0:	61 72 69 61  62 6C 65 FF  0E 49 6C 6C  65 67 61 6C  ariable..Illegal
+4600:	20 73 69 7A  65 6F 66 FF  0C 49 6C 6C  65 67 61 6C   sizeof..Illegal
+4610:	20 63 61 73  74 FF 0D 49  6C 6C 65 67  61 6C 20 62   cast..Illegal b
+4620:	72 65 61 6B  FF 10 49 6C  6C 65 67 61  6C 20 63 6F  reak..Illegal co
+4630:	6E 74 69 6E  75 65 FF 16  54 6F 6F 20  63 6F 6D 70  ntinue..Too comp
+4640:	6C 65 78 20  65 78 70 72  65 73 73 69  6F 6E FF 0E  lex expression..
+4650:	54 6F 6F 20  6D 61 6E 79  20 6E 65 73  74 73 FF 17  Too many nests..
+4660:	54 6F 6F 20  6D 61 6E 79  20 62 72 65  61 6B 2F 63  Too many break/c
+4670:	6F 6E 74 69  6E 75 65 FF  0F 50 2D 63  6F 64 65 20  ontinue..P-code 
+4680:	6F 76 65 72  66 6C 6F 77  FF 0F 53 79  6D 62 6F 6C  overflow..Symbol
+4690:	20 6F 76 65  72 66 6C 6F  77 FF 10 27  6D 61 69 6E   overflow..'main
+46A0:	27 20 6E 6F  74 20 66 6F  75 6E 64 FF  0E 49 6C 6C  ' not found..Ill
+46B0:	65 67 61 6C  20 27 6D 61  69 6E 27 FF  15 54 6F 6F  egal 'main'..Too
+46C0:	20 6D 61 6E  79 20 69 6E  69 74 69 61  6C 69 7A 65   many initialize
+46D0:	72 73 FD 12  69 6E 63 6F  6D 70 61 74  69 62 6C 65  rs}.incompatible
+46E0:	20 74 79 70  65 73 FD 0F  69 6C 6C 65  67 61 6C 20   types}.illegal 
+46F0:	6F 70 65 72  61 6E 64 FD  0E 69 6C 6C  65 67 61 6C  operand}.illegal
+4700:	20 6C 76 61  6C 75 65 FF  0D 49 6C 6C  65 67 61 6C   lvalue..Illegal
+4710:	20 69 6E 64  65 78 FF 15  49 6C 6C 65  67 61 6C 20   index..Illegal 
+4720:	66 75 6E 63  74 69 6F 6E  20 63 61 6C  6C FF 15 41  function call..A
+4730:	72 67 75 6D  65 6E 74 20  6C 69 73 74  20 74 6F 6F  rgument list too
+4740:	20 62 69 67  FF 0F 47 6C  6F 62 61 6C  20 6F 76 65   big..Global ove
+4750:	72 66 6C 6F  77 FF 0E 53  74 61 63 6B  20 6F 76 65  rflow..Stack ove
+4760:	72 66 6C 6F  77 FF 05 41  62 6F 72 74  09 16 49 6C  rflow..Abort..Il
+4770:	6C 65 67 61  6C 20 73 74  72 65 61 6D  20 70 6F 69  legal stream poi
+4780:	6E 74 65 72  21 1D 4D 61  74 68 65 6D  61 74 69 63  nter!.Mathematic
+4790:	61 6C 20 61  72 69 74 68  6D 65 74 69  63 20 65 72  al arithmetic er
+47A0:	72 6F 72 21  10 49 6C 6C  65 67 61 6C  20 61 72 67  ror!.Illegal arg
+47B0:	75 6D 65 6E  74 00 13 49  6C 6C 65 67  61 6C 20 61  ument..Illegal a
+47C0:	63 63 65 73  73 20 6D 6F  64 65 04 76  61 72 3E     ccess mode.var>
+
+; text editor key codes and addresses of handler procedures
+47CF:	01, 9D2A	;[S]+down
+47D2:	02, 9BFB	;line top
+47D5:	05, 9D0B	;line del
+47D8:	06, 9B39	;line end
+47DB:	08, 9C7E	;backspace
+47DE:	09, 9CDC	;tab
+47E1:	0B, 9CD2	;home
+47E4:	0C, 9D0B	;CLS
+47E7:	0D, 9AED	;EXE
+47EA:	10, 9CD2	;[S]+up
+47ED:	11, 9C5F	;del
+47F0:	12, 9C79	;ins
+47F3:	1C, 9B20	;right
+47F6:	1D, 9BE4	;left
+47F9:	1E, 9C00	;up
+47FC:	1F, 9B52	;down
+47FF:	00, 9814	;no matching code found
+
+4802:	E0, 9CDC
+4805:	E1, 9CDC
+4808:	E2, 9A59
+480B:	E6, 9A0F
+480E:	E7, 9A40
+4811:	E8, 9E5E
+4814:	E9, 9A54
+4817:	EE, 9D53
+481A:	EF, 9D4C
+481D:	00, 9814
+
+4820:	E0, 99F2
+4823:	E1, 99F2
+4826:	E2, 99F7
+4829:	E6, 9A06
+482C:	E7, 9A01
+482F:	E9, 99FC
+4832:	EE, 9D53
+4835:	EF, 9D4C
+4838:	00, 9814
+
+483B:	01, A181
+483E:	02, A23C
+4841:	03, A255
+4844:	04, A26D
+4847:	00, FD5D
+
+484A:	18, BD12
+484D:	1A, BE08
+4850:	1B, BEA4
+4853:	1C, BF54
+4856:	20, C036
+4859:	21, C0D4
+485C:	22, C16E
+485F:	23, C199
+4862:	00, FD70
+
+4865:	01, C458
+4868:	02, C459
+486B:	03, C4BC
+486E:	04, C4DA
+4871:	05, C4E5
+4874:	00, FD70
+
+4877:	01, C585
+487A:	02, C638
+487D:	03, C69A
+4880:	04, C6DC
+4883:	05, C700
+4886:	06, C701
+4889:	00, FD70
+
+488C:                                          00 29 C1 D1              .)AQ
+4890:	00 28 B8 D1  00 2A 0C D5  00 2D 38 D5  00 2E A5 D5  .(8Q.*.U.-8U..%U
+48A0:	01 2F 6A D8  02 2F 74 D8  03 2F 0D FA  04 2F 0D FA  ./jX./tX./.z./.z
+48B0:	05 2F 10 FA  06 2F 10 FA  07 2F 23 FA  08 2F 23 FA  ./.z./.z./#z./#z
+48C0:	00 30 5C D6  01 31 7E D8  02 31 88 D8  03 31 35 FA  .0\V.1~X.1.X.15z
+48D0:	04 31 35 FA  05 31 38 FA  06 31 38 FA  00 32 92 D8  .15z.18z.18z.2.X
+48E0:	00 33 A0 D8  00 34 B8 D8  00 35 C6 D8  00 36 D0 D5  .3 X.48X.5FX.6PU
+48F0:	00 37 1D D6  03 38 B0 F6  04 38 C0 F6  05 38 E3 F6  .7.V.80v.8@v.8cv
+4900:	06 38 35 F7  08 38 61 F7  03 39 71 F7  04 39 81 F7  .85w.8aw.9qw.9.w
+4910:	05 39 94 F7  06 39 B1 F7  08 39 1C F8  03 3A 3B F8  .9.w.91w.9.x.:;x
+4920:	04 3A 50 F8  05 3A 65 F8  06 3A 7E F8  03 3B 4C F6  .:Px.:ex.:~x.;Lv
+4930:	04 3B 4C F6  05 3B 50 F6  06 3B 50 F6  08 3B 5B F6  .;Lv.;Pv.;Pv.;[v
+4940:	0F 3B 24 D8  F0 3B 1D D8  03 3C 78 F6  04 3C 78 F6  .;$Xp;.X.<xv.<xv
+4950:	05 3C 7C F6  06 3C 7C F6  08 3C 87 F6  F0 3C 42 D8  .<|v.<|v.<.vp<BX
+4960:	FF 3C 49 D8  03 3D 8F FA  04 3D B3 FA  05 3D CB FA  .<IX.=.z.=3z.=Kz
+4970:	06 3D F9 FA  03 3E 19 FB  04 3E 19 FB  05 3E 31 FB  .=yz.>.{.>.{.>1{
+4980:	06 3E 31 FB  03 3F C6 F8  04 3F D0 F8  05 3F DC F8  .>1{.?Fx.?Px.?\x
+4990:	06 3F E6 F8  08 3F FC F8  0F 3F D0 F8  F0 3F D0 F8  .?fx.?|x.?Pxp?Px
+49A0:	FF 3F D0 F8  03 40 0B F9  04 40 15 F9  05 40 21 F9  .?Px.@.y.@.y.@!y
+49B0:	06 40 2B F9  08 40 41 F9  0F 40 15 F9  F0 40 15 F9  .@+y.@Ay.@.yp@.y
+49C0:	FF 40 15 F9  03 41 81 F9  04 41 8B F9  05 41 97 F9  .@.y.A.y.A.y.A.y
+49D0:	06 41 A1 F9  08 41 B7 F9  0F 41 8B F9  F0 41 8B F9  .A!y.A7y.A.ypA.y
+49E0:	FF 41 8B F9  03 42 C8 F9  04 42 D2 F9  05 42 DE F9  .A.y.BHy.BRy.B^y
+49F0:	06 42 E8 F9  08 42 FE F9  0F 42 D2 F9  F0 42 D2 F9  .Bhy.B~y.BRypBRy
+4A00:	FF 42 D2 F9  03 43 97 F8  04 43 97 F8  05 43 A3 F8  .BRy.C.x.C.x.C#x
+4A10:	06 43 A3 F8  08 43 B7 F8  0F 43 97 F8  F0 43 97 F8  .C#x.C7x.C.xpC.x
+4A20:	FF 43 97 F8  03 44 52 F9  04 44 52 F9  05 44 5E F9  .C.x.DRy.DRy.D^y
+4A30:	06 44 5E F9  08 44 72 F9  0F 44 52 F9  F0 44 52 F9  .D^y.Dry.DRypDRy
+4A40:	FF 44 52 F9  03 45 7F FA  04 45 7F FA  05 45 83 FA  .DRy.E.z.E.z.E.z
+4A50:	06 45 83 FA  03 46 87 FA  04 46 87 FA  05 46 8B FA  .E.z.F.z.F.z.F.z
+4A60:	06 46 8B FA  03 47 77 FA  04 47 77 FA  05 47 7B FA  .F.z.Gwz.Gwz.G{z
+4A70:	06 47 7B FA  00 4B 4E D9  03 4C 4C F6  04 4C 4C F6  .G{z.KNY.LLv.LLv
+4A80:	05 4C 50 F6  06 4C 50 F6  08 4C 5B F6  0F 4C 24 D8  .LPv.LPv.L[v.L$X
+4A90:	F0 4C 1D D8  03 4D 78 F6  04 4D 78 F6  05 4D 7C F6  pL.X.Mxv.Mxv.M|v
+4AA0:	06 4D 7C F6  08 4D 87 F6  F0 4D 42 D8  FF 4D 49 D8  .M|v.M.vpMBX.MIX
+4AB0:	03 4E B0 F6  04 4E C0 F6  05 4E E3 F6  06 4E 35 F7  .N0v.N@v.Ncv.N5w
+4AC0:	08 4E 61 F7  03 4F 71 F7  04 4F 81 F7  05 4F 94 F7  .Naw.Oqw.O.w.O.w
+4AD0:	06 4F B1 F7  08 4F 1C F8  03 50 3B F8  04 50 50 F8  .O1w.O.x.P;x.PPx
+4AE0:	05 50 65 F8  06 50 7E F8  03 51 8F FA  04 51 B3 FA  .Pex.P~x.Q.z.Q3z
+4AF0:	05 51 CB FA  06 51 F9 FA  03 52 19 FB  04 52 19 FB  .QKz.Qyz.R.{.R.{
+4B00:	05 52 31 FB  06 52 31 FB  03 53 7F FA  04 53 7F FA  .R1{.R1{.S.z.S.z
+4B10:	05 53 83 FA  06 53 83 FA  03 54 87 FA  04 54 87 FA  .S.z.S.z.T.z.T.z
+4B20:	05 54 8B FA  06 54 8B FA  03 55 77 FA  04 55 77 FA  .T.z.T.z.Uwz.Uwz
+4B30:	05 55 7B FA  06 55 7B FA  00 56 4E D9  00 00 4E D9  .U{z.U{z.VNY..NY
+4B40:	66 F4 69 F4  69 F4 75 F4  75 F4 89 F4  89 F4 69 F4  ftititutut.t.tit
+4B50:	66 F4 4E D9  66 F4 66 F4  90 F4 90 F4  96 F4 96 F4  ftNYftft.t.t.t.t
+4B60:	66 F4 66 F4  66 F4 4E D9  9D F4 9E F4  9E F4 AD F4  ftftftNY.t.t.t-t
+4B70:	AD F4 9D F4  4E D9 4E D9  9D F4 4E D9  B1 F4 B1 F4  -t.tNYNY.tNY1t1t
+4B80:	B5 F4 B5 F4  4E D9 66 F4  66 F4 9D F4  9D F4 4E D9  5t5tNYftft.t.tNY
+4B90:	9D F4 E1 F4  E1 F4 9D F4  66 F4 66 F4  9D F4 9D F4  .tatat.tftft.t.t
+4BA0:	9D F4 4E D9  21 F5 21 F5  9D F4 61 F5  61 F5 68 F5  .tNY!u!u.tauauhu
+4BB0:	68 F5 68 F5  68 F5 4E D9  4E D9 00 00  61 F5 61 F5  huhuhuNYNY..auau
+4BC0:	68 F5 68 F5  68 F5 68 F5  4E D9 4E D9  00 00 4E D9  huhuhuhuNYNY..NY
+4BD0:	4E D9 9D F4  4E D9 B1 F4  B1 F4 00 00  00 00 4E D9  NY.tNY1t1t....NY
+4BE0:	00 00 DD F1  3E F3 4F F2  4F F2 4F F2  F7 F1 4F F2  ..]q>sOrOrOrwqOr
+4BF0:	4F F2 4F F2  4F F2 4F F2  1B F3 4F F2  E2 FC 2A EF  OrOrOrOr.sOrb|*o
+4C00:	E2 FC D6 EF  92 DD 16 DE  C9 DD 61 DE  4F F2 4F F2  b|Vo.].^I]a^OrOr
+4C10:	4F F2 4B EF  4F F2 33 F2  4F F2 4F F2  E2 FC 92 DD  OrKoOr3rOrOrb|.]
+4C20:	10 DE E2 FC  C9 DD 5B DE  E2 FC 9C A4  4F F2 FA DE  .^b|I][^b|.$Orz^
+4C30:	9F EF E2 FC  E2 FC 4B DF  F5 DE E2 FC  45 F3 7E EF  .ob|b|K_u^b|Es~o
+4C40:	A7 DE 8C FC  A2 FC F0 DE  59 F1 B8 F1  87 F1 33 F1  '^.|"|p^Yq8q.q3q
+4C50:	13 F1 E2 FC  4E EF A2 DE  95 DD CF DD  9D DE 6E FC  .qb|No"^.]O].^n|
+
+4C60:	01, FCE5	;Memory overflow
+4C63:	02, FD70	;Syntax error
+4C66:	05, FD3F	;RS232C buffer overflow
+4C69:	06, FD21	;I/O not ready
+4C6C:	07, FD27	;I/O read/write error
+4C6F:	08, FCEB	;Illegal file name
+4C72:	0A, FD09	;File not found
+4C75:	0B, FD57	;Low battery
+4C78:	0C, FD2D	;FDD no space
+4C7B:	0D, FD51	;Arithmetic overflow
+4C7E:	0E, FE68	;Mathematical arithmetic error
+4C81:	10, FE68	;Mathematical arithmetic error
+4C84:	15, FD15	;Write protect error
+4C87:	1A, FD33	;FDD format error
+4C8A:	1C, FD1B	;Open error
+4C8D:	1D, FCFD	;Illegal file discrimination
+4C90:	1E, FD45	;RS232C framing error
+4C93:	1F, FD4B	;RS232C po error
+4C96:	20, FD39	;FDD drive error
+4C99:	00, FD5D	;"C undefined error" if no matching code found

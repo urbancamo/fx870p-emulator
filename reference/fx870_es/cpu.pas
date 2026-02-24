@@ -10,7 +10,7 @@ interface
 
 implementation
 
-  uses Def, Decoder, Port;
+  uses Def, Decoder, Port, Trace;
 
   type Proc1 = procedure;
 
@@ -93,6 +93,7 @@ implementation
       begin
 { execute an instruction }
         procindex := 0;
+        TraceInstr;     { record state before the instruction executes }
         ExecInstr;
 { complete an optional I/O device write }
         i := 0;
@@ -104,6 +105,7 @@ implementation
       end {if};
     end {if};
     if iserv = 0 then cycles := cycles shl speed;
+    TraceAddCycles(cycles);  { keep TraceCycles synchronised with emulated clock }
     CpuRun := cycles;
   end {CpuRun};
 

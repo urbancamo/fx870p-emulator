@@ -484,7 +484,7 @@ function imm7Arg(): string {
   const y = pc;
   if (opforg > 0 && (opindex & 1) === 0) fetchByte();   // word-memory alignment
   const raw = fetchByte();
-  const x = (raw & 0x80) ? (raw - 0x100) : raw;         // sign-extend 8-bit offset
+  const x = (raw & 0x80) ? (0x80 - raw) : raw;          // HD61700 convention: $80-x (not sign-extend)
   return '&H' + h4((y + x) & 0xFFFF);
 }
 

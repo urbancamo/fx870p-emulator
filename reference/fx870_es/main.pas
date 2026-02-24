@@ -51,7 +51,7 @@ implementation
 {$R *.dfm}
 
 uses
-    Def, Cpu, Debug, Keyboard, Lcd, Port, Comm, Fdd;
+    Def, Cpu, Debug, Keyboard, Lcd, Port, Comm, Fdd, Trace;
 
 const
     FaceName: string = 'face.bmp';
@@ -403,6 +403,7 @@ begin
   end {with};
   CpuSpeed := OscFreq * integer(RunTimer.Interval);
   ResetAll;
+  TraceInit;    { begin recording: writes trace.jsonl, auto-stops after 10 s }
   FddInit;		{ FDD is a separate device, so it is not in ResetAll }
   flag := SW_bit;		{ power switch on }
   ScrCtrl := not lcdctrl;	{ invalidate the shadow LCD control register }
@@ -535,6 +536,7 @@ begin
   RunTimer.Enabled := False;
   RefreshTimer.Enabled := False;
   SecTimer.Enabled := False;
+  TraceClose;   { flush & close trace file if still open }
   IoClose;
   FddClose;
 { save the register file image }
