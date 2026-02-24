@@ -112,8 +112,7 @@ begin
   Face.Canvas.Draw (x, y, BitMap);
   BitMap.Transparent := False;
   BitMap.Canvas.Draw (-x, -y, Face);
-  MainForm.Canvas.Draw (x, y, BitMap);	{ replace with MainForm.Invalidate;
-					  to comply with the rules }
+  MainForm.Invalidate;
 end {DrawKey};
 
 
@@ -219,8 +218,7 @@ begin
   LcdRender;
   View;
   if RedrawReq = True then
-	Canvas.Draw (48, 36, LcdBmp);	{ replace with Invalidate;
-					  to comply with the rules }
+	Invalidate;
   RedrawReq := False;
 end;
 
@@ -416,7 +414,7 @@ end;
 
 
 { load a binary file, returns true if OK }
-function MemLoad (fname: string; memory: PChar; fsize: integer; foffset: integer) : boolean;
+function MemLoad (fname: string; memory: PAnsiChar; fsize: integer; foffset: integer) : boolean;
 var
   f: file;
   numread: integer;
@@ -436,7 +434,7 @@ end {MemLoad};
 
 
 { save a binary file, returns True if OK }
-function MemSave (fname: string; memory: PChar; fsize: integer; foffset: integer) : boolean;
+function MemSave (fname: string; memory: PAnsiChar; fsize: integer; foffset: integer) : boolean;
 var
   f: file;
 begin
@@ -484,7 +482,7 @@ begin
   KeyBmp.Width := 202;
   KeyBmp.Height := 54;
   MyPath := ExtractFilePath(ParamStr(0));
-  if not MemLoad (ChrName, PChar(@lcdchr[0]), CHRSIZE div 2, 0) then
+  if not MemLoad (ChrName, PAnsiChar(@lcdchr[0]), CHRSIZE div 2, 0) then
   begin
     MessageDlg (LoadMsg + ChrName, mtWarning, [mbOk], 0);
   end {if};
@@ -498,7 +496,7 @@ begin
     end {for};
   end {for};
 { load the register file image }
-  MemLoad (RegName, PChar(@mr[0]), 36, 0);
+  MemLoad (RegName, PAnsiChar(@mr[0]), 36, 0);
   ss := ptrw(@mr[32])^;
   us := ptrw(@mr[34])^;
 { load the memory images }
@@ -542,7 +540,7 @@ begin
 { save the register file image }
   ptrw(@mr[32])^ := ss;
   ptrw(@mr[34])^ := us;
-  if not MemSave (RegName, PChar(@mr[0]), 36, 0) then
+  if not MemSave (RegName, PAnsiChar(@mr[0]), 36, 0) then
   begin
     MessageDlg (SaveMsg + RegName, mtWarning, [mbOk], 0);
   end {if};
@@ -581,7 +579,7 @@ var
 begin
   i := 1;
   Key := UpCase(Key);
-  while (i <= COUNT) and (Key <> Letters[i]) do Inc (i);
+  while (i <= COUNT) and (Key <> Char(Letters[i])) do Inc (i);
   if i <= COUNT then
   begin
     KeyCode2 := i+(FIRST-1);

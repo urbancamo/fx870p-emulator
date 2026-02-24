@@ -47,7 +47,7 @@ interface
   procedure DosGetPrevDirEntry;
   procedure DosRenameFile;
   procedure DosDeleteFile;
-  function DosOpenFile (number: integer; access: char) : integer;
+  function DosOpenFile (number: integer; access: AnsiChar) : integer;
   procedure DosBlockWrite (number: integer; count: integer);
   procedure DosBlockRead (number: integer; count: integer);
   procedure DosCloseFile (number: integer);
@@ -93,14 +93,14 @@ begin
   basename := '';
   for j := 0 to 7 do
   begin
-    basename := basename + Char(src^);
+    basename := basename + AnsiChar(src^);
     Inc(src);
   end {for};
   basename := TrimRight(basename);
   extension := '';
   for j := 8 to FNAMESIZE-1 do
   begin
-    extension := extension + Char(src^);
+    extension := extension + AnsiChar(src^);
     Inc(src);
   end {for};
   extension := TrimRight(extension);
@@ -157,7 +157,7 @@ var
   f: TSearchRec;
   i: integer;
 begin
-  for i := 1 to FNAMESIZE do fddbuf[i] := Byte(UpCase(Char(fddbuf[i])));
+  for i := 1 to FNAMESIZE do fddbuf[i] := Byte(UpCase(AnsiChar(fddbuf[i])));
   i := DIRBEGIN;
   if FindFirst(dos_path + '\*.*', $20, f) = 0 then
   repeat
@@ -231,7 +231,7 @@ end {DosDeleteFile};
 
 
 { returns the file size }
-function DosOpenFile (number: integer; access: char) : integer;
+function DosOpenFile (number: integer; access: AnsiChar) : integer;
 var
   s: string;
 begin

@@ -18,7 +18,7 @@ implementation
 
     TFileControlBlock = record
       isopened: boolean;
-      access: char;	{ access mode: 'R', 'W', 'A' or 'D' }
+      access: AnsiChar;	{ access mode: 'R', 'W', 'A' or 'D' }
       position: integer;
       size: integer;
     end {TFileControlBlock};
@@ -307,7 +307,7 @@ begin
   if (i > 0) and (i <= MAXFILE) then with fcb[i] do
   begin
     if isopened then DosCloseFile (i);
-    access := Char(fddbuf[13]);
+    access := AnsiChar(fddbuf[13]);
     size := DosOpenFile (i, access);
     position := 0;
     if access = 'A' then
@@ -408,12 +408,12 @@ begin
     error_code := $08;			{ invalid file number }
     FddCommandCompleted;
   end
-  else if not fcb[i].isopened or (fcb[i].access <> Char(fddbuf[2])) then
+  else if not fcb[i].isopened or (fcb[i].access <> AnsiChar(fddbuf[2])) then
   begin
     error_code := $03;		{ file not opened or wrong access mode }
     FddCommandCompleted;
   end
-  else if Char(fddbuf[2]) = 'R' then with fcb[i] do	{ file reading }
+  else if AnsiChar(fddbuf[2]) = 'R' then with fcb[i] do	{ file reading }
   begin
     x := MyMin (size - position, RECORDSIZE);
     if x > 0 then
@@ -429,7 +429,7 @@ begin
     fdd_proc := @FddCommandCompleted;
     fdd_status := fdd_status and $FE;	{ data byte ready for the calculator }
   end
-  else if Char(fddbuf[2]) = 'W' then	{ file writing }
+  else if AnsiChar(fddbuf[2]) = 'W' then	{ file writing }
   begin			{ receive the record size from the calculator }
     fddindex := 3;
     fddbytes := 2;

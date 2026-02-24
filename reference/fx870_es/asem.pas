@@ -393,7 +393,7 @@ end {ParseString};
   or leaves InIndex unchanged when not found. }
 function ParseTable (
   out x: integer;	{ returned index to the table }
-  var t: array of tab;	{ table to be searched }
+  const t: array of tab;	{ table to be searched }
   last: integer		{ index of the last item }
   ) : boolean;		{ TRUE when string found }
 var
@@ -417,7 +417,7 @@ end {ParseTable};
 
 
 { a specified character expected }
-function ParseChar (c: char) : boolean;
+function ParseChar (c: AnsiChar) : boolean;
 begin
   result := (InIndex <= Length(InBuf)) and (InBuf[InIndex] = c);
   if result then Inc (InIndex);
@@ -460,7 +460,7 @@ end {OptCond};
 
 
 { value of a hex digit }
-function GetDigit (c: char) : integer;
+function GetDigit (c: AnsiChar) : integer;
 const
   digits: string[22] = '0123456789ABCDEFabcdef';
 var

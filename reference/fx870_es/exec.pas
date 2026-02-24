@@ -1143,7 +1143,7 @@ begin
   x := FetchByte;
   dst := r16tab[((opcode[0] shl 2) and 4) + ((x shr 5) and 3)];
   ptrb(dst)^ := mr[RegArg(x)];
-  ptrb(PChar(dst)+1)^ := mr[RegArg(x+1)];
+  ptrb(PAnsiChar(dst)+1)^ := mr[RegArg(x+1)];
 { ptrw(dst)^ := GetRegPair(x) would be less efficient }
   OptionalJr(x);
   Inc (cycles, 8);
@@ -1325,7 +1325,7 @@ begin
   if i >= 5 then ky1 := (ky and $0F00) or ReadKy (ia and $0F);
   src := r16tab[i];
   mr[RegArg(x)] := ptrb(src)^;
-  mr[RegArg(x+1)] := ptrb(PChar(src)+1)^;
+  mr[RegArg(x+1)] := ptrb(PAnsiChar(src)+1)^;
   OptionalJr(x);
   Inc (cycles, 8);
 end {Gre_9E};
@@ -1703,7 +1703,7 @@ var
 begin
   dst := r16tab[((opcode[0] shl 2) and 4) + ((FetchByte shr 5) and 3)];
   ptrb(dst)^ := FetchByte;
-  ptrb(PChar(dst)+1)^ := FetchByte;
+  ptrb(PAnsiChar(dst)+1)^ := FetchByte;
   Inc (cycles, 8);
 end {Pre_D6};
 

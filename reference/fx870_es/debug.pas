@@ -173,7 +173,7 @@ end {BoxEdit};
 
 
 { value of a hex digit }
-function GetDigit (c: char) : integer;
+function GetDigit (c: AnsiChar) : integer;
 const
   digits: string[22] = '0123456789ABCDEFabcdef';
 var
@@ -201,7 +201,7 @@ begin
       i := 1;
       while i <= Length(s) do
       begin
-        if GetDigit(s[i]) >= limit then
+        if GetDigit(AnsiChar(s[i])) >= limit then
         begin
           Delete (s, i, 1);
           if x >= i then Dec(x) else if x+y >= i then Dec(y);

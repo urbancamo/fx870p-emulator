@@ -12,7 +12,7 @@ interface
 				  bits cleared }
 
     mem_properties = record
-      storage: PChar;
+      storage: PAnsiChar;
       first: integer;
       last: integer;
       offset: integer;
@@ -68,8 +68,11 @@ interface
     XTAL	= 921;	{ nominal CPU clock frequency in kHz }
 
 { free adress space, number of bytes determined by the function FetchOpcode }
+  {$J+}
     dummysrc: array[0..3] of byte = ( $FF, $FF, $FF, $FF );
+  {$J-}
 
+  {$J+}
     memdef: array[0..MEMORIES-1] of mem_properties = (
       (	storage:	nil;
 	first:		$00000;
@@ -104,6 +107,7 @@ interface
 	required:	True;
 	filename:	'rom1.bin' )
     );
+  {$J-}
 
   var
 { 5-bit registers }
