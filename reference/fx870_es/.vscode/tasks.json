@@ -1,0 +1,60 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build fx870.exe",
+      "type": "shell",
+      "command": "C:/Program Files (x86)/Embarcadero/Studio/23.0/bin/dcc32.exe",
+      "args": [
+        "fx870.dpr",
+        "-I${workspaceFolder}/thdtimer",
+        "-U${workspaceFolder}/thdtimer",
+        "-NSVcl;System;Winapi;System.Win",
+        "-E${workspaceFolder}",
+        "-B"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": {
+        "owner": "pascal",
+        "fileLocation": ["absolute"],
+        "pattern": {
+          "regexp": "^(.+)\\((\\d+)\\)\\s+(Error|Warning|Hint|Fatal):\\s+(.+)$",
+          "file": 1,
+          "line": 2,
+          "severity": 3,
+          "message": 4
+        }
+      }
+    },
+    {
+      "label": "Clean fx870",
+      "type": "shell",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "del /q *.dcu *.exe *.map 2>nul & echo Clean done"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
