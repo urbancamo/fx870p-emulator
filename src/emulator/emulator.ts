@@ -215,18 +215,24 @@ export function emulatorReset(): void {
   remoteLog('emulator', 'reset — PC=0x0000 SW_bit set');
   traceInit(); // start full instruction trace (auto-stops after 10 s of emulated time)
   // Phase 1: log first-write to every address in the first 2 s (capture full boot).
-  // Phase 2: after 2 s, switch to a permanent watch on devtbl[0] (0x11100) and
-  //          the COM0 driver-pointer table (0x1165C) so we can see every write.
+  // Phase 2: after 2 s, switch to a permanent watch on devtbl[0] (0x11100).
+  // drvptr (0x1165C:0x1165D) is watched unconditionally in both phases.
   const MONITOR_CYCLES = OscFreq * 2000; // 2 s of emulated time (capture full boot)
   const _seen = new Set<number>();
   setRamWriteMonitor((addr, val) => {
+    // drvptr always watched — catches writes in Phase 1 before logging may be enabled.
+    // 0x2734 = stub, 0x1FB0 = real RS-232C driver, 0x66C2 = CAL mode driver.
+    if (addr === 0x1165C || addr === 0x1165D) {
+      remoteLog('drvptr', `RAM[0x${addr.toString(16)}]=0x${val.toString(16).padStart(2,'0')} pc=0x${pc.toString(16).padStart(4,'0')} @${_resetCycles}cy`);
+    }
+
     if (_resetCycles <= MONITOR_CYCLES) {
       if (!_seen.has(addr)) {
         _seen.add(addr);
         remoteLog('RAM first-wr', `0x${addr.toString(16).padStart(5,'0')} = 0x${val.toString(16).padStart(2,'0')}`);
       }
     } else {
-      // Phase 2: watch devtbl[0] and the COM0 driver-pointer table entry
+      // Phase 2: permanent watch on devtbl[0]
       if (_seen.size > 0) {
         remoteLog('RAM monitor', `phase1 done — ${_seen.size} unique addrs; watching 0x11100 & 0x1165C`);
         _seen.clear();
@@ -236,29 +242,26 @@ export function emulatorReset(): void {
         const uart = getUartRegs();
         remoteLog('devtbl[0]', `0x${val.toString(16).padStart(2,'0')} COM0=${val & 0x10 ? 'YES' : 'NO'} pc=0x${pc.toString(16).padStart(4,'0')} pe=0x${pe.toString(16).padStart(2,'0')} pd=0x${pd.toString(16).padStart(2,'0')} pdi=0x${pdi.toString(16).padStart(2,'0')} ga3=0x${(uart.rd[3]??0xFF).toString(16)} @${_resetCycles}cy`);
       }
-      // DriverPtrTable[SX] at 0x1165C:0x1165D — two bytes of the 16-bit driver pointer.
-      // 0x2734 = stub (COM0 not ready), 0x1FB0 = real driver (COM0 ready).
-      if (addr === 0x1165C || addr === 0x1165D) {
-        remoteLog('drvptr', `RAM[0x${addr.toString(16)}]=0x${val.toString(16).padStart(2,'0')} pc=0x${pc.toString(16).padStart(4,'0')} @${_resetCycles}cy`);
-      }
     }
   });
 
   // PC execution trace: log the first time each key DriverInstallLoop address is hit.
+  // NOT gated by isRemoteLogEnabled() — fires unconditionally so boot traces are never missed.
+  // NOTE: do NOT call window.loadDebug() before Fresh Start — it replaces this monitor.
   // 0x1FC3 = DriverInstallLoop entry (GetDeviceEntry call)
   // 0x1FC6 = after GetDeviceEntry (cal nz,&H2D64 — taken if GetDeviceEntry returns nz)
   // 0x1FC9 = past the 0x2D64 branch (only if GetDeviceEntry returned z=1)
-  // 0x1FCC = return from cal &H9272 (LCD ops) — confirms 9272 returned OK
-  // 0x1FCF = return from cal &H001C (device-table read, modifies ix/mr[1])
-  // 0x1FD5 = std $1,(ix+$sx) — confirms an/or executed
-  // 0x1FD7 = pst ua,&H54 — first instruction of the inner loop body
-  // 0x1FDA = ldw r2,&H1FB0 — real driver about to be stored
+  // 0x1FCC = return from cal &H9272 (device slot setup)
+  // 0x1FCF = return from cal &H001C (device-table read)
+  // 0x1FD5 = std $1,(ix+$sx) — devtbl write
+  // 0x1FD7 = pst ua,&H54 — entry to inner loop body (also reached on loop-back)
+  // 0x1FDA = ldw r2,&H1FB0 — real driver address about to be loaded
   // 0x1FDE = cal StoreDriverPtr with r2=0x1FB0
   // 0x2D64 = escape path (GetDeviceEntry returned nz; jp &H2AE8 never returns)
   // 0x273A = jp &H1FC3 from InstallCOM0Stub (confirms stub installer ran)
   const _pcSeen = new Set<number>([0x1FC3, 0x1FC6, 0x1FC9, 0x1FCC, 0x1FCF, 0x1FD5, 0x1FD7, 0x1FDA, 0x1FDE, 0x2D64, 0x273A]);
   setPcMonitor((tracePC) => {
-    if (!isRemoteLogEnabled() || !_pcSeen.has(tracePC)) return;
+    if (!_pcSeen.has(tracePC)) return;
     _pcSeen.delete(tracePC); // log each address once only
     const fl = flag;
     const flStr = `fl=0x${fl.toString(16).padStart(2,'0')}(${fl & 0x80 ? 'Z' : 'z'}${fl & 0x40 ? 'C' : 'c'}${fl & 0x08 ? 'SW' : ''})`;
@@ -623,3 +626,116 @@ export function installListDebug(enable = true): void {
 }
 // Expose on window for browser console access
 (window as unknown as Record<string, unknown>).listDebug = installListDebug;
+
+// ─── LOAD command debug helper ────────────────────────────────────────────────
+// Traces the LOAD "COM0:..." receive/tokenize/store path.
+// Usage: loadDebug() to install, loadDebug(false) to flush and remove.
+//
+// Key addresses:
+//   0x4AC7 = LOAD loop top (after EOF check)
+//   0x4AD8 = cal 4D28 — read one ASCII line from RS232C into INTOP buffer
+//   0x4AEE = sbc (iz+$sx),0x20 — skip blank/control lines
+//   0x4AF7 = cal 1D2C — tokenize the ASCII line
+//   0x4AFC = after tokenize / before store
+//   0x4E36 = EOF check — if EOF flag set, LOAD stops
+//   0x8590 = receive one byte from UART (blocks waiting)
+//   0x1D2C = tokenize entry point
+export function installLoadDebug(enable = true): void {
+  if (!enable) {
+    setPcMonitor(null);
+    remoteLog('load-dbg', 'monitor removed');
+    void flushLog();
+    enableRemoteLog(false);
+    return;
+  }
+  enableRemoteLog(true);
+
+  const ram = memdef[RAM0_IDX].data;
+  const RAM0_BASE = 0x10000;
+  const readPhys = (phys: number): number => {
+    if (ram && phys >= RAM0_BASE && phys < RAM0_BASE + 0x10000)
+      return ram[phys - RAM0_BASE]!;
+    return 0xFF;
+  };
+  const ixPhys = (off: number): number => addr18((ua >> 4) & 3, off);
+  const izPhys = (): number => addr18((ua >> 6) & 3, iz);
+
+  // Read NOWFL (logical 0x16C9) — current file index
+  const nowfl = (): number => {
+    const lo = readPhys(ixPhys(0x16C9));
+    const hi = readPhys(ixPhys(0x16CA));
+    return lo | (hi << 8);
+  };
+
+  // Read up to n bytes from INTOP buffer (logical 0x19D5, IX segment)
+  const intopStr = (): string => {
+    const base = ixPhys(0x19D5);
+    const chars: string[] = [];
+    for (let i = 0; i < 48; i++) {
+      const b = readPhys(base + i);
+      if (b === 0) break;
+      chars.push(b >= 32 && b < 127 ? String.fromCharCode(b) : `[${b.toString(16)}]`);
+    }
+    return chars.join('');
+  };
+
+  let count = 0;
+  const MAX = 600;
+  const log = (tag: string, msg: string) => {
+    if (count++ < MAX) remoteLog(tag, msg);
+    else { setPcMonitor(null); remoteLog('load-dbg', `limit ${MAX} reached`); void flushLog(); }
+  };
+
+  // Track byte counts for receive path
+  let rxCount = 0;
+  let lineCount = 0;
+
+  setPcMonitor((tracePC) => {
+    switch (tracePC) {
+
+      case 0x4AC7:
+        log('LOAD', `loop-top #${lineCount} — NOWFL=${nowfl()} iz=0x${iz.toString(16)} fl=0x${flag.toString(16)}`);
+        break;
+
+      case 0x4AEE: {
+        // sbc (iz+$sx),0x20 — first char of received line; skip if < 0x20
+        const ch = readPhys(izPhys());
+        log('LOAD', `skip-check: [IZ+sx=${sx}]=0x${ch.toString(16)} '${ch >= 32 && ch < 127 ? String.fromCharCode(ch) : '?'}' INTOP="${intopStr()}"`);
+        break;
+      }
+
+      case 0x4AD8:
+        log('LOAD', `read-line #${lineCount}: calling 4D28 (read ASCII line from UART)`);
+        lineCount++;
+        break;
+
+      case 0x4AF7:
+        log('LOAD', `tokenize: INTOP="${intopStr()}" → calling 1D2C`);
+        break;
+
+      case 0x4AFC:
+        log('LOAD', `after-tokenize: fl=0x${flag.toString(16)} iz=0x${iz.toString(16)}`);
+        break;
+
+      case 0x4E36:
+        log('LOAD', `EOF-check: fl=0x${flag.toString(16)} (z=EOF reached)`);
+        break;
+
+      case 0x8590:
+        // Receive byte from UART — log every 16th to avoid flooding
+        rxCount++;
+        if (rxCount <= 8 || rxCount % 16 === 0)
+          log('LOAD', `uart-rx #${rxCount}: r16=0x${mr[16].toString(16)} '${mr[16] >= 32 && mr[16] < 127 ? String.fromCharCode(mr[16]) : '?'}'`);
+        break;
+
+      case 0x1D2C:
+        log('LOAD', `tokenize-entry: INTOP="${intopStr()}" fl=0x${flag.toString(16)}`);
+        break;
+    }
+  });
+
+  const msg = `load-dbg: monitor installed — NOWFL=${nowfl()}. Start LOAD "COM0:..." then click Send.  Call loadDebug(false) when done.`;
+  console.log(msg);
+  remoteLog('load-dbg', msg);
+}
+(window as unknown as Record<string, unknown>).loadDebug = installLoadDebug;

@@ -126,7 +126,7 @@ export let CpuSleep = false;
 export let CpuDelay = 0;
 export let CpuSteps = -1;
 export let BreakPoint = -1;
-export let Option2  = 1;  // 0 = International (VX-4); 1 = Japanese (FX-870P)
+export let Option2  = 0;  // 0 = International (VX-4); 1 = Japanese (FX-870P)
 
 // port / printer (needed by port.ts, referenced from def)
 export let PrinterData = 0;

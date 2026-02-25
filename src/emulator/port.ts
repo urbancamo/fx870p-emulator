@@ -118,6 +118,8 @@ const baud_div = [
 ];
 
 function baudRateSetting(): void {
+  const prevRate = SerialRate;
+  const prev4 = ga_rd[4], prev5 = ga_rd[5];
   if ((ga_rd[5] & 0x04) !== 0 && (ga_rd[4] & 0x40) !== 0) {
     // MT mode
     SerialRate = baud_div[3 + ((ga_rd[4] >> 4) & 0x02)];
@@ -126,15 +128,24 @@ function baudRateSetting(): void {
   }
   if ((ga_rd[3] & 0x01) !== 0) latched5 = ga_rd[5];
   LineCounter = 0;
+  // Log whenever UART config registers change (unconditional — helps diagnose F.COM and LOAD)
+  if (ga_rd[4] !== prev4 || ga_rd[5] !== prev5 || SerialRate !== prevRate) {
+    const mode = (ga_rd[5] & 0x04) ? 'MT' : 'RS232';
+    remoteLog('UART cfg', `ga4=0x${ga_rd[4]!.toString(16)} ga5=0x${ga_rd[5]!.toString(16)} mode=${mode} rate=${SerialRate} rxEn=${(ga_rd[4]! & 0x40) ? 'Y' : 'N'}`);
+  }
 }
 
 function lengthSetting(): void {
   if ((ga_wr3 & 0x40) !== 0) {
+    const prev = SerialLength;
     SerialLength = 9; // 1 start + 7 data + 1 stop
     if ((ga_wr3 & 0x04) !== 0) SerialLength++; // 8 data bits
     if ((ga_wr3 & 0x10) !== 0) SerialLength++; // parity
     if ((ga_wr3 & 0x80) !== 0) SerialLength++; // 2 stop bits
     LineCounter = 0;
+    if (SerialLength !== prev) {
+      remoteLog('UART len', `wr3=0x${ga_wr3.toString(16)} SerialLength=${SerialLength}`);
+    }
   }
 }
 
@@ -158,15 +169,24 @@ export function ioWrPtr(index: number): { buf: Uint8Array; off: number } {
     remoteLog('IO WR', msg);
   }
   switch (index) {
-    case 2:
-      procptr[procindex] = onWriteDataReg;
+    case 2: {
+      // TX data register: capture written byte synchronously before onWriteDataReg reads ga_wr2
+      const buf2 = new Uint8Array(1);
+      buf2[0] = ga_wr2;
+      procptr[procindex] = () => { ga_wr2 = buf2[0]; onWriteDataReg(); };
       setProcindex(procindex + 1);
-      return { buf: new Uint8Array([ga_wr2]), off: 0 };  // stub — handled via callback
-    case 3:
-      procptr[procindex] = lengthSetting;
+      return { buf: buf2, off: 0 };
+    }
+    case 3: {
+      // Format register: update ga_wr3 synchronously before lengthSetting() reads it.
+      // (Previously used queueMicrotask which fired AFTER the procptr callback,
+      //  so lengthSetting() always saw the stale ga_wr3 value.)
+      const buf3 = new Uint8Array(1);
+      buf3[0] = ga_wr3;
+      procptr[procindex] = () => { ga_wr3 = buf3[0]; lengthSetting(); };
       setProcindex(procindex + 1);
-      // ga_wr3 is write-only; use a side-effecting approach
-      return makeSetter(() => ga_wr3, (v) => { ga_wr3 = v; });
+      return { buf: buf3, off: 0 };
+    }
     case 4:
     case 5:
       procptr[procindex] = baudRateSetting;
@@ -191,15 +211,6 @@ export function ioRdPtr(index: number): { buf: Uint8Array; off: number } {
     remoteLog('IO RD', msg);
   }
   return { buf: ga_rd, off: index };
-}
-
-// Helper: create a single-byte settable buffer
-function makeSetter(get: () => number, set: (v: number) => void): { buf: Uint8Array; off: number } {
-  const buf = new Uint8Array(1);
-  buf[0] = get();
-  // Schedule update after write — not ideal but works for this port
-  queueMicrotask(() => set(buf[0]));
-  return { buf, off: 0 };
 }
 
 // Direct write helpers used by exec.ts for port write side effects
