@@ -4,7 +4,7 @@
 
 const MAX_BUF   = 4000;
 const FLUSH_MS  = 400;
-const ENDPOINT  = `${import.meta.env.BASE_URL}log`;
+const ENDPOINT  = '/log';
 
 export interface LogEntry {
   t:    number;   // ms since enableRemoteLog() was called

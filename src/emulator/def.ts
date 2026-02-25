@@ -82,7 +82,10 @@ export let sy = 0;
 export let sz = 0;
 
 // 8-bit general + special registers
-export const mr = new Uint8Array(36); // main register file (+ saved ss/us at [32..35])
+// Initialised to 0xFF matching Delphi's MemLoad behaviour when no register.bin exists
+// (GetMem allocates uninitialized memory, MemLoad pre-fills with 0xFF before attempting
+// to read the file; if the file is absent the buffer stays 0xFF).
+export const mr = new Uint8Array(36).fill(0xFF); // main register file (+ saved ss/us at [32..35])
 export let ib    = 0;
 export let ua    = 0;
 export let ia    = 0;
@@ -94,8 +97,8 @@ export let flag  = 0;
 export let ix = 0;
 export let iy = 0;
 export let iz = 0;
-export let us = 0;
-export let ss = 0;
+export let us = 0xFFFF; // matches Delphi: us = ptrw(@mr[34])^ where mr[34..35]=0xFF
+export let ss = 0xFFFF; // matches Delphi: ss = ptrw(@mr[32])^ where mr[32..33]=0xFF
 export let pc = 0;
 export let ky = 0;
 
@@ -123,7 +126,7 @@ export let CpuSleep = false;
 export let CpuDelay = 0;
 export let CpuSteps = -1;
 export let BreakPoint = -1;
-export let Option2  = 0;  // 0 = International (VX-4); 1 = Japanese (FX-870P)
+export let Option2  = 1;  // 0 = International (VX-4); 1 = Japanese (FX-870P)
 
 // port / printer (needed by port.ts, referenced from def)
 export let PrinterData = 0;

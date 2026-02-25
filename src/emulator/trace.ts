@@ -80,13 +80,18 @@ export function traceAddCycles(n: number): void {
   if (_enabled) _cycles += n;
 }
 
+// Serial send queue: ensures batches arrive at the server in order.
+let _sendQueue: Promise<void> = Promise.resolve();
+
 function _flush(): void {
   if (_batch.length === 0) return;
   const body = _batch.join('\n') + '\n';
   _batch = [];
-  fetch('/trace', {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body,
-  }).catch(() => { /* ignore if dev server not running */ });
+  _sendQueue = _sendQueue.then(() =>
+    fetch('/trace', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body,
+    }).then(() => {}).catch(() => { /* ignore if dev server not running */ })
+  );
 }

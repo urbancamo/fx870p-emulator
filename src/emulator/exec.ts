@@ -982,11 +982,11 @@ export function adwSbw_B8(): void {
   let y1: number, y2: number, carry: number;
   if ((opcode[0] & 2) === 0) {
     y1 = lo1 + mr[regArg(x)];
-    carry = y1 > 0xFF ? 1 : 0;
+    carry = (y1 >>> 0) > 0xFF ? 1 : 0;
     y2 = lo2 + mr[regArg(x + 1)] + carry;
   } else {
     y1 = lo1 - mr[regArg(x)];
-    carry = y1 > 0xFF ? 1 : 0;
+    carry = (y1 >>> 0) > 0xFF ? 1 : 0;
     y2 = lo2 - mr[regArg(x + 1)] - carry;
   }
   if ((opcode[0] & 4) !== 0) {
@@ -995,7 +995,7 @@ export function adwSbw_B8(): void {
   }
   setFlagsM(y2 & 0xFF);
   if ((y1 | y2) !== 0) setFlag(flag | Z_bit);
-  if (y2 > 0xFF) setFlag(flag | C_bit);
+  if ((y2 >>> 0) > 0xFF) setFlag(flag | C_bit);
   setCycles(cycles + 15);
 }
 

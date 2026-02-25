@@ -95,10 +95,11 @@ For the stack to be in RAM, bits 3:2 of UA must be `01` (e.g. UA=0x14, 0x44, 0x5
 | `reference/ROM Disassembly/*.src`     | Inline-commented source disassemblies (authoritative)                                         |
 | `reference/fx870_es/`                 | Original Delphi 5 reference implementation                                                    |
 
-## Active debugging context
+## Known CPU emulation bugs fixed
 
-The current investigation concerns `LOAD "COM0:..."` giving OP Error (code 28). The annotations file (`reference/fx870p-rom-annotations.md`) contains the full root-cause analysis, confirmed fixes, and remaining hypotheses. See the **COM0 Oscillation Bug** section there before touching any boot/device-init code.
+| Instruction | Opcode range | Bug | Fix |
+|-------------|-------------|-----|-----|
+| `adwSbw` (`sbcw`/`adcw` to memory) | 0xB8–0xBF (`adwSbw_B8`) | Subtraction carry used `y > 0xFF` — always false for negative JS numbers | `(y >>> 0) > 0xFF` (matches byte-wide `adSb_38`) |
+| `cpuReset` | — | Did not zero `mr[]`, `sx`/`sy`/`sz`, `flag` | `mr.fill(0)` + zero all size/index registers |
 
-Key RAM addresses relevant to COM0:
-- `0x11100` (logical `0x1100`) — `devtbl[0]`, bit 4 = COM0 present
-- `0x1165C` (logical `0x165C`) — `DriverPtrTable` (should hold `0x1FB0` after init; `0x2734` = stub = broken)
+The `adwSbw` carry bug caused `sbcw (iz+$sy),$6` to leave C_bit=0 even when borrow occurred, making conditional-return instructions (`rtn nc`) fire incorrectly. Symptom: `LIST` returned after CR/LF header without displaying any lines.

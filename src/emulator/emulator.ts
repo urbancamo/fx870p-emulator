@@ -24,13 +24,14 @@ import {
   setIfl,
   setRamWriteMonitor,
   setPcMonitor,
-  sz, ix, ua, flag, mr,
+  sx, sy, sz, ix, iz, pc, ua, flag, mr,
+  addr18, ib,
 } from './def.js';
 import { cpuReset, cpuRun, cpuWakeUp } from './cpu.js';
 import { ioInit, SerialRate, onSerialTick, pd, pe, pdi, getUartRegs } from './port.js';
 import { lcdInit, lcdRender, onrate, lcdctrl } from './lcd.js';
 import { commDecTimer } from './comm.js';
-import { remoteLog, flushLog, isRemoteLogEnabled } from './remote-log.js';
+import { remoteLog, flushLog, enableRemoteLog, isRemoteLogEnabled } from './remote-log.js';
 import { traceInit, traceClose } from './trace.js';
 
 // ─── counters (cycle-based, like Delphi's timer variables) ──────────────────
@@ -155,8 +156,6 @@ function frame(now: number): void {
 
     // Breakpoint
     if (BreakPoint >= 0) {
-      // Import pc lazily to avoid top-level circular concern
-      const { pc } = await_pc();
       if (pc === BreakPoint) {
         setCpuStop(true);
         setAcycles(0);
@@ -177,9 +176,7 @@ function frame(now: number): void {
   renderCallback?.();
 }
 
-// Thin wrapper to access pc without circular import issues
-import { pc } from './def.js';
-function await_pc() { return { pc }; }
+// (pc imported via main def.ts import block above)
 
 // ─── public API ───────────────────────────────────────────────────────────────
 
@@ -406,7 +403,7 @@ export function loadConfig(): void {
     const raw = localStorage.getItem('fx870p-config');
     if (!raw) return;
     const cfg: Config = JSON.parse(raw);
-    if (typeof cfg.version !== 'number' || cfg.version < CONFIG_VERSION) {
+    if (cfg.version < CONFIG_VERSION) {
       localStorage.removeItem('fx870p-config');
       return;
     }
@@ -448,3 +445,181 @@ export async function freshReset(): Promise<void> {
   emulatorStart();
   remoteLog('emulator', 'freshReset — RAM cleared to 0xFF, cold boot starting');
 }
+
+// ─── LIST command debug helper ────────────────────────────────────────────────
+// Install/remove a persistent PC monitor that traces the LIST command.
+// Usage: window.listDebug() to install, window.listDebug(false) to remove.
+// Enable the Log button FIRST so output goes to emulator-debug.log.
+//
+// Routing for OUTDV=8 (LIST):
+//   3DCB → 3DD6 → jp 2AF1 → 2B2D → cal 93E2  (LCD display, correct path)
+//   NOT via 2B0C (that is OUTDV=4, file write)
+//
+// Key addresses monitored:
+//   0x3D26 = LIST entry — logs OUTDV, r4/r5 (start line), ua
+//   0x3D94 = after LNSCH returns — logs IZ, physical addr, byte at IZ, r6/r7
+//   0x3D9D = loop top: adc (iz+$sx),$31 — logs sz/sy/sz values too
+//   0x3D9F = rtn z — BASIC program empty / end of lines
+//   0x3DA0 = sbcw (iz+$sy),$6 — logs IZ word at offset sy
+//   0x3DA4 = rtn nc — current line number > end range (r6,r7)
+//   0x3DA5 = phsw $7 — right after rtn nc (should fire before ENLST)
+//   0x3DA6 = byte after phsw — fires if phsw is only 1 byte (bad)
+//   0x3DA7 = cal ENLST — line found, about to format to ASCII
+//   0x3DAA = gre iz,$17 — first instr after ENLST returns
+//   0x3DAE = after ENLST, ix reset to 0x1000 — logs ASCII buffer preview
+//   0x3DC0 = end of character loop for a line
+//   0x3DC8 = pre iz,$17,jr 3D9D — next line loop-back
+//   0x3DBA = about to display a character (once per char)
+//   0x2B2D = OUTDV=8 LCD+printer path — character is about to reach LCD
+//   0x93E2 = LCD char display routine — character is being written to display
+export function installListDebug(enable = true): void {
+  if (!enable) {
+    setPcMonitor(null);
+    remoteLog('list-dbg', 'monitor removed');
+    void flushLog();
+    enableRemoteLog(false);
+    return;
+  }
+  // Auto-enable remote logging so the user doesn't need to click the Log button first
+  enableRemoteLog(true);
+
+  const ram = memdef[RAM0_IDX].data;
+  const RAM0_BASE = 0x10000;
+
+  // Read a byte at the given 18-bit physical address (RAM0 only)
+  const readPhys = (phys: number): number => {
+    if (ram && phys >= RAM0_BASE && phys < RAM0_BASE + 0x10000)
+      return ram[phys - RAM0_BASE]!;
+    return 0xFF;
+  };
+
+  // Compute physical address for IZ-based access using current UA
+  const izPhys = (): number => addr18((ua >> 6) & 3, iz);
+  // Compute physical address for IX-based access using current UA
+  const ixPhys = (off: number): number => addr18((ua >> 4) & 3, off);
+
+  // OUTDV byte (logical 0x1739, IX segment in current UA)
+  const outdv = (): number => readPhys(ixPhys(0x1739));
+
+  // NOWFL (logical 0x16C9) — index into file table at 0x18A7
+  const nowfl = (): number => {
+    const lo = readPhys(ixPhys(0x16C9));
+    const hi = readPhys(ixPhys(0x16CA));
+    return lo | (hi << 8);
+  };
+
+  let count = 0;
+  const MAX = 400;
+  const log = (tag: string, msg: string) => {
+    if (count++ < MAX) remoteLog(tag, msg);
+    else { setPcMonitor(null); remoteLog('list-dbg', `limit ${MAX} reached, monitor removed`); void flushLog(); }
+  };
+
+  setPcMonitor((tracePC) => {
+    switch (tracePC) {
+
+      case 0x3D26: {
+        log('LIST', `entry: OUTDV=0x${outdv().toString(16)} r4=${mr[4]} r5=${mr[5]} ua=0x${ua.toString(16)} ib=0x${ib.toString(16)} NOWFL=${nowfl()}`);
+        break;
+      }
+
+      case 0x3D94: {
+        // Right after LNSCH returns — IZ should point to first matching line
+        const phys = izPhys();
+        const b0 = readPhys(phys);     // byte 0 = line length (0 = end marker)
+        const b1 = readPhys(phys + 1); // byte 1,2 = line number (lo,hi)
+        const b2 = readPhys(phys + 2);
+        const lineNo = b1 | (b2 << 8);
+        const r25_26 = mr[25] | (mr[26] << 8);
+        log('LIST', `LNSCH→ iz=0x${iz.toString(16)} phys=0x${phys.toString(16)} [0]=0x${b0.toString(16)} lineNo=${lineNo} r6=${mr[6]} r7=${mr[7]} fileStart=0x${r25_26.toString(16)}`);
+        break;
+      }
+
+      case 0x3D9D: {
+        // Loop top: adc (iz+$sx),$31 — test length byte at [IZ+sx]
+        const phys = izPhys();
+        const b0 = readPhys(phys + sx); // byte at [IZ+sx]
+        log('LIST', `loop-top: iz=0x${iz.toString(16)} phys=0x${phys.toString(16)} [IZ+sx=${sx}]=0x${b0.toString(16)} sx=${sx} sy=${sy} sz=${sz} r6=${mr[6]} r7=${mr[7]}`);
+        break;
+      }
+
+      case 0x3D9F:
+        log('LIST', `rtn z — [IZ+sx]=0 (end marker) iz=0x${iz.toString(16)} phys=0x${izPhys().toString(16)}`);
+        break;
+
+      case 0x3DA0: {
+        // sbcw (iz+$sy),$6 — compare line# at [IZ+sy] with r6,r7
+        const phys = izPhys();
+        const lo = readPhys(phys + sy);
+        const hi = readPhys(phys + sy + 1);
+        const word = lo | (hi << 8);
+        log('LIST', `sbcw: [IZ+sy=${sy}]=0x${word.toString(16)} (${word}) vs r6,r7=${mr[6]|(mr[7]<<8)}`);
+        break;
+      }
+
+      case 0x3DA4: {
+        const lineNo = readPhys(izPhys() + 1) | (readPhys(izPhys() + 2) << 8);
+        log('LIST', `rtn nc — lineNo=${lineNo} endLine=${mr[6]|(mr[7]<<8)} fl=0x${flag.toString(16)} iz=0x${iz.toString(16)}`);
+        break;
+      }
+
+      case 0x3DA5:
+        log('LIST', `phsw $7 — r6=${mr[6]} r7=${mr[7]} (saving range for ENLST call)`);
+        break;
+
+      case 0x3DA6:
+        log('LIST', `0x3DA6 fired — phsw is 1 byte! cal is at 3DA6 not 3DA7`);
+        break;
+
+      case 0x3DA7: {
+        const phys = izPhys();
+        const lineNo = readPhys(phys + 1) | (readPhys(phys + 2) << 8);
+        log('LIST', `ENLST: lineNo=${lineNo} iz=0x${iz.toString(16)} phys=0x${phys.toString(16)}`);
+        break;
+      }
+
+      case 0x3DAA:
+        log('LIST', `after ENLST rtn: iz=0x${iz.toString(16)} (gre iz,$17 about to run)`);
+        break;
+
+      case 0x3DAE: {
+        // After ENLST, ix is about to be reset to 0x1000 — read from buf
+        const bufPhys = ixPhys(0x1000);
+        const chars = Array.from({length: 20}, (_, i) => {
+          const b = readPhys(bufPhys + i);
+          return b === 0 ? '\\0' : (b >= 32 && b < 127 ? String.fromCharCode(b) : `[${b.toString(16)}]`);
+        }).join('');
+        log('LIST', `buf@0x1000 (phys=0x${bufPhys.toString(16)}): "${chars}"`);
+        break;
+      }
+
+      case 0x3DC0:
+        log('LIST', `end-of-line char loop: iz=0x${iz.toString(16)} r6=${mr[6]} r7=${mr[7]}`);
+        break;
+
+      case 0x3DC8:
+        log('LIST', `next-line loop: pre iz,$17 → iz=0x${iz.toString(16)} (about to loop to 3D9D)`);
+        break;
+
+      case 0x3DBA: {
+        const ch = mr[16];
+        log('LIST', `disp char 0x${ch.toString(16)} '${ch >= 32 && ch < 127 ? String.fromCharCode(ch) : '?'}' OUTDV=0x${outdv().toString(16)}`);
+        break;
+      }
+
+      case 0x2B2D:
+        log('LIST', `OUTDV=8 LCD path: r16=0x${mr[16].toString(16)} '${mr[16] >= 32 && mr[16] < 127 ? String.fromCharCode(mr[16]) : '?'}'`);
+        break;
+
+      case 0x93E2:
+        log('LIST', `LCD display r16=0x${mr[16].toString(16)} '${mr[16] >= 32 && mr[16] < 127 ? String.fromCharCode(mr[16]) : '?'}'`);
+        break;
+    }
+  });
+
+  const msg = `list-dbg: monitor installed — NOWFL=${nowfl()} OUTDV=0x${outdv().toString(16)}. Now type your program and LIST. Call listDebug(false) when done to flush.`;
+  console.log(msg);
+  remoteLog('list-dbg', msg);
+}
+// Expose on window for browser console access
+(window as unknown as Record<string, unknown>).listDebug = installListDebug;
