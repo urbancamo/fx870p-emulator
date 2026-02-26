@@ -112,6 +112,38 @@ tools/dis.ts        Standalone disassembler (npm run dis)
 
 ---
 
+## Testing
+
+The emulator has a headless test suite powered by [vitest](https://vitest.dev/) that boots the emulator in Node.js, injects keystrokes, runs the CPU, and verifies LCD output.
+
+### Run all tests
+
+```bash
+npm test
+```
+
+### Run a single test file
+
+```bash
+npx vitest run tests/sin90.test.ts
+```
+
+### Run tests matching a name pattern
+
+```bash
+npx vitest run -t "SIN"
+```
+
+### Watch mode (re-runs on file changes)
+
+```bash
+npx vitest
+```
+
+Tests require ROM files in `public/roms/` (same as the dev server).
+
+---
+
 ## Debug Logging
 
 The dev server exposes a `/fx870p-emulator/log` endpoint that writes to `emulator-debug.log`.
