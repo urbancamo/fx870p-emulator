@@ -10,10 +10,20 @@ import { importRamState, exportRamState, emulatorReset, emulatorStart, readRamBy
 import { setOption2, turbo as turboFlag, setTurbo } from '../emulator/def.js';
 import AboutPopup from './AboutPopup.vue';
 import CharsetPopup from './CharsetPopup.vue';
+import LibraryPopup from './LibraryPopup.vue';
 
 const showAbout = ref(false);
 const showCharset = ref(false);
+const showLibrary = ref(false);
 const turboOn = ref(turboFlag);
+
+function onLibLoad(payload: { name: string; bytes: number }): void {
+  totalBytes.value = payload.bytes;
+  bytesSentRef.value = 0;
+  fileName.value = payload.name;
+  status.value = `Sending: ${payload.name}`;
+  outputLines.value = [];
+}
 
 function toggleTurbo(): void {
   turboOn.value = !turboOn.value;
@@ -324,6 +334,7 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
     <!-- ── toolbar ── -->
     <div class="toolbar">
       <button class="btn" :disabled="sending" @click="openSendPicker">LOAD</button>
+      <button class="btn" @click="showLibrary = true">LIB</button>
       <button class="btn" :disabled="!sending" @click="onStop">STOP</button>
       <button class="btn btn-turbo" :class="{ active: turboOn }" @click="toggleTurbo">TURBO</button>
 
@@ -437,6 +448,7 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
     <Teleport to="body">
       <AboutPopup v-if="showAbout" @close="showAbout = false" />
       <CharsetPopup v-if="showCharset" @close="showCharset = false" />
+      <LibraryPopup v-if="showLibrary" @close="showLibrary = false" @load="onLibLoad" />
 
       <!-- Save dialog (triggered when calculator finishes a SAVE) -->
       <div v-if="showSaveDialog" class="save-backdrop" @click.self="cancelSave">

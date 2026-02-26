@@ -36,7 +36,7 @@ Neighbour counting uses modular arithmetic (`MOD 31` for X, `MOD 4` for Y) to wr
 3. Select a pattern (1-4) from the menu
 4. Watch the simulation run — press **any key** to stop
 
-The simulation runs at the native CPU clock speed (921 kHz), which is quite slow for the nested loops involved. Click **TURBO** in the toolbar to run at ~50x speed for a much smoother experience.
+**TURBO mode recommended:** The simulation runs at the native CPU clock speed (921 kHz), which is quite slow for the nested loops involved — each generation takes several seconds to compute. Click **TURBO** in the emulator toolbar before pressing RUN to get ~50x speed. This turns the simulation from a sluggish crawl into a fluid animation where you can actually watch patterns evolve in real time.
 
 ## Program Structure
 

@@ -1,0 +1,7 @@
+[
+  {
+    "file": "LIFE.FX",
+    "name": "Conway's Game of Life",
+    "description": "Cellular automaton on a 31x4 toroidal grid with four preset patterns"
+  }
+]
