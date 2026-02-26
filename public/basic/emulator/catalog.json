@@ -13,5 +13,10 @@
     "file": "BLKJACK.FX",
     "name": "Blackjack",
     "description": "Classic card game — hit or stand to beat the dealer without going over 21"
+  },
+  {
+    "file": "YAHTZEE.FX",
+    "name": "Yahtzee",
+    "description": "Classic dice game — roll, keep, and score across 13 categories for the highest total"
   }
 ]
