@@ -162,13 +162,7 @@ onUnmounted(() => {
     >
       <!-- Side panel (left) -->
       <div v-if="panelLayout === 'left'" class="side-panels">
-        <CommPanel class="side-comm" />
-        <div class="debug-toggle-row side-toggle">
-          <button class="debug-toggle-btn" @click="cycleLayout" title="Cycle panel layout">{{ panelLayout }}</button>
-          <button class="debug-toggle-btn" @click="showDebug = !showDebug">
-            {{ showDebug ? 'Hide Debugger' : 'Debugger' }}
-          </button>
-        </div>
+        <CommPanel class="side-comm" v-model:showDebug="showDebug" :panelLayout="panelLayout" @cycleLayout="cycleLayout" />
         <DebugPanel v-if="showDebug" class="side-debug" />
       </div>
 
@@ -219,13 +213,7 @@ onUnmounted(() => {
           <LcdCanvas class="lcd-overlay" />
           <KeyboardOverlay />
         </div>
-        <CommPanel />
-        <div class="debug-toggle-row">
-          <button class="debug-toggle-btn" @click="cycleLayout" title="Cycle panel layout">{{ panelLayout }}</button>
-          <button class="debug-toggle-btn" @click="showDebug = !showDebug">
-            {{ showDebug ? 'Hide Debugger' : 'Debugger' }}
-          </button>
-        </div>
+        <CommPanel v-model:showDebug="showDebug" :panelLayout="panelLayout" @cycleLayout="cycleLayout" />
         <DebugPanel v-if="showDebug" />
       </div>
 
@@ -241,13 +229,7 @@ onUnmounted(() => {
 
       <!-- Side panel (right) -->
       <div v-if="panelLayout === 'right'" class="side-panels">
-        <CommPanel class="side-comm" />
-        <div class="debug-toggle-row side-toggle">
-          <button class="debug-toggle-btn" @click="cycleLayout" title="Cycle panel layout">{{ panelLayout }}</button>
-          <button class="debug-toggle-btn" @click="showDebug = !showDebug">
-            {{ showDebug ? 'Hide Debugger' : 'Debugger' }}
-          </button>
-        </div>
+        <CommPanel class="side-comm" v-model:showDebug="showDebug" :panelLayout="panelLayout" @cycleLayout="cycleLayout" />
         <DebugPanel v-if="showDebug" class="side-debug" />
       </div>
     </div>
@@ -342,30 +324,6 @@ onUnmounted(() => {
   color: #f66;
 }
 
-/* ── toggle row (shared between bottom and side) ── */
-.debug-toggle-row {
-  width: 709px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 4px;
-  padding: 2px 8px;
-  background: #0d0d0d;
-  border-top: 1px solid #1a1a1a;
-  box-sizing: border-box;
-}
-
-.debug-toggle-btn {
-  padding: 2px 10px;
-  font-family: monospace;
-  font-size: 0.72rem;
-  background: #1e1e1e;
-  color: #555;
-  border: 1px solid #333;
-  border-radius: 3px;
-  cursor: pointer;
-}
-.debug-toggle-btn:hover { color: #999; background: #2a2a2a; }
-
 /* ── draggable divider ── */
 .divider {
   width: 6px;
@@ -401,7 +359,4 @@ onUnmounted(() => {
   width: auto;
 }
 
-.side-toggle {
-  width: auto;
-}
 </style>

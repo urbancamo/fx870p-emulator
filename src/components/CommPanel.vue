@@ -9,6 +9,16 @@ import { getUartRegs, pd, pe, pdi, setIoDebug } from '../emulator/port.js';
 import { importRamState, emulatorReset, emulatorStart, readRamByte } from '../emulator/emulator.js';
 import { enableRemoteLog, isRemoteLogEnabled, flushLog } from '../emulator/remote-log.js';
 
+const props = defineProps<{
+  showDebug: boolean;
+  panelLayout: string;
+}>();
+
+const emit = defineEmits<{
+  (e: 'update:showDebug', v: boolean): void;
+  (e: 'cycleLayout'): void;
+}>();
+
 // ─── state ────────────────────────────────────────────────────────────────────
 const status       = ref('Idle');
 const fileName     = ref('');
@@ -31,7 +41,7 @@ const portPdi  = ref(0);
 const portPe   = ref(0);
 const portPd   = ref(0);
 
-const showDiag  = ref(true);
+const showDiag  = ref(false);
 const debugLog  = ref(false);
 
 // Device table diagnostic (first byte at 0x11100: bit4=COM0 present)
@@ -274,6 +284,10 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
       >
         {{ debugLog ? '● Log' : 'Log' }}
       </button>
+      <button class="btn" @click="emit('update:showDebug', !props.showDebug)">
+        {{ props.showDebug ? 'Hide Debugger' : 'Debugger' }}
+      </button>
+      <button class="btn" @click="emit('cycleLayout')" title="Cycle panel layout">{{ props.panelLayout }}</button>
     </div>
 
     <!-- ── hint ── -->
