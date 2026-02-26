@@ -266,7 +266,8 @@ onUnmounted(() => {
   align-items: center;
   min-height: 100vh;
   background: #000;
-  padding-top: 24px;
+  padding: 24px 24px 0;
+  box-sizing: border-box;
 }
 
 /* ── outer layout container ── */
@@ -278,11 +279,10 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
 }
-.layout-right {
-  flex-direction: row;
-}
+.layout-right,
 .layout-left {
   flex-direction: row;
+  width: 100%;
 }
 
 .emulator-scaler {
