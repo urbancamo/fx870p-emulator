@@ -5,9 +5,8 @@ import {
   isSending, isSuspended, getBytesSent, getOutput,
   getStream, clearStream,
 } from '../emulator/comm.js';
-import { getUartRegs, pd, pe, pdi, setIoDebug } from '../emulator/port.js';
+import { getUartRegs, pd, pe, pdi } from '../emulator/port.js';
 import { importRamState, emulatorReset, emulatorStart, readRamByte } from '../emulator/emulator.js';
-import { enableRemoteLog, isRemoteLogEnabled, flushLog } from '../emulator/remote-log.js';
 
 const props = defineProps<{
   showDebug: boolean;
@@ -42,7 +41,6 @@ const portPe   = ref(0);
 const portPd   = ref(0);
 
 const showDiag  = ref(false);
-const debugLog  = ref(false);
 
 // Device table diagnostic (first byte at 0x11100: bit4=COM0 present)
 const devTable  = ref<number[]>([]);
@@ -190,8 +188,6 @@ function poll(): void {
   portPe.value  = pe;
   portPd.value  = pd;
 
-  debugLog.value = isRemoteLogEnabled();
-
   // Device table — read 8 bytes starting at 0x11100
   devTable.value = Array.from({ length: 8 }, (_, i) => readRamByte(0x11100 + i));
 
@@ -218,15 +214,6 @@ async function onRamSelected(e: Event): Promise<void> {
   // Reset CPU so the ROM warm-starts with the imported device table
   emulatorReset();
   emulatorStart();
-}
-
-// ─── server-side debug log ────────────────────────────────────────────────────
-function toggleDebugLog(): void {
-  const next = !isRemoteLogEnabled();
-  debugLog.value = next;
-  setIoDebug(next);           // route I/O port traces to remoteLog
-  enableRemoteLog(next);      // start/stop the flush loop
-  if (!next) void flushLog(); // flush remaining entries on disable
 }
 
 // ─── output save / clear ──────────────────────────────────────────────────────
@@ -276,18 +263,10 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
       <button class="btn btn-diag" @click="showDiag = !showDiag">
         {{ showDiag ? 'Hide Comms' : 'Comms' }}
       </button>
-      <button
-        class="btn btn-dbg"
-        :class="{ active: debugLog }"
-        @click="toggleDebugLog"
-        title="Toggle server-side debug log → emulator-debug.log in project root"
-      >
-        {{ debugLog ? '● Log' : 'Log' }}
-      </button>
       <button class="btn" @click="emit('update:showDebug', !props.showDebug)">
         {{ props.showDebug ? 'Hide Debugger' : 'Debugger' }}
       </button>
-      <button class="btn" @click="emit('cycleLayout')" title="Cycle panel layout">{{ props.panelLayout }}</button>
+      <button class="btn" @click="emit('cycleLayout')" title="Cycle panel layout">{{ props.panelLayout === 'bottom' ? '\u2192' : props.panelLayout === 'right' ? '\u2190' : '\u2193' }}</button>
     </div>
 
     <!-- ── hint ── -->
@@ -404,10 +383,6 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
 .btn:disabled { opacity: 0.4; cursor: default; }
 .btn-ram  { color: #7eb8f7; border-color: #204050; margin-left: auto; }
 .btn-ram:hover  { background: #102030; color: #aad4ff; }
-.btn-diag { }
-.btn-dbg        { color: #aaa; }
-.btn-dbg.active { color: #f55; border-color: #622; background: #2a1010; }
-.btn-dbg.active:hover { background: #3a1818; }
 .btn-sm { padding: 1px 5px; font-size: 0.7rem; }
 
 .progress-wrap {
