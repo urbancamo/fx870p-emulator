@@ -93,6 +93,7 @@ The toolbar below the calculator provides the following controls:
 | **RAM ↓**     | Download the current RAM contents as a binary file                                                     |
 | **COMMS ▾/▴** | Show or hide the communications diagnostics panel                                                      |
 | **DEBUG ▾/▴** | Show or hide the CPU debugger panel                                                                    |
+| **870P/VX-4** | Toggle firmware mode between FX-870P (Japanese) and VX-4 (English) — resets the emulator               |
 | **ABOUT**     | Display this information popup                                                                         |
 | **Arrow**     | Cycle the panel layout: bottom, right, or left of the calculator                                       |
 
@@ -167,6 +168,27 @@ Use the arrow button in the toolbar to cycle the panel position:
 - **↓** moves panels below the calculator (default)
 
 In left or right layout, a draggable divider between the calculator and the panels lets you adjust how much screen space each side receives. Your layout preference and split position are saved automatically.
+
+---
+
+## Fullscreen Mode
+
+Click the small button in the **top-left corner** of the calculator face image to enter fullscreen mode. This hides the toolbar and panels and scales the calculator to fill your entire screen, which is especially useful on mobile devices in landscape orientation.
+
+To exit fullscreen, click the same button again, press **Escape**, or use your browser's built-in exit-fullscreen control. The toolbar is automatically restored when you leave fullscreen.
+
+---
+
+## Firmware Mode (FX-870P / VX-4)
+
+The toolbar includes a firmware mode toggle button that switches between:
+
+- **870P** (orange) — FX-870P / Japanese mode. Key labels on the calculator face match the ROM's key assignments (e.g. the CASL key opens the CASL menu).
+- **VX-4** (blue) — VX-4 / International (English) mode. The ROM remaps certain function keys (e.g. the CASL key position opens the C language menu instead).
+
+The FX-870P and VX-4 are the same hardware with different firmware region settings. The ROM contains an internal key remapping routine that swaps some function key assignments in English mode. Changing the mode saves your preference and performs an automatic reset.
+
+Both modes support RS-232C serial communication for LOAD and SAVE operations.
 
 ---
 
