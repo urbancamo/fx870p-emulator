@@ -94,6 +94,7 @@ The toolbar below the calculator provides the following controls:
 | **COMMS ▾/▴** | Show or hide the communications diagnostics panel                                                      |
 | **DEBUG ▾/▴** | Show or hide the CPU debugger panel                                                                    |
 | **870P/VX-4** | Toggle firmware mode between FX-870P (Japanese) and VX-4 (English) — resets the emulator               |
+| **CHR$**      | Open the character set table and pixel editor                                                          |
 | **ABOUT**     | Display this information popup                                                                         |
 | **Arrow**     | Cycle the panel layout: bottom, right, or left of the calculator                                       |
 
@@ -142,6 +143,34 @@ The stream display at the bottom shows all bytes exchanged between the emulator 
 Control characters are displayed with labels: `[XON]` (resume transmission), `[XOFF]` (pause transmission), `[EOF]` (end of file), `\r` (carriage return), `\n` (line feed). Printable ASCII characters are shown as-is.
 
 The **SAVE** button downloads the raw received bytes as a binary file. **CLEAR** resets the stream display.
+
+---
+
+## Character Set Table (CHR$)
+
+Click **CHR$** in the toolbar to open the full 256-character set table. The table is laid out as a classic 16x16 hex grid with row and column headers, showing the bitmap of every character code from 0x00 to 0xFF.
+
+Each cell displays:
+
+- The hex code and ASCII equivalent (where applicable)
+- The 6x8 pixel bitmap as it appears on the LCD
+- A `CHR$(n)` label (click to select/copy)
+
+### User-Defined Characters
+
+Characters CHR$(252) through CHR$(255) are highlighted in purple. These are the four user-definable character slots that can be programmed using the `DEFCHR$` BASIC command.
+
+### Character Editor
+
+Click any character cell to open the interactive pixel editor. The editor provides:
+
+- A **5x8 pixel grid** — click or drag to toggle pixels on and off. The 6th column is always blank (character spacing) and is not editable.
+- A **live preview** showing the character at actual size alongside column hex and binary values.
+- **Clear** and **Invert** buttons to reset or flip all pixels.
+- A **DEFCHR$ command string** that updates interactively as you edit pixels, showing the exact BASIC command needed to define the character (e.g. `DEFCHR$(252)="7C12127C00"`).
+- A **COPY** button that copies the DEFCHR$ command to your clipboard.
+
+As you edit, the character bitmap updates live in the table behind the editor so you can see how it looks alongside the other characters. Edits are preserved in the table for the duration of the session.
 
 ---
 

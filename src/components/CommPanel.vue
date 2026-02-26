@@ -9,8 +9,10 @@ import { getUartRegs, pd, pe, pdi } from '../emulator/port.js';
 import { importRamState, exportRamState, emulatorReset, emulatorStart, readRamByte, getOption2, saveConfig } from '../emulator/emulator.js';
 import { setOption2 } from '../emulator/def.js';
 import AboutPopup from './AboutPopup.vue';
+import CharsetPopup from './CharsetPopup.vue';
 
 const showAbout = ref(false);
+const showCharset = ref(false);
 
 const props = defineProps<{
   showDebug: boolean;
@@ -347,6 +349,7 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
           ? 'VX-4 (English, RS-232C) — click to switch to FX-870P'
           : 'FX-870P (Japanese, MT) — click to switch to VX-4'"
       >{{ fwMode === 0 ? 'VX-4' : '870P' }}</button>
+      <button class="btn" @click="showCharset = true">CHR$</button>
       <button class="btn" @click="showAbout = true">ABOUT</button>
       <button class="btn" @click="emit('cycleLayout')" title="Cycle panel layout">{{ props.panelLayout === 'bottom' ? '\u2192' : props.panelLayout === 'right' ? '\u2190' : '\u2193' }}</button>
     </div>
@@ -428,6 +431,7 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
     />
     <Teleport to="body">
       <AboutPopup v-if="showAbout" @close="showAbout = false" />
+      <CharsetPopup v-if="showCharset" @close="showCharset = false" />
 
       <!-- Save dialog (triggered when calculator finishes a SAVE) -->
       <div v-if="showSaveDialog" class="save-backdrop" @click.self="cancelSave">

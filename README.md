@@ -29,6 +29,19 @@ on GitHub [here](https://github.com/urbancamo/fx870p-emulator/) and it is
 | Serial    | UART with XON/XOFF flow control                                                       |
 | Storage   | MD-120 floppy disk via Origin Private File System (OPFS)                              |
 
+## Features
+
+- **Responsive calculator face** — scales to fit any screen size with multiple resolution faceplate images
+- **Full keyboard mapping** — type directly on your PC keyboard with automatic CAPS and shifted-symbol handling
+- **RS-232C serial** — LOAD and SAVE BASIC programs via emulated COM0 with XON/XOFF flow control
+- **Floppy disk** — MD-120 disk emulation via Origin Private File System (OPFS)
+- **Character set table** — interactive 16x16 hex grid showing all 256 character bitmaps from the ROM font
+- **DEFCHR$ pixel editor** — click any character to open a drag-to-paint 5x8 pixel editor that generates the BASIC `DEFCHR$` command with a one-click copy button
+- **Fullscreen mode** — hide toolbar and panels to use the calculator full-screen (useful on mobile)
+- **Firmware toggle** — switch between FX-870P (Japanese) and VX-4 (English) ROM modes
+- **CPU debugger** — live registers, flags, and disassembly view
+- **Communications panel** — UART register state, serial byte stream, and diagnostics
+
 ## Running
 
 ### Prerequisites
@@ -82,6 +95,7 @@ src/
     KeyboardOverlay.vue Clickable key hit regions over face images
     CommPanel.vue       Serial comms panel + toolbar buttons
     DebugPanel.vue      CPU debugger (registers, flags, disassembly)
+    CharsetPopup.vue    Character set table + DEFCHR$ pixel editor
     AboutPopup.vue      About dialog (renders ABOUT.md)
 public/
   ABOUT.md            User-facing documentation (rendered in About popup)
@@ -99,6 +113,8 @@ tests/
 tools/
   dis.ts              Standalone disassembler (npm run dis)
   compare-traces.mjs  Delphi vs TypeScript trace comparison
+  charset-dump.ts     Generate character set markdown (docs/charset.md)
+  charset-table.ts    Generate character set HTML table (docs/charset-table.html)
 reference/            Documentation and Delphi source
 docs/                 Implementation notes
 ```
