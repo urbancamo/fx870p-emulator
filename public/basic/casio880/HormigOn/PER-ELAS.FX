@@ -1,0 +1,29 @@
+10 CLS
+20 PRINT "Perdidas ACORTAMIENTO ELASTICO:"
+30 PRINT
+40 INPUT "Area Neta =";A
+50 INPUT "Sxx neta =";SXX
+60 INPUT "Ixx neta =";IXX
+70 PRINT
+80 INPUT "fck (Kp/cm2) =";FCK:EC=19000*(FCK)^.5
+90 INPUT "Ep (Kp/cm2) =";EP
+100 INPUT "Ap (cm2) =";AP
+110 PRINT
+120 INPUT "Pn (Tn) =";P
+130 PRINT "Dist a fibra sup (+)"
+140 INPUT "yn (cm) =";YN
+150 PRINT
+160 INPUT "P1 (Tn) =";P1
+170 INPUT "P2 (Tn) =";P2
+180 PR=(P-P1-P2)*1000
+190 PRINT:INPUT "N hip (Tn) =";N
+200 INPUT "M hip (Tn.m) =";M:MR=(P-P1-P2)/P*M
+210 ER=(IXX*(N+PR)+SXX*(MR*100*1000-PR*YN))/(EC*(A*IXX-SXX^2))
+220 XR=(SXX*(N+PR)+A*(MR*100*1000-PR*YN))/(EC*(A*IXX-SXX^2))
+230 ECP=ER-YN*XR
+240 PRINT
+250 INPUT "No cables =";N
+260 P3=EP/1000*AP*ECP*(N-1)/(2*N)
+270 PRINT:PRINT "Perdidas, P3 =";P3;" Tn."
+280 IF INKEY$="" THEN 280
+290 END

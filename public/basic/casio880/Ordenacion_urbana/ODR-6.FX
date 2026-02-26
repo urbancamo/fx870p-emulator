@@ -1,0 +1,14 @@
+10 CLEAR
+20 PRINT"Calculo de nubosidad":GOSUB"MAURI"
+25 X=12
+30 DIM CU(X),NU(X),ND(X),C(X)
+35 I=0
+40 FOR I=1 TO 12
+45 DATA 31,28,31,30,31,30,31,31,30,31,30,31
+46 READ ND(I):PRINT ND(I)
+50 PRINT"N.de dias cubiertos del mes";I;"=":INPUT CU(I)
+60 PRINT"N.de dias nubosos del mes";I;"=":INPUTNU(I)
+70 C(I)=(CU(I)+NU(I)*0.5)/ND(I)
+90 PRINT"NUBOSIDAD DEL MES";I;"="ROUND(C(I),-3):GOSUB"MAURI"
+100 NEXT I
+120 END

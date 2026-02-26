@@ -1,0 +1,144 @@
+1 REM DIM.SEC.PRETENSADA
+20 INPUT "fcd(Kg/cm2)=",FC,"fyd(Kg/cm2)=",FY,"b(m)=",B,"h(m)=",H,"d(m)=",D1,"d'(m)=",D2
+21 FC=FC*10
+30 X1=.1667*D1:PRINT ".1667d(cm)=";X1*100
+40 E1=.1667
+50 W1=8.5*(.5-1.333*E1)*E1/((1-E1)^2):PRINT "W=";W1
+60 A1=(9*E1-4)/(32*E1-12):PRINT "A=";A1
+70 NC=FC*B*X1*W1
+80 MCA=NC*(D1-A1*X1):PRINT "MC1(Tn*m)=";MCA
+100 X2=.259*D1:PRINT "0.259d(cm)=";X2*100
+110 E2=.259
+120 W2=(2.72*E2-.17)/(3*E2):PRINT "W=";W2
+130 A2=((1.4535*(E2^2))-.187*E2+.0085)/(E2*(2.72*E2-.17)):PRINT "A=";A2
+140 NC=FC*B*X2*W2
+150 MCB=NC*(D1-A2*X2):PRINT "MC1(Tn*m)=";MCB
+200 XL=D1*100/(1+(FY/7350))
+210 PRINT "Xlim(cm)=";XL
+220 XL=XL/100
+230 W3=.6881:PRINT "W=";W3
+240 A3=.416:PRINT "A=";A3
+250 MCC=W3*FC*B*XL*(D1-A3*XL):PRINT "M1C(Tn*m)=";MCC
+260 MCD=W3*FC*B*XL*(D2-A3*XL):PRINT "M2C(Tn*m)=";MCD
+300 PRINT "h(cm)=";H*100
+330 W3=.6881:PRINT "W=";W3
+340 A3=.416:PRINT "A=";A3
+350 MCE=W3*FC*B*H*(D2-A3*H):PRINT "M2C(Tn*m)=";MCE
+400 PRINT "X=+&":PRINT "W=.85":PRINT "A=.5"
+410 MCF=.85*FC*B*H*(D1-.5*H):PRINT "M1C(Tn*m)=";MCF
+420 MCG=.85*FC*B*H*(D2-.5*H):PRINT "M2C(Tn*m)=";MCG
+2000 PRINT "#### ACCIONES DE CALCULO ####"
+2005 INPUT "Nd(Tn)=",N,"Md(Tn*m)=",M
+2010 PRINT "Momentos de calculo"
+2020 M1D=M+N*(D1-.5*H):PRINT "M1d(Tn*m)=";M1D
+2030 M2D=M+N*(D2-.5*H):PRINT "M2d(Tn*m)=";M2D
+2040 IF M1D<0 AND M2D>0 THEN 5000
+2050 IF M1D<MCA AND M1D>0 AND M2D>0 THEN 5100
+2060 IF M1D>MCA AND M1D<MCB AND M2D>0 THEN 5200
+2070 IF M1D>MCB AND M1D<MCC AND M2D>0 THEN 5300
+2080 IF M1D>MCC AND M2D>MCD THEN5400
+2090 IF M2D<MCD AND M2D>MCE THEN 5500
+2100 IF M2D<MCE AND M2D>MCG THEN 5600
+2110 IF M2D<MCG AND M1D>MCF THEN 5700
+2200 END
+5000 PRINT "ZONA DIM. (A)"
+5001 PRINT "M1d<M1c(-&)##M2d>M2c(-&)"
+5010 A1=M2D/(.001*FY*(D1-D2)):PRINT "As(cm2)=";A1
+5020 A2=M1D/(.001*FY*(D2-D1)): PRINT "As'(cm2)=";A2
+5030 PRINT "Cuantia minima en traccion simple/compuesta(38.4)"
+5040 PRINT "As o As'(cm2)>=";.04*FC*B*H/(.001*FY)
+5099 END
+5100 PRINT "ZONA DIM. (B1)"
+5101 PRINT "As'=0"
+5102 PRINT "M1c(0)<M1d<M1c(.1667d)"
+5110 PRINT "Dominio deformaciones:"
+5115 PRINT "(0 <=X<= .1667d)":PRINT "0 <=X<=";.1667*D1
+5120 PRINT "EQUI. MOMENTOS--profundidad X"
+5130 X=(D1-(SQR((D1^2)-(4*.416*M1D)/(.6881*FC*B))))/(2*.416)
+5140 PRINT "X(m)=";X
+5150 PRINT "IGUALANDO AXILES"
+5160 A1=((.6881*FC*B*X)-N)/(FY*.001)
+5170 PRINT "As(cm2)=";A1
+5180 PRINT "Cuantia minima en flexion simple/compuesta(38.1)"
+5190 PRINT "As*fyd=";A1*FY*.001;"Tn > ";.04*FC*B*H;"=.04*fcd*Ac"
+5199 END
+5200 PRINT "ZONA DIM. (B2)"
+5201 PRINT "As'=0"
+5202 PRINT "M1c(.1667d)<M1d<M1c(.259d)"
+5210 PRINT "Dominio deformaciones:"
+5215 PRINT "(.1667d <=X<= .259d)":PRINT .1667*D1;"<=X<=";.259*D1
+5220 PRINT "EQUI. MOMENTOS--profundidad X"
+5230 X=(D1-(SQR((D1^2)-(4*.416*M1D)/(.6881*FC*B))))/(2*.416)
+5240 PRINT "X(m)=";X
+5250 PRINT "IGUALANDO AXILES"
+5260 A1=((.6881*FC*B*X)-N)/(FY*.001)
+5270 PRINT "As(cm2)=";A1
+5280 PRINT "Cuantia minima en flexion simple/compuesta(38.1)"
+5290 PRINT "As*fyd=";A1*FY*.001;"Tn > ";.04*FC*B*H;"=.04*fcd*Ac"
+5299 END
+5300 PRINT "ZONA DIM. (B3)"
+5301 PRINT "As'=0"
+5302 PRINT "M1c(.259d)<M1d<M1c(Xlim)"
+5310 PRINT "Dominio deformaciones:"
+5315 PRINT "(.259d <=X<= Xlim)":PRINT .259*D1;"<=X<=";XL
+5320 PRINT "EQUI. MOMENTOS--profundidad X"
+5330 X=(D1-(SQR((D1^2)-(4*.416*M1D)/(.6881*FC*B))))/(2*.416)
+5340 PRINT "X(m)=";X
+5350 PRINT "IGUALANDO AXILES"
+5360 A1=((.6881*FC*B*X)-N)/(FY*.001)
+5370 PRINT "As(cm2)=";A1
+5380 PRINT "Cuantia minima en flexion simple/compuesta(38.1)"
+5390 PRINT "As*fyd=";A1*FY*.001;"Tn > ";.04*FC*B*H;"=.04*fcd*Ac"
+5399 END
+5400 PRINT "ZONA DIM. (C)"
+5410 PRINT "M1d>M1c(Xlim)#M2d>M2c(Xlim)"
+5420 PRINT "Dimensionar para X=Xlim"
+5430 A2=(M1D-MCC)/((D1-D2)*FY*.001)
+5435 PRINT "As'(cm2)=";A2
+5440 A1=(M2D-MCD)/((D1-D2)*FY*.001)
+5445 PRINT "As(cm2)=";A1
+5450 PRINT "Cuantia minima en flexion simple/compuesta(38.1)"
+5455 PRINT "As'*fyc,d=";A2*FY*.001;"Tn > ";.04*FC*B*H;"=.04*fcd*Ac"
+5456 PRINT "As*fyd=";A1*FY*.001;"Tn > ";.04*FC*B*H;"=.04*fcd*Ac"
+5460 END
+5500 PRINT "ZONA DIM. (D1)"
+5501 PRINT "As=0"
+5502 PRINT "M2c(h)<M2d<M2c(Xlim)"
+5510 PRINT "Dominio deformaciones:"
+5515 PRINT "(Xlim <=X<= h)":PRINT XL;"<=X<=";H
+5520 PRINT "EQUI. MOMENTOS--profundidad X"
+5530 X=(D2+(SQR((D2^2)-(4*.416*M2D)/(.6881*FC*B))))/(2*.416)
+5540 PRINT "X(m)=";X
+5550 PRINT "IGUALANDO AXILES"
+5560 A2=(N-(.6881*FC*B*X))/(FY*.001)
+5570 PRINT "As'(cm2)=";A2
+5580 PRINT "Cuantia minima en flexion simple/compuesta(38.1)"
+5590 PRINT "As'*fyd=";A2*FY*.001;"Tn > ";.04*FC*B*H;"=.04*fcd*Ac"
+5599 END
+5600 PRINT "ZONA DIM. (D2)"
+5601 PRINT "As=0"
+5602 PRINT "M2c(+&)<M2d<M2c(h)"
+5610 PRINT "Dominio deformaciones:"
+5615 PRINT "(+& <=X<= h)":PRINT "+& <=X<=";H
+5620 PRINT "EQUI. MOMENTOS--profundidad X"
+5621 FOR X=H TO 100 STEP .0005
+5622 E=X/H
+5623 W=.85*((E^2)-(6/7)*E+.12148)/((E^2)-(6/7)*E+(9/48))
+5624 A=(((E^3)/2)-.43033*(E^2)+.07895*E-.01279)/((E^3)-(6/7)*(E^2)+(9/49)*E)
+5625 ECU=(W*FC*B*H*(D2-A*H))-M2D
+5626 IF ECU<.001 THEN GOTO 5630
+5627 NEXT X
+5630 PRINT "X(m)=";X
+5650 PRINT "IGUALANDO AXILES"
+5660 A2=(N-(W*FC*B*H))/(FY*.001)
+5670 PRINT "As'(cm2)=";A2
+5680 PRINT "Cuantia minima en flexion simple/compuesta(38.1)"
+5690 PRINT "As'*fyd=";A2*FY*.001;"Tn > ";.04*FC*B*H;"=.04*fcd*Ac"
+5699 END
+5700 PRINT "ZONA DIM. (E)"
+5701 PRINT "M2d<M2c(+&)##M1d>M1c(+&)"
+5710 A1=(M2D-MCG)/(.001*FY*(D2-D1)):PRINT "As(cm2)=";A1
+5720 A2=(M1D-MCF)/(.001*FY*(D1-D2)): PRINT "As'(cm2)=";A2
+5730 PRINT "Cuantia minima en traccion simple/compuesta(38.4)"
+5740 PRINT "As o As'(cm2)>=";.04*FC*B*H/(.001*FY)
+5799 END

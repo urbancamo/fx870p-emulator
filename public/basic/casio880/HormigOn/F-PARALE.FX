@@ -1,0 +1,17 @@
+10 CLS
+20 PRINT "Resultante sistema Fuerzas PARALELAS:"
+30 PRINT
+40 INPUT "No de Fuerzas =";N
+50 PRINT
+60 S=0:FF=0:Y=0
+70 FOR I=1 TO N
+80 INPUT "Fuerza =";F
+90 INPUT "Distancia =";D
+100 PRINT
+110 S=S+F*D:FF=FF+F
+120 NEXT I
+130 YY=S/FF
+140 PRINT "Resultante =";FF
+150 PRINT "Distancia =";YY
+160 IF INKEY$="" THEN 160
+170 END

@@ -1,0 +1,125 @@
+10 REM ........... TRIMAT (para calculadora)
+20 PRINT "TRIANG. DE MATRICES y RESOLUCION de SISTEMAS"
+30 REM ...........dimensionar matrices
+40 INPUT "Orden matriz (nxn) ";N
+50 DIM A(N,N)
+60 DIM AA(N,N)
+70 DIM L(N,N)
+80 DIM B(N)
+90 DIM BB(N)
+100 DIM X(N)
+110 DIM AUX(N)
+120 DIM COGER(N-1)
+130 DIM CAMBPOR(N-1)
+140 REM ........... Introducir datos
+150 FOR I=1 TO N
+160 FOR J=1 TO N
+170 PRINT "a (";I;J;") ";:INPUT A(I,J)
+180 AA(I,J)=A(I,J)
+190 NEXT
+200 PRINT "b (";I;") ";:INPUT B(I)
+210 BB(I)=B(I)
+220 NEXT
+230 REM ................................. CALCULOS
+240 REM ........... triangularizar
+250 FOR J=1 TO N-1
+260 FOR I=J+1 TO N
+270 IF A(J,J)=0 THEN GOTO 360
+280 L(I,J)=A(I,J)/A(J,J)
+290 FOR K=1 TO N
+300 A(I,K)=A(I,K)-(L(I,J)*A(J,K))
+310 NEXT K
+320 B(I)=B(I)-(L(I,J)*B(J))
+330 NEXT I
+340 NEXT J
+350 GOTO 660
+360 REM ........... Comprobar ceros en resto columna
+370 FOR H=J+1 TO N
+380 IF A(H,J)<>0 THEN 410
+390 NEXT
+400 GOTO 330
+410 REM ........... Cambiar filas
+420 VUELTA=VUELTA + 1
+430 COGER(VUELTA)=J
+440 CAMBPOR(VUELTA)=H
+450 FOR T = 1 TO N
+460 AUX(T)=A(J,T)
+470 NEXT
+480 FOR T = 1 TO N
+490 A(J,T) = A(H,T)
+500 A(H,T) = AUX(T)
+510 NEXT
+520 GOTO 270
+530 REM ........... resolver el sistema
+540 IF A(N,N)=0 THEN PRINT "EL METODO NO VALE para este sistema":END
+550 X(N)=B(N)/A(N,N)
+560 FOR K=N-1 TO 1 STEP -1
+570 X(K)=B(K)
+580 FOR I=K+1 TO N
+590 X(K)=X(K)-A(K,I)*X(I)
+600 NEXT
+610 IF A(K,K)=0 THEN PRINT "EL METODO NO VALE para este sistema":END
+620 X(K)=X(K)/A(K,K)
+630 NEXT
+640 RETURN
+650 REM ..............................Imprimir RESULTADOS
+660 REM ........... MENU
+670 PRINT "OPCIONES (a,u,l,x,d,f) ";:INPUT OP$
+680 IF OP$="a" THEN GOTO 750
+690 IF OP$="u" THEN GOTO 840
+700 IF OP$="l" THEN GOTO 930
+710 IF OP$="x" THEN GOSUB 530:GOTO 1030
+720 IF OP$="d" THEN GOTO 1090
+730 IF OP$="p" THEN GOTO 1170
+735 IF OP$="f" THEN PRINT "Fin del programa":END
+740 GOTO 670
+750 REM ........... Matriz a
+760 PRINT "MATRIZ A"
+770 FOR I=1 TO N
+780 FOR J=1 TO N
+790 PRINT "a(";I;J;")= ";AA(I,J)
+800 NEXT
+810 PRINT "b(";I;")= ";BB(I)
+820 NEXT
+830 GOTO 650
+840 REM ........... Matriz U
+850 PRINT "MATRIZ U"
+860 FOR I=1 TO N
+870 FOR J=1 TO N
+880 PRINT "u("I;J;")= ";A(I,J)
+890 NEXT
+900 PRINT "ub(";I;")= ";B(I)
+910 NEXT
+920 GOTO 650
+930 REM ........... Matriz lambda
+940 PRINT "MATRIZ L (lambda)
+950 IF VUELTA >0 THEN PRINT "No todo pivote = 0 . No fact. de GAUSS":GOTO 650
+960 FOR I=1 TO N
+970 FOR J=1 TO N
+980 IF I=J THEN L(I,J)=1
+990 PRINT "l(";I;J;")= ";L(I,J)
+1000 NEXT
+1010 NEXT
+1020 GOTO 650
+1030 REM ........... Soluciones
+1040 PRINT "SOLUCIONES (Matr.X)"
+1050 FOR I=1 TO N
+1060 PRINT "X(";I;")= ";X(I)
+1070 NEXT
+1080 GOTO 650
+1090 REM ........... Determinante de a
+1100 PRINT "DETERMINANTE de (A)"
+1110 DET=(-1)^VUELTA
+1120 FOR I=1 TO N
+1130 DET=DET*A(I,I)
+1140 NEXT
+1150 PRINT "DET (A) = ";DET
+1160 GOTO 650
+1170 REM ........... Permutaciones
+1180 PRINT "PERMUTACIONES"
+1190 FOR I=1 TO VUELTA
+1200 PRINT "Cambio fila ";COGER(I);" por fila ";CAMBPOR(I)
+1210 NEXT
+1220 GOTO 650
+1230 END
+

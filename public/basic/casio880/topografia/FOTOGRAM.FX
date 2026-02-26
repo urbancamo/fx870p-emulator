@@ -1,0 +1,37 @@
+1 PRINT "-FOTOGRAMETRIA-"
+2 PRINT "Cambio de coord terreno a imagen [1]"
+3 INPUT "Elige";EL
+4 IF EL=1 GOTO 20
+20 PRINT "Cambio de coor terreno a imagen(Sexag)"
+21 CLS:INPUT "Angulo W";W
+22 INPUT "Angulo FI";F
+23 INPUT "Angulo KAPPA";K
+24 m11=COSF*COSK
+25 m12=COSF*SINK
+26 m13=-SINF
+27 m21=SINF*SINW*COSK-COSW*SINK
+28 m22=SINF*SINW*SINK+COSW*COSK
+29 m23=SINW*COSF
+30 m31=SINF*COSW*COSK+SINW*SINK
+31 m32=SINF*COSW*SINK-SINW*COSK
+32 m33=COSW*COSF
+33 CLS:PRINT "Coord del centro de proyeccion:"
+34 INPUT "Xo=";X0
+35 INPUT "Yo=";Y0
+36 INPUT "Zo=";Z0
+37 CLS:INPUT "Dist focal(en mts):";DF
+38 CLS:PRINT "Coord del punto:"
+39 INPUT "Xp=";X
+40 INPUT "Yp=";Y
+41 INPUT "Zp=";Z
+42 F1=m11*(X-X0)+m12*(Y-Y0)+m13*(Z-Z0)
+43 F2=m21*(X-X0)+m22*(Y-Y0)+m23*(Z-Z0)
+44 F3=m31*(X-X0)+m32*(Y-Y0)+m33*(Z-Z0)
+45 FX=DF*(F1/F3)
+46 CLS:PRINT "Coord X=";FX
+47 FY=DF*(F2/F3)
+48 CLS:PRINT "Coord Y=";FY
+49 CLS:INPUT "Desea seguir";D
+50 IF D=S GOTO 38
+51 IF D=N THEN PRINT "FIN"
+52 GOTO 1

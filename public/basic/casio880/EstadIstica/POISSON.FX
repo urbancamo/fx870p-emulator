@@ -1,0 +1,11 @@
+10 CLS:PRINT "TABLA POISSON"
+20 INPUT "x=";x
+30 PRINT CHR$(141);"=";:INPUT miu
+35 s=0
+40 FOR i=0 TO x
+45 ter=EXP(-miu)*miu^i/FACT(i)
+50 s=s+ter
+60 NEXT i
+70 PRINT "CDF=";s
+80 PRINT "PDF=";ter
+90 GOTO 20

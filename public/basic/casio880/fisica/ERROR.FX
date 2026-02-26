@@ -1,0 +1,18 @@
+10 CLS
+20 CLEAR:C=1:DIM X(25)
+30 CLS:LOCATE0,0:PRINT "Dato :";C;
+40 LOCATE0,1:INPUT "",N$:IF N$="/"THEN 60
+50 X(C)=VAL(N$):C=C+1:GOTO30
+60 X=0:XMI=X(1):XMA=X(1):FOR A=1 TO (C-1)
+62 IF X(A)<XMI THEN XMI=X(A)
+63 IF X(A)>XMA THEN XMA=X(A)
+64 X=X+X(A):NEXT A:X=X/(C-1)
+65 CLS:PRINT "Xmaximo=";XMA;:LOCATE0,1:PRINT "Xminimo=";XMI
+66 CLS:D=XMA-XMI:PRINT "Dispersion=";D;:LOCATE0,1:T=(D/X)*100:PRINT "D relativa=";T;"%"
+69 CLS:PRINT "Xa=";X
+70 CLS:PRINT "Errores"
+80 Ei=0:FOR A=1 TO (C-1)
+90 PRINT "X";A;" [X-X";A;"]=";ABS(X-X(A)):Ei=Ei+ABS(X-X(A))
+100 NEXT A
+110 CLS:PRINT "Error absoluto=";(Ei)/(C-1):Ea=Ei/(C-1)
+120 CLS:PRINT "Error relativo=";(Ea/X)*100;"%":Er=(Ea/X)*100

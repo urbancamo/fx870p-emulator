@@ -1,0 +1,88 @@
+100 CLEAR :PRINT "PORTICOS"TAB(0):SB=1:GOSUB#2
+165 INPUT "Numero nudo";D:IF D=F THEN 180
+166 INPUT "Tipo de coaccion";B$:Z$(D)=B$:IF LEFT$(B$,1)="D"THEN INPUT "Desplazamiento impedido eje X o Y";U$:Z$(D)=Z$(D)+U$ ELSE IF B$<>"E"AND B$<>"A"AND B$<>"DA"THEN 166
+167 GOTO 165
+180 DIM B$(N0-1):PRINT"CARACTERISTICAS DE LAS BARRAS"
+190 FOR A=0 TO N0-1
+200 PRINT "BARRA"A;TAB(0);
+210 INPUT "Nudo de menor numeracion";I1,"Nudo de mayor numeracion";I2:PRINT "Indicar extremo que tenga giro  distinto del resto del nudo":INPUT "nudo mayor(Y),nudo menor(N),ambos(A),si no lo hay pulse EXE";B$(A),"E*I[ton*m^2]=";B(A,2),"E*A[ton]=";B(A,1)
+220 SB=2:GOSUB#2
+230 NEXT A
+250 PRINT "CARGAS EN NUDOS":F=1E-25
+270 INPUT "Nudo de aplicacion";J:IF J<>F THEN INPUT "Intensidad [ton]";T5,"Angulo con eje X";T6,"Momento eje Z[ton*m]";N:C(3*J+2)=N+C(3*J+2):C(3*J)=C(3*J)+T5*COST6:C(3*J+1)=C(3*J+1)+T5*SINT6:GOTO 270
+280 FOR I=0 TO 3*N1-1:R(I)=-C(I):NEXT I
+500 INPUT "Ver matrices(S/N)";A$:IF A$="S"THEN FOR A=0 TO N0-1 ELSE IF A$="N"THEN 625
+510 PRINT "BARRA"A;": angulo de eje local respecto del global";B(A,4):C=COSB(A,4):S=SINB(A,4)
+520 IF B(A,4)=0 THEN GOSUB 2000:GOSUB 2200:GOTO 550
+530 PRINT "MATRIZ T (cambio de ejes)"
+540 PRINT "a(1,1)="C,"a(1,2)=";-S,"a(1,3)="0,"a(2,1)="S,"a(2,2)="C,"a(2,3)="0,"a(3,1)="0,"a(3,2)="0,"a(3,3)="1
+550 IF B$(A)="N"THEN PRINT "La barra"A"esta articulada en el nudo menor" ELSE IF B$(A)="Y" THEN PRINT "La barra"A"esta articulada en el nudo mayor" ELSE IF B$(A)="A"THEN PRINT "La barra"A"esta articulada en ambos extremos"
+551 IF B(A,4)=0THEN 580
+560 GOSUB 2000:PRINT "MATRIZ RIGIDEZ DE LA BARRA"A"EN EJES LOCALES (simetrica)"
+570 GOSUB 2200:PRINT "r(1,1)="a1,"r(1,2)="0,"r(1,3)="0,"r(1,4)=";a4,"r(1,5)="0,"r(1,6)="0,"r(2,2)="b2,"r(2,3)="b3,"r(2,4)="0,"r(2,5)="b5,"r(2,6)="b6,"r(3,3)="c3,"r(3,4)="0,"r(3,5)="c5
+571 PRINT "r(3,6)="c6,"r(4,4)="d4,"r(4,5)="0,"r(4,6)="0,"r(5,5)="e5,"r(5,6)="e6,"r(6,6)="f6
+580 PRINT "MATRIZ RIGIDEZ DE LA BARRA"A"EN EJES GLOBALES (simetrica)":GOSUB 2250
+590 PRINT "R(1,1)="A1,"R(1,2)="A2,"R(1,3)="A3,"R(1,4)="A4,"R(1,5)="A5,"R(1,6)="A6
+600 PRINT "R(2,2)="B2,"R(2,3)="B3,"R(2,4)="B4,"R(2,5)="B5,"R(2,6)="B6,"R(3,3)="c3,"R(3,4)="C4
+610 PRINT "R(3,5)="C5,"R(3,6)="c6,"R(4,4)="D4,"R(4,5)="D5,"R(4,6)="D6,"R(5,5)="E5,"R(5,6)="E6,"R(6,6)="f6
+620 NEXT A
+625 PRINT "CARGAS EN BARRAS":DIM E(5,N0-1)
+630 SB=3:GOSUB #2
+635 IF f<>F THEN GOSUB 2500:GOSUB 2100:GOTO 630
+910 FOR A=0 TO N0-1
+920 I1=INTB(A,0):I2=FRACB(A,0)*100:C=COSB(A,4):S=SINB(A,4)
+930 C(3*I1)=C(3*I1)-E(0,A)*C+E(1,A)*S
+932 C(3*I1+1)=C(3*I1+1)-E(1,A)*C-E(0,A)*S
+934 C(3*I1+2)=C(3*I1+2)-E(2,A)
+936 C(3*I2)=C(3*I2)-E(3,A)*C+E(4,A)*S
+938 C(3*I2+1)=C(3*I2+1)-E(3,A)*S-E(4,A)*C
+940 C(3*I2+2)=C(3*I2+2)-E(5,A)
+950 NEXT A
+1000 ERASE Z:DIM Z(3*N1-1),S(3*N1-1)
+1010 FOR I=0TO N1-1
+1015 B$=LEFT$(Z$(I),1):IF B$="E"THEN S(3*I)=1:S(3*I+1)=1:S(3*I+2)=1
+1020 IF B$="A"THEN S(3*I)=1:S(3*I+1)=1
+1024 IF B$="D"THEN IF Z$(I)="DAX"THEN S(3*I)=1 ELSE IF Z$(I)="DAY"THEN S(3*I+1)=1 ELSE S(3*I+2)=1:IF Z$(I)="DX"THEN S(3*I)=1 ELSE S(3*I+1)=1
+1030 NEXT I
+1040 Z(0)=S(0):FOR I=1 TO 3*N1-1
+1050 Z(I)=Z(I-1)+S(I):NEXT I
+1100 f=(3*N1-1)-Z(3*N1-1):DIM K(f,f):FOR A=0 TO N0-1:I1=INTB(A,0):I2=FRACB(A,0)*100:C=COSB(A,4):S=SINB(A,4):GOSUB 2000:GOSUB 2200:GOSUB 2250
+1110 SB=4:GOSUB#2
+1220 NEXT A
+1225 SB=5:GOSUB#2
+1425 FOR I=0 TO N1-1:PRINT "NUDO"I;TAB(0);"DX="C(3*I),"DY="C(3*I+1),"Giro Z="C(3*I+2):NEXT I
+1450 FOR A=0TO N0-1:I1=INTB(A,0):I2=FRACB(A,0)*100:S=SINB(A,4):C=COSB(A,4):GOSUB 2000:GOSUB 2200:A1=C(3*I1)*C+C(3*I1+1)*S:A2=C(3*I1+1)*C-C(3*I1)*S:A3=C(3*I1+2):A4=C(3*I2)*C+C(3*I2+1)*S:A5=C(3*I2+1)*C-C(3*I2)*S:A6=C(3*I2+2)
+1455 IF A$="S"THEN PRINT"BARRA"A":DESPLAZ. EN LOCALES";TAB(0)"Nudo menor:","dx="A1,"dy="A2,"giro z="A3,"Nudo mayor:";TAB(0)"dx="A4,"dy="A5,"giro z="A6
+1460 E(0,A)=a1*A1+a4*A4+E(0,A)
+1470 E(1,A)=b2*A2+b3*A3+b5*A5+b6*A6+E(1,A)
+1480 E(2,A)=b3*A2+c3*A3+c5*A5+c6*A6+E(2,A)
+1490 E(3,A)=a4*A1+d4*A4+E(3,A)
+1500 E(4,A)=b5*A2+c5*A3+e5*A5+e6*A6+E(4,A)
+1510 E(5,A)=b6*A2+c6*A3+e6*A5+f6*A6+E(5,A)
+1520 PRINT "BARRA"A":FUERZAS EN LOCALES";TAB(0)"Nudo menor:","Fx="E(0,A),"Fy="E(1,A),"Mz="E(2,A),"Nudo mayor:";TAB(0)"Fx="E(3,A),"Fy="E(4,A),"Mz="E(5,A)
+1530 R(3*I1)=R(3*I1)+C*E(0,A)-S*E(1,A):R(3*I1+1)=R(3*I1+1)+C*E(1,A)+S*E(0,A):R(3*I1+2)=R(3*I1+2)+E(2,A):R(3*I2)=R(3*I2)+C*E(3,A)-S*E(4,A):R(3*I2+1)=R(3*I2+1)+C*E(4,A)+S*E(3,A):R(3*I2+2)=R(3*I2+2)+E(5,A):NEXT A
+1550 PRINT "REACCIONES":FOR I=0TO N1-1:IF Z$(I)<>"" THEN PRINT "Nudo"I;TAB(0)"RX="R(3*I),"RY="R(3*I+1),"MZ="R(3*I+2)
+1551 NEXT I:END
+2000 IF B$(A)="N"THEN RESTORE 2025
+2005 IF B$(A)="Y" THEN RESTORE 2030
+2010 IF B$(A)="A" THEN RESTORE 2035
+2015 IF B$(A)=""THEN RESTORE 2040
+2020 READ T1,T2,T3,T4,T5,T6:RETURN
+2025 DATA .25,0,.5,0,0,.75
+2030 DATA .25,.5,0,.75,0,0
+2035 DATA 0,0,0,0,0,0
+2040 DATA 1,1,1,1,1,1
+2100 IF A$="S"THEN PRINT  "REACCIONES DE EMPOTRAM. PERF.:"TAB(0)"Nudo menor:","Rx="P1,"Ry="P2,"Mz="P3,"Nudo mayor:","Rx="P4,"Ry="P5,"Mz="P6
+2110 E(0,A)=P1+E(0,A):E(1,A)=P2+E(1,A):E(2,A)=P3+E(2,A):E(3,A)=P4+E(3,A):E(4,A)=P5+E(4,A):E(5,A)=P6+E(5,A):RETURN
+2200 L=B(A,3):M=B(A,2):a1=B(A,1)/L:a4=-a1:b2=T1*12*M/L^3:b3=T2*6*M/L^2:b5=-b2:b6=T3*6*M/L^2:c3=T4*4*M/L:c5=-b3:c6=T5*2*M/L:d4=a1:e5=b2:e6=-b6:f6=T6*4*M/L:RETURN
+2250 A1=a1*C^2+b2*S^2:A2=(a1-b2)*S*C:A3=-b3*S:A4=a4*C^2+b5*S^2:A5=(a4-b5)*S*C:A6=-b6*S
+2255 B2=a1*S^2+b2*C^2:B3=b3*C:B4=(a4-b5)*S*C:B5=a4*S^2+b5*C^2:B6=b6*C:C3=c3:C4=-c5*S
+2260 C5=c5*C:C6=c6:D4=d4*C^2+e5*S^2:D5=(d4-e5)*S*C:D6=-e6*S:E5=d4*S^2+e5*C^2:E6=e6*C:F6=f6:RETURN
+2400 IF LEFT$(Z$(I1),1)="D" THEN G1=I1:GOSUB 2450:B1=G:B2=G:B3=G:B4=0:B5=0:B6=G:B7=0:B8=0 ELSE B1=0:B3=0:B6=0:B2=0
+2405 IF LEFT$(Z$(I2),1)="D"THEN G1=I2:GOSUB 2450:B4=G:B5=G:B7=G:B8=G
+2450 FOR I=2 TO 3:IF MID$(Z$(G1),I,1)<>"A"THEN G=VALF(MID$(Z$(G1),I)):I=3
+2452 NEXT I:RETURN
+2500 IF B$(A)="N"THEN P2=P2-3/2*P3/L:P5=P5+3/2*P3/L:P6=P6-P3/2:P3=0
+2505 IF B$(A)="Y"THEN P2=P2-3/2*P6/L:P5=P5+3/2*P6/L:P3=P3-P6/2:P6=0
+2510 IF B$(A)="A"THEN P2=P2-(P6+P3)/L:P5=P5+(P6+P3)/L:P3=0:P6=0
+2515 RETURN

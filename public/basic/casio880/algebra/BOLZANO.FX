@@ -1,0 +1,33 @@
+10 CLS 
+20 PRINT TAB(5);"TANTEO"
+30 PRINT "Programa en linea : 1000 Y=F(x)"
+40 GOSUB 2000
+50 CLS :INPUT "Quieres valores de  la funcion (S/N)";V$
+60 IF V$="N" THEN 90 ELSE IF V$<>"S" THEN 50
+70 INPUT "x=";X:GOSUB 1000:PRINT "F(x)=";Y
+80 INPUT "Otra vez (S/N)";V$:IF V$="S" THEN 70 ELSE IF V$<>"N" THEN 80
+90 CLS :PRINT "Intervalo (A,B)."
+100 INPUT "A=";A,"B=";B
+110 PRINT "Incremento=1,Quieres variarlo (S/N)";
+120 INPUTI$:IFI$="N"THENC=1:GOTO130ELSEIFI$="S"THENINPUT "Incremeto=";C ELSE 110
+130 INPUT "Cifras decimales (1-10)=";W:WW=10^(-W):CLS 
+140 FOR Z=A TO B STEP C
+150 X=Z:GOSUB 1000:E=Y
+160 X=Z+C:GOSUB 1000:F=Y
+170 IF SGNE<>SGNF THEN 230
+180 LOCATE 0,1:PRINT "x=";Z;
+190 LOCATE 0,2:PRINT "F(x)=";E;
+200 NEXT Z
+210 PRINT "O no tiene solucion en el intervalo,o el incremento es muy  grande";
+220 BEEP :BEEP 1:GOSUB 2000:END 
+230 A=Z:B=Z+C:C=C/10
+240 IF C<WW THEN 260
+250 GOTO 140
+260 BEEP :BEEP 
+270 CLS 
+280 PRINT "La solucion es x=";Z
+290 GOSUB 2000
+300 END
+1000 Y= X^3 -X^2 +3
+1010 RETURN 
+2000 IF INKEY$="" THEN 2000 ELSE RETURN 

@@ -1,0 +1,70 @@
+1 CLS:PRINT "INT. INVERSA"
+2 CLEAR
+3 PRINT "ENTRADA","*Sexag","*Cent";:INPUT W$
+4 IF W$="C" THEN Y=1 ELSE IF W$<>"S" THEN 3
+5 CLS:PRINT "SALIDA","*Sexag","*Cent";:INPUT W$
+6 IF W$="C" THEN F=1 ELSE IF W$<>"S" THEN 5
+7 G=180*(1-Y)+200*Y:P=PI/180:DIM N$(3),X(3),Y(3),L(3)
+8 REM
+9 FOR I=1 TO 3:CLS:PRINT "DATOS PTOS CONOCIDOS"
+10 INPUT "Nombre pto";N$(I)
+11 PRINT "Coor X pto ";N$(I);:INPUT X(I):PRINT "Coor Y pto ";N$(I);:INPUT Y(I)
+12 NEXT I
+13 CLS:PRINT "DATOS PTO ESTACION":INPUT "Nombre pto";N$
+14 CLS:PRINT "Lec azim de ";N$;" al:":FOR I=1 TO 3
+15 PRINT "-";N$(I);:INPUT M:NN=100*FRACM
+16 L(I)=Y*0.9*M+(1-Y)*(M-FRACM+(NN-FRACNN)/60+FRAC(100*FRACM)/36):NEXT I
+17 A=ABS(L(1)-L(2)):B=ABS(L(2)-L(3)):C=ABS(L(3)-L(1))
+18 IF A>360-A THEN A1=360-A ELSEA1=A
+19 IF B>360-B THEN B1=360-B ELSEB1=B
+20 IF C>360-C THEN C1=360-C ELSE C1=C
+21 C=3
+22 IF B1>A1 THEN C=1
+23 IF C1>B1 THEN IF C1>A1 THEN C=2
+24 FOR H=1 TO 3
+25 X=L(H)-L(C):IF ABS(X)<180 THEN  27
+26 IF X<0 THEN L(H)=L(H)+360 ELSE L(H)=L(H)-360
+27 IF L(H)>L(C) THEN D=H
+28 IF L(H)<L(C) THEN I=H
+29 NEXT H
+30 REM
+31 REM
+32 A=SQR((X(I)-X(C))^2+(Y(I)-Y(C))^2)
+33 B=SQR((X(D)-X(C))^2+(Y(D)-Y(C))^2)
+34 Q=ATN((X(I)-X(C))/(Y(I)-Y(C)))+90*(1-SGN(Y(I)-Y(C)))
+35 R=ATN((X(D)-X(C))/(Y(D)-Y(C)))+90*(1-SGN(Y(D)-Y(C)))
+36 S=L(D)-L(C):T=L(C)-L(I):U=360-Q+R-S-T
+37 K=A*SINS/(B*SINT)
+38 V=ATN((K*SINU)/(1+K*COSU)):V=V+90*(1-SGNV)*SGNV
+39 O=B*SINV/SINS
+40 XP=X(C)+O*SIN(R+180-S-V)
+41 YP=Y(C)+O*COS(R+180-S-V)
+42 CLS:PRINT "Coor del pto ";N$
+43 PRINT "X=";XP,"Y=";YP
+44 IF INKEY$="" THEN 44
+45 CLS:PRINT "DESEA CALCULAR MAS","Todos los datos de la ult int..T","Fin trabajo....................F"
+47 PRINT "Inter a dist ptos..............D"
+48 FOR Z=1 TO 200:NEXT Z
+49 PRINT "Inter a mismos ptos............N";
+50 Z$=INKEY$:IF Z$="" THEN 50
+51 IF Z$="T" THEN 54
+52 IF Z$="D" THEN 8 ELSE IF Z$="N" THEN  13
+53 IF Z$="F" THEN CLS:END ELSE 45
+54 FOR  E=1 TO 3:CLS:PRINT "Lado ";N$(E);" =";SQR((X(E)-XP)^2+(Y(E)-YP)^2)
+55 M=ATN((X(E)-XP)/(Y(E)-YP))+90*(1-SGN(Y(E)-YP)):GOSUB 1000
+56 PRINT "Orientacion ";N$;" - ";N$(E);" = ";M:GOSUB 2000:NEXT E
+58 L=U-V:CLS:PRINT "**Angulos utilizados en la interseccion**"
+60 PRINT "-Punto derecho = ";N$(D):GOSUB 2000
+62 PRINT "-Punto izquierdo = ";N$(I):GOSUB 2000
+64 PRINT "-Punto central = ";N$(C):GOSUB 2000
+66 M=S:GOSUB 1000:PRINT "Ang ";N$(D);"-";N$;"-";N$(C);" =";M:GOSUB 2000
+68 M=T:GOSUB 1000:PRINT "Ang ";N$(C);"-";N$;"-";N$(I);" =";M:GOSUB 2000
+70 M=V:GOSUB 1000:PRINT "Ang ";N$;"-";N$(D);"-";N$(C);" =";M:GOSUB 2000
+72 M=360*FRAC(L/360):GOSUB 1000:PRINT "Ang ";N$;"-";N$(I);"-";N$(C);" =";M
+73 GOSUB 2000
+74 M=Q:GOSUB 1000:PRINT "Orientacion ";N$(C);"-";N$(I);" =";M:GOSUB 2000
+76 M=R:GOSUB 1000:PRINT "Orientacion ";N$(C);"-";N$(D);" =";M:GOSUB 2000
+78 GOTO 45
+1000 MM=60*FRACM:M=F*M/0.9+(1-F)*(M-FRACM+(MM-FRACMM)/100+0.006*FRAC(60*FRACM))
+1010 RETURN
+2000 IF INKEY$="" THEN 2000 ELSE RETURN

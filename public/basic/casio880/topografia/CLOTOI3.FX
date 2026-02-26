@@ -1,0 +1,70 @@
+
+2 ' RESUELVE UNA CLOTOIDE DADOS DOS PARAMETROS
+3 ' O UN PARAMETRO Y UNA FUNCION DE X, Y O T,
+4 ' QUE SE ESCRIBE EN LA LINEA 130
+
+9 ' Inicializacion
+10 DIM E(10),F(10),Z$(10): MODE 5: ' Radianes
+11 ' Los par metros de la clotoide se guardan en F
+12 ' seg£n este orden. 
+13 DATA T,X,Y,A,L,X0,RT,TC,TL,R,F
+14 FOR I=0 TO 10: READ Z$(I):NEXT I
+
+15 ' Introducir datos
+16 ' A y B son variables ¡ndice
+17 A=-1
+18 B=-1: INPUT "T,X,Y,A,L,X0,RT,TC,TL,R,F",$
+20 FOR I=0 TO 10: IF $=Z$(I) THEN B=I:I=10
+22 NEXT I: IF B=-1 THEN 18
+24 INPUT "Valor",D: IF A=-1 THEN A=B:C=D:GOTO 18
+30 IF B=0 THEN F=D:D=C:C=F:B=A:A=0
+32 IF A=0 THEN T=C*PI/200:GOSUB 110:GOSUB 120+B:GOTO 80
+34 IF A=9 THEN F=D:D=C:C=F:A=B:B=9: 'A=9 es el radio
+
+39 ' Pide dos valores de T para iniciar la aproximaci¢n
+40 C=C/D: T=50: I=1
+42 PRINT"T";STR$(I);"<";STR$(T);:INPUT" cent.>",T:T=T*PI/200
+44 GOSUB 110: GOSUB 120+A: GOSUB 120+B
+46 IF I=1 THEN I=2:E(0)=T:E(A)=F(A):E(B)=F(B):T=25:GOTO 42
+
+59 ' Cuerpo del programa. S¢lo eval£a los par metros A y B
+60 N=0
+61 ' Aproximaci¢n lineal
+62 F(0)=T:T=T+(C-F(A)/F(B))*(E(0)-T)/(E(A)/E(B)-F(A)/F(B))
+64 E(0)=F(0):E(A)=F(A):E(B)=F(B)
+66 GOSUB 110: GOSUB 120+A: GOSUB 120+B
+68 N=N+1: PRINT CSR0;STR$(N);T*200/PI;
+69 ' Condici¢n de error/fin en T
+70 IF ABS(T-F(0))>1E-8 THEN 62
+72 F(0)=T
+
+79 'Salida de datos. Halla todos los par metros
+80 FOR I=1 TO 9: GOSUB 120+I:NEXT I
+82 R=D/F(B)
+90 SET F6: ' Presentaci¢n con seis decimales
+92 PRINT: PRINT Z$(0);"=";T*200/PI;" cent."
+94 FOR I=1 TO 9: PRINT Z$(I);"=";F(I)*R: NEXT I
+
+95 ' Fin
+96 SET N: ERASE Z$,F,E
+98 END
+110 U=T*T: X=0: Y=0
+111 IF T<1.6 THEN 114
+112 X=U*(1.670140559E-10-U*(7.910859035E-13-U*2.896652928E-15))
+113 Y=U*(1.189558803E-11-U*4.933654022E-14)
+114 IF T<.32 THEN 117
+115 X=U*(2.136752137E-4-U*(2.9178338E-6-U*(2.624506593E-8-X))
+116 Y=U*(2.645502646E-5-U*(2.900770445E-7-U*(2.178444207E-9-Y)))
+117 X=T*(2-U*(0.2-U*(1/108-X)))
+118 Y=U*(2/3-U*(1/21-U*(1/660-Y)))
+119 RETURN
+121 F(1)=X: RETURN
+122 F(2)=Y: RETURN
+123 F(3)=SQR(2*T):RETURN
+124 F(4)=2*T:RETURN
+125 F(5)=X-SINT: RETURN
+126 F(6)=Y+COST-1: RETURN
+127 F(7)=Y/SINT: RETURN
+128 F(8)=X-Y/TANT: RETURN
+129 F(9)=1: RETURN
+130 F(10)= FUNCION: RETURN

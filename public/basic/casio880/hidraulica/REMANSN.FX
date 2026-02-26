@@ -1,0 +1,54 @@
+1 CLS
+10 CLEAR
+12 PRINT "CURVAS DE REMANSO PARA SECCION  RECTANG, TRIANG o TRAPEZOIDAL"
+15 G=9.81
+17 INPUT "QUIERES DATOS INTERMEDIOS       (S/N) ";MOCO$
+30 INPUT "No.Manning=";N
+31 INPUT "Q=";Q:INPUT "S.triang. (B=0)   B=";B:INPUT "S.rectang.(T=0)   T=H/V=";T
+50 INPUT "No.de puntos=";M
+60 DIM Y(M),F(M),S(M),R(M),I(M),X(M-1),V(M),P(M)
+70 INPUT "I(0)=";I(0)
+80 INPUT "Y inicial=";Y(1)
+85 INPUT "Incr.Y=";AY
+86 FOR J=1 TO M-1:Y(J+1)=Y(J)+AY
+87 NEXT J
+90 FOR J=1 TO M
+100 S(J)=B*Y(J)+Y(J)*Y(J)*T
+110 P(J)=B+2*Y(J)*SQR(1+T^2)
+120 F(J)=(Q/(S(J)*SQR(G*(Y(J)))))
+130 NEXT J
+140 FOR J=1 TO M
+150 R(J)=S(J)/P(J)
+165 Y1=Y(J)
+167 S=B*Y1+Y1*Y1*T
+170 I(J)=((N*Q)^2)/(S*S*(R(J)^(4/3)))
+175 NEXT J
+176 FOR J=1 TO M
+177 K=K+1
+178 IF J+1>M THEN 600
+180 FM=(F(J+1)+F(J))/2:IM=(I(J+1)+I(J))/2
+190 X(J)=((1-FM^2)*AY)/(I(0)-IM)
+200 Z=Z+X(J)
+203 V(J)=Q/S(J)
+285 NEXT J
+290 DIM A(M-1)
+600 SX=0:FOR J=1 TO K
+604 IF J+1>M THEN 745
+605 SX=SX+X(J)
+610 ME=(Y(J)+Y(J+1))/2
+620 AY=(Y(J+1)-Y(J))
+650 PRINT "Y2=";Y(J);"    Y1=";Y(J+1)
+655 IF MOCO$="N" THEN GOTO 710
+660 PRINT "incr.Y=";AY:PRINT "Ymedia=";ME
+674 PRINT "S=";(S(J)+S(J+1))/2
+675 PRINT "V=";ROUND((V(J)+V(J+1))/2,-3)
+680 PRINT "RH=";ROUND((R(J)+R(J+1))/2,-3)
+690 PRINT "If=";(I(J+1)+I(J))/2
+707 PRINT "FROUDE =";ROUND((F(J+1)+F(J))/2,-3)
+710 PRINT CHR$(238);"X=";ROUND(X(J),-3);
+720 PRINT "     X=";ROUND(SX,-3)
+725 PRINT "-------------------------------"
+730 NEXT J
+745 INPUT "Cambia incr.Y (S/N)";N$
+750 IF N$="S" THEN 80
+760 END

@@ -1,0 +1,80 @@
+10 CLEAR
+20 PRINT "Sistemas de ecuaciones lineales";
+30 PRINT ""
+50 PRINT "Metodo de eliminacion de Gauss"
+60 INPUT "Dimension del sistema N=";N
+80 DIM A(N,N)
+90 PRINT "INTRODUCE LOS COEFICIENTES DE A"
+100 FOR I=1 TO N
+110 FOR J=1 TO N
+120 PRINT "A(";I;",";J;")=";
+130 INPUT A(I,J)
+140 NEXT J
+150 NEXT I
+151 DIM B(N)
+152 PRINT "Introduce los terminos indpdtes"
+153 FOR I=1 TO N
+154 PRINT "B(";I;")=";
+155 INPUT B(I)
+156 NEXT I
+160 DIM P(N)
+170 FOR I=1 TO N
+180 P(I)=I
+190 NEXT I
+200 DIM D(N)
+210 FOR K=1 TO N-1
+215 PRINT "Transformacion ";K
+220 FOR I=K TO N
+230 D(I)=0
+240 FOR J=K TO N
+250 D(I)=D(I)+ABS(A(P(I),J))
+260 NEXT J
+265 D(I)=D(I)+ABS(B(P(I)))
+270 PRINT "SUMA DE LOS VAL. ABS. FILA  ";I;"=";D(I)
+280 GOSUB 890
+290 NEXT I
+300 DIM H(N)
+310 FOR L=K TO N
+320 H(L)=ABS (A(P(L),K)/D(L))
+325 PRINT "Division de modulos fila ";L;"=";H(L)
+330 NEXT L
+340 M=H(N)
+350 KO=N
+360 FOR I= N-1 TO K STEP -1
+370 IF H(I)>=M THEN M=H(I):KO=I
+380 NEXT I
+390 IF KO=K THEN PRINT "Pivote =";K:GOTO 430
+400 PRINT "MAXIMO=";M:PRINT "Pivote=";KO
+410 GOSUB 890
+420 IF P(K)<>KO THEN M=P(KO):P(KO)=P(K):P(K)=M:PRINT "Intercambio: fila ";KO;"<->";K
+430 FOR T=1 TO N
+440 PRINT "P(";T;")=";P(T):GOSUB 890
+450 NEXT T
+460 FOR I=K+1 TO N
+470 A(P(I),K)=A(P(I),K)/A(P(K),K):PRINT "Mult.(";I;",";K;")=";A(P(I),K)
+480 FOR J=K+1 TO N
+490 A(P(I),J)=A(P(I),J)-A(P(K),J)*A(P(I),K)
+500 PRINT "A(";I;",";J;")=";A(P(I),J)
+510 GOSUB 890
+520 NEXT J
+525 B(P(I))=B(P(I))-B(P(K))*A(P(I),K):PRINT "B(";I;")=";B(P(I))
+530 NEXT I
+540 NEXT K
+720 PRINT "Soluciones del sistema"
+730 DIM X(N)
+740 X(N)=B(P(N))/A(P(N),N)
+750 PRINT "X(";N;")=";X(N)
+760 GOSUB 890
+770 FOR K=N-1 TO 1 STEP -1
+780 R=0
+790 FOR J=K+1 TO N
+800 R=R+A(P(K),J)*X(J)
+810 NEXT J
+820 X(K)=(B(P(K))-R)/A(P(K),K)
+830 PRINT "X(";K;")=";X(K)
+840 GOSUB 890
+850 NEXT K
+860 INPUT "Resolver nuevo sistema          (si(1)/no(2))";s
+870 IF s=1 THEN GOTO 10
+880 END
+890 IF INKEY$="" THEN 890 ELSE RETURN

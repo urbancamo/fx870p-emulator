@@ -1,0 +1,71 @@
+1 'NEUTRALI
+5 CLEAR :CLS:PRINT CHR$(9);
+10 PRINT " ** FUERZAS DE NEUTRALIZACION *";
+15 LOCATE 0,1
+20 PRINT " ******************************"
+25 CLS:' *** ENTRADA DATOS ***
+30 INPUT "Tension de tesado (k/cm2)";PO
+40 INPUT "Num capas de armaduras";NCA
+45 INPUT "Ns";NS
+50 INPUT "Pretensado o Postesado (P/O)";TP$
+60 IF TP$<>"P" AND TP$<>"O" THEN 50
+70 DIM NAR(NCA),AR(NCA),D(NCA),EXC(NCA),PN(NCA),P(NCA),DIAM(NCA)
+80 FOR I=1 TO NCA
+90 CLS:PRINT "Capa";I;
+95 LOCATE 0,1
+100 INPUT "Num. de armaduras";NAR(I)
+110 INPUT "Diametro armaduras(mm)";DIAM(I):DIAM(I)=DIAM(I)/10
+115 INPUT "Dist. cdg capa a fibra sup.(cm)";D(I)
+120 AR(I)=PI*DIAM(I)*DIAM(I)/4
+125 NEXT I
+130 IF TP$="P" THEN 135 ELSE 300
+135 CLS:PRINT " ***** HORMIGON PREENSADO *****";
+140 LOCATE 0,1
+150 INPUT "Area seccion homogenea";ARH
+160 INPUT "Inercia seccion homogenea";INH
+170 INPUT "Distancia cdg s. homog a f.sup";V1H
+180 PN=0:PNEN=0
+190 FOR I=1 TO NCA
+200 PN(I)=PO*NAR(I)*AR(I)
+210 PN=PN+PN(I)
+220 PNEN=PNEN+PN(I)*(V1H-D(I))
+230 NEXT I
+240 EN=PNEN/PN
+250 FOR I=1 TO NCA
+260 P(I)=PN(I)-NS*NAR(I)*AR(I)*(PN/ARH+PNEN*(V1H-D(I))/INH)
+270 NEXT I
+280 GOTO 440
+300 CLS:PRINT " ** HORMIGON POSTESADO **";
+305 LOCATE 0,1
+310 INPUT "Area seccion neta (Cm2)";ARC
+315 INPUT "Inercia seccion neta (cm4)";INC
+320 INPUT "Dist. cdg sec. neta a f.sup.(cm)";V1C
+325 INPUT "Dist. cdg sec. homog a f.sup.(cm)";V1H
+330 P=0:PEC=0
+335 FOR I=1 TO NCA
+340 P(I)=PO*NAR(I)*AR(I)
+350 P=P+P(I)
+355 PEC=PEC+P(I)*(V1C-D(I))
+360 NEXT I
+365 PN=0:PNEN=0
+370 FOR I=1 TO NCA
+380 PN(I)=P(I)+NS*NAR(I)*AR(I)*(P/ARC+PEC*(V1C-D(I))/INC)
+390 PNEN=PNEN+PN(I)*(V1H-D(I))
+400 PN=PN+PN(I)
+410 NEXT I
+420 EN=PNEN/PN
+440 '**** SALIDA RESULTADOS ***
+450 CLS:BEEP
+460 PRINT " *** FUERZAS NEUTRALIZACION ***";
+465 LOCATE 0,1
+470 FOR I=1 TO N
+480 PRINT "Pn";I;"=";ROUND(PN(I),-4);"Kp"
+490 NEXT I
+500 PRINT "Pn=";ROUND(PN,-4);"Kp"
+510 PRINT "En=";ROUND(EN,-3);"cm"
+520 CLS:PRINT " *** FUERZAS DE PRETENSADO ***";
+525 LOCATE 0,1
+530 FOR I=1 TO NCA
+540 PRINT "P(";I;")=";ROUND(P(I),-4);"Kp"
+550 NEXT I
+560 END
