@@ -11,9 +11,15 @@ const base = import.meta.env.BASE_URL;
 // The face image is 709×280 px. We scale the entire emulator column to fill
 // the viewport width with a small border, keeping the aspect ratio intact.
 const FACE_W = 709;
+const FACE_H = 280;
 const BORDER_PX = 24; // padding each side
 const windowWidth = ref(window.innerWidth);
-function onResize() { windowWidth.value = window.innerWidth; }
+const windowHeight = ref(window.innerHeight);
+const isFullscreen = ref(false);
+function onResize() {
+  windowWidth.value = window.innerWidth;
+  windowHeight.value = window.innerHeight;
+}
 
 // ─── draggable divider for side layout ──────────────────────────────────────
 const DIVIDER_W = 6;  // px width of the drag handle
@@ -49,6 +55,12 @@ function onDividerUp(): void {
 }
 
 const scaleFactor = computed(() => {
+  if (isFullscreen.value) {
+    // Fit both width and height with no border
+    const sw = windowWidth.value / FACE_W;
+    const sh = windowHeight.value / FACE_H;
+    return Math.max(0.25, Math.min(sw, sh, 4));
+  }
   let available = windowWidth.value - BORDER_PX * 2;
   if (panelLayout.value !== 'bottom') {
     available = (available - DIVIDER_W) * splitRatio.value;
@@ -79,7 +91,31 @@ import { setIoDebug, isIoDebug } from '../emulator/port.js';
 
 const showDebug = ref(false);
 const showToolbar = ref(true);
-function toggleToolbar(): void { showToolbar.value = !showToolbar.value; }
+const emulatorRoot = ref<HTMLElement | null>(null);
+
+function toggleToolbar(): void {
+  showToolbar.value = !showToolbar.value;
+  if (!showToolbar.value) {
+    // Enter fullscreen when hiding toolbar
+    const el = emulatorRoot.value;
+    if (el && !document.fullscreenElement) {
+      el.requestFullscreen?.().catch(() => {});
+    }
+  } else {
+    // Exit fullscreen when showing toolbar
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+    }
+  }
+}
+
+function onFullscreenChange(): void {
+  isFullscreen.value = !!document.fullscreenElement;
+  // If user exits fullscreen via browser controls / Escape, restore toolbar
+  if (!document.fullscreenElement && !showToolbar.value) {
+    showToolbar.value = true;
+  }
+}
 
 // Panel layout: bottom (default), right, or left of calculator
 type PanelLayout = 'bottom' | 'right' | 'left';
@@ -95,7 +131,6 @@ function cycleLayout(): void {
 }
 // In side layout, the scaler wrapper must set explicit width/height to the
 // scaled face dimensions, because CSS transform doesn't change layout size.
-const FACE_H = 280;
 const scalerWidth = computed(() => Math.round(FACE_W * scaleFactor.value));
 const scalerHeight = computed(() => Math.round(FACE_H * scaleFactor.value));
 
@@ -139,6 +174,7 @@ onMounted(() => {
   window.addEventListener('keydown', onKeyDown);
   window.addEventListener('beforeunload', beforeUnload);
   window.addEventListener('resize', onResize);
+  document.addEventListener('fullscreenchange', onFullscreenChange);
 });
 
 onUnmounted(() => {
@@ -146,11 +182,12 @@ onUnmounted(() => {
   window.removeEventListener('keydown', onKeyDown);
   window.removeEventListener('beforeunload', beforeUnload);
   window.removeEventListener('resize', onResize);
+  document.removeEventListener('fullscreenchange', onFullscreenChange);
 });
 </script>
 
 <template>
-  <div class="emulator-root">
+  <div ref="emulatorRoot" class="emulator-root" :class="{ fullscreen: isFullscreen }">
     <div v-if="loading" class="overlay-msg">Loading ROMs…</div>
     <div v-else-if="error" class="overlay-msg error">{{ error }}</div>
 
@@ -247,6 +284,12 @@ onUnmounted(() => {
   background: #000;
   padding: 24px 24px 0;
   box-sizing: border-box;
+}
+
+.emulator-root.fullscreen {
+  padding: 0;
+  min-height: 100vh;
+  justify-content: center;
 }
 
 /* ── outer layout container ── */
