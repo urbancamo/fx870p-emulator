@@ -345,11 +345,12 @@ onUnmounted(() => {
   user-select: none;
 }
 
-/* LCD canvas sits at face.png pixel coords (48, 36) */
+/* LCD canvas sits at face.png pixel coords (48, 36).
+   The canvas has 2px top padding, so shift up to keep content aligned. */
 .lcd-overlay {
   position: absolute;
   left: 48px;
-  top: 36px;
+  top: 34px;
 }
 
 .overlay-msg {
