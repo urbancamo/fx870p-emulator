@@ -14,14 +14,51 @@ const FACE_W = 709;
 const BORDER_PX = 24; // padding each side
 const windowWidth = ref(window.innerWidth);
 function onResize() { windowWidth.value = window.innerWidth; }
-const SIDE_PANEL_W = 709; // CommPanel / DebugPanel natural width
+
+// ─── draggable divider for side layout ──────────────────────────────────────
+const DIVIDER_W = 6;  // px width of the drag handle
+const SIDE_SPLIT_KEY = 'fx870p-side-split';
+// splitRatio = fraction of available width allocated to the calculator (0.3–0.8)
+const splitRatio = ref(parseFloat(localStorage.getItem(SIDE_SPLIT_KEY) || '0.5'));
+const dragging = ref(false);
+
+function onDividerDown(e: PointerEvent): void {
+  dragging.value = true;
+  (e.target as HTMLElement).setPointerCapture(e.pointerId);
+}
+
+function onDividerMove(e: PointerEvent): void {
+  if (!dragging.value) return;
+  const total = windowWidth.value - BORDER_PX * 2 - DIVIDER_W;
+  let calcWidth: number;
+  if (panelLayout.value === 'left') {
+    // [panel] [divider] [calculator] — calc is on the right
+    calcWidth = total - (e.clientX - BORDER_PX);
+  } else {
+    // [calculator] [divider] [panel] — calc is on the left
+    calcWidth = e.clientX - BORDER_PX;
+  }
+  const ratio = Math.max(0.3, Math.min(0.8, calcWidth / total));
+  splitRatio.value = ratio;
+}
+
+function onDividerUp(): void {
+  if (!dragging.value) return;
+  dragging.value = false;
+  localStorage.setItem(SIDE_SPLIT_KEY, splitRatio.value.toFixed(3));
+}
+
 const scaleFactor = computed(() => {
   let available = windowWidth.value - BORDER_PX * 2;
-  // In side layout, reserve space for the panel
   if (panelLayout.value !== 'bottom') {
-    available -= SIDE_PANEL_W;
+    available = (available - DIVIDER_W) * splitRatio.value;
   }
   return Math.max(0.25, Math.min(available / FACE_W, 4));
+});
+
+const sidePanelWidth = computed(() => {
+  const total = windowWidth.value - BORDER_PX * 2 - DIVIDER_W;
+  return Math.round(total * (1 - splitRatio.value));
 });
 
 // Pick the sharpest face image that won't be upscaled.
@@ -129,7 +166,7 @@ onUnmounted(() => {
       }"
     >
       <!-- Side panel (left) -->
-      <div v-if="panelLayout === 'left'" class="side-panels">
+      <div v-if="panelLayout === 'left'" class="side-panels" :style="{ width: sidePanelWidth + 'px' }">
         <CommPanel class="side-comm" />
         <div class="debug-toggle-row side-toggle">
           <button class="debug-toggle-btn" @click="cycleLayout" title="Cycle panel layout">{{ panelLayout }}</button>
@@ -139,6 +176,16 @@ onUnmounted(() => {
         </div>
         <DebugPanel v-if="showDebug" class="side-debug" />
       </div>
+
+      <!-- Divider (left layout) -->
+      <div
+        v-if="panelLayout === 'left'"
+        class="divider"
+        @pointerdown="onDividerDown"
+        @pointermove="onDividerMove"
+        @pointerup="onDividerUp"
+        @pointercancel="onDividerUp"
+      />
 
       <!-- Calculator (always present, always scaled) -->
       <div
@@ -187,8 +234,18 @@ onUnmounted(() => {
         <DebugPanel v-if="showDebug" />
       </div>
 
+      <!-- Divider (right layout) -->
+      <div
+        v-if="panelLayout === 'right'"
+        class="divider"
+        @pointerdown="onDividerDown"
+        @pointermove="onDividerMove"
+        @pointerup="onDividerUp"
+        @pointercancel="onDividerUp"
+      />
+
       <!-- Side panel (right) -->
-      <div v-if="panelLayout === 'right'" class="side-panels">
+      <div v-if="panelLayout === 'right'" class="side-panels" :style="{ width: sidePanelWidth + 'px' }">
         <CommPanel class="side-comm" />
         <div class="debug-toggle-row side-toggle">
           <button class="debug-toggle-btn" @click="cycleLayout" title="Cycle panel layout">{{ panelLayout }}</button>
@@ -314,6 +371,21 @@ onUnmounted(() => {
 }
 .debug-toggle-btn:hover { color: #999; background: #2a2a2a; }
 
+/* ── draggable divider ── */
+.divider {
+  width: 6px;
+  cursor: col-resize;
+  background: #1a1a1a;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+  transition: background 0.15s;
+}
+.divider:hover,
+.divider:active {
+  background: #444;
+}
+
 /* ── side panels ── */
 .side-panels {
   display: flex;
@@ -321,6 +393,15 @@ onUnmounted(() => {
   align-items: stretch;
   max-height: 100vh;
   overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.side-panels :deep(.comm-panel) {
+  width: auto;
+}
+
+.side-panels :deep(.dbg-panel) {
+  width: auto;
 }
 
 .side-toggle {
