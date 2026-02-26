@@ -15,8 +15,8 @@ is given to the original author of the amazing suite of emulators available on t
 designed to purely make the code behind that emulator available to a wider audience on the internet.
 
 This version of the emulator implemented by [Mark Wickens](https://urbancamo.github.com), the source code is hosted 
-on GitHub [here](https://github.com/urbancamo/fx870p-emulator/) and it is running
-[here](https://m5tea.uk/fx870p-emulator/)
+on GitHub [here](https://github.com/urbancamo/fx870p-emulator/) and it is
+[hosted if here you want to try it](https://m5tea.uk/fx870p-emulator/).
 
 ## Hardware Emulated
 
@@ -105,19 +105,20 @@ docs/                 Implementation notes
 
 ## Reference Documents
 
-| Document                                                                       | Description                                        |
-|--------------------------------------------------------------------------------|----------------------------------------------------|
-| [`reference/fx870p-rom-annotations.md`](reference/fx870p-rom-annotations.md)   | Annotated ROM address labels and call-flow notes   |
-| [`reference/fx870p-roms.md`](reference/fx870p-roms.md)                         | Full ROM disassembly                               |
-| [`reference/FX-870P_VX-4 Manual.html`](<reference/FX-870P_VX-4 Manual.html>)   | Original user manual (HTML)                        |
+| Document                                                                    | Description                                        |
+|-----------------------------------------------------------------------------|----------------------------------------------------|
+| [`reference/fx870p-rom-annotations.md`](reference/fx870p-rom-annotations.md) | Annotated ROM address labels and call-flow notes   |
+| [`reference/fx870p-roms.md`](reference/fx870p-roms.md)                      | Full ROM disassembly                               |
+| [`reference/FX-870P_VX-4 Manual.html`](docs/FX-870P_VX-4 Manual.html)                | Original user manual (HTML)                        |
 | [`docs/CasioVX-4-Manual-Peter-Rost.pdf`](docs/CasioVX-4-Manual-Peter-Rost.pdf) | VX-4 manual by Peter Rost (PDF)                    |
-| [`docs/FX-870P emulator.pdf`](<docs/FX-870P emulator.pdf>)                     | Delphi emulator documentation (PDF)                |
-| [`docs/plan.md`](docs/plan.md)                                                 | Web port implementation plan and component mapping |
-| [`reference/fx870_es/`](reference/fx870_es/)                                   | Original Delphi 5 source (reference only)          |
+| [`docs/FX-870P emulator.pdf`](docs/FX-870P%20emulator.pdf)                  | Delphi emulator documentation (PDF)                |
+| [`docs/plan.md`](docs/plan.md)                                              | Web port implementation plan and component mapping |
+| [`reference/fx870_es/`](reference/fx870_es/)                                | Original Delphi 5 source (reference only)          |
 
 ## Testing
 
-The emulator has a headless test suite powered by [vitest](https://vitest.dev/) that boots the emulator in Node.js, injects keystrokes, runs the CPU, and verifies LCD output.
+The emulator has a headless test suite powered by [vitest](https://vitest.dev/) that boots the emulator in Node.js, 
+injects keystrokes, runs the CPU, and verifies LCD output.
 
 ### Run all tests
 
