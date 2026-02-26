@@ -31,7 +31,7 @@ import { cpuReset, cpuRun, cpuWakeUp } from './cpu.js';
 import { ioInit, SerialRate, onSerialTick, pd, pe, pdi, getUartRegs } from './port.js';
 import { lcdInit, lcdRender, onrate, lcdctrl } from './lcd.js';
 import { commDecTimer } from './comm.js';
-import { remoteLog, flushLog, enableRemoteLog, isRemoteLogEnabled } from './remote-log.js';
+import { remoteLog, flushLog, enableRemoteLog } from './remote-log.js';
 import { traceInit, traceClose } from './trace.js';
 
 // ─── counters (cycle-based, like Delphi's timer variables) ──────────────────

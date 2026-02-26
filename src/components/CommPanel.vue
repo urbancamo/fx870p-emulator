@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import {
   loadFileBytes, stopTransfer, clearOutput,
   isSending, isSuspended, getBytesSent, getOutput,
-  getStream, clearStream,
+  getStream, clearStream, setOnReceiveComplete,
 } from '../emulator/comm.js';
 import { getUartRegs, pd, pe, pdi } from '../emulator/port.js';
 import { importRamState, exportRamState, emulatorReset, emulatorStart, readRamByte } from '../emulator/emulator.js';
@@ -197,8 +197,42 @@ function poll(): void {
   flushOutput();
 }
 
-onMounted(() => { pollId = setInterval(poll, 250); });
-onUnmounted(() => { if (pollId !== null) clearInterval(pollId); });
+// ─── receive-complete (SAVE from calculator) ─────────────────────────────────
+const showSaveDialog = ref(false);
+const saveFileName   = ref('program.bas');
+let   pendingSaveData: Uint8Array | null = null;
+
+function onReceiveComplete(data: Uint8Array): void {
+  pendingSaveData = data;
+  showSaveDialog.value = true;
+}
+
+function confirmSave(): void {
+  if (!pendingSaveData) return;
+  const blob = new Blob([pendingSaveData.buffer as ArrayBuffer], { type: 'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = saveFileName.value || 'program.bas';
+  a.click();
+  URL.revokeObjectURL(url);
+  showSaveDialog.value = false;
+  pendingSaveData = null;
+}
+
+function cancelSave(): void {
+  showSaveDialog.value = false;
+  pendingSaveData = null;
+}
+
+onMounted(() => {
+  pollId = setInterval(poll, 250);
+  setOnReceiveComplete(onReceiveComplete);
+});
+onUnmounted(() => {
+  if (pollId !== null) clearInterval(pollId);
+  setOnReceiveComplete(null);
+});
 
 // ─── RAM state import ─────────────────────────────────────────────────────────
 const ramInput = ref<HTMLInputElement | null>(null);
@@ -363,6 +397,29 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
     />
     <Teleport to="body">
       <AboutPopup v-if="showAbout" @close="showAbout = false" />
+
+      <!-- Save dialog (triggered when calculator finishes a SAVE) -->
+      <div v-if="showSaveDialog" class="save-backdrop" @click.self="cancelSave">
+        <div class="save-dialog">
+          <div class="save-title">Save received program</div>
+          <div class="save-body">
+            <label class="save-label">
+              Filename:
+              <input
+                v-model="saveFileName"
+                class="save-input"
+                type="text"
+                @keydown.enter="confirmSave"
+                @keydown.escape="cancelSave"
+              />
+            </label>
+          </div>
+          <div class="save-footer">
+            <button class="save-btn" @click="confirmSave">Save</button>
+            <button class="save-btn save-btn-cancel" @click="cancelSave">Cancel</button>
+          </div>
+        </div>
+      </div>
     </Teleport>
   </div>
 </template>
@@ -509,4 +566,77 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
   color: #333;
   font-style: italic;
 }
+
+/* ── save dialog ── */
+.save-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.save-dialog {
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 16px 24px;
+  min-width: 320px;
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: #ccc;
+}
+
+.save-title {
+  font-size: 0.95rem;
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+.save-body {
+  margin-bottom: 16px;
+}
+
+.save-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #999;
+}
+
+.save-input {
+  flex: 1;
+  padding: 4px 8px;
+  font-family: monospace;
+  font-size: 0.85rem;
+  background: #0d0d0d;
+  color: #eee;
+  border: 1px solid #444;
+  border-radius: 3px;
+  outline: none;
+}
+.save-input:focus {
+  border-color: #7eb8f7;
+}
+
+.save-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.save-btn {
+  padding: 4px 16px;
+  font-family: monospace;
+  font-size: 0.8rem;
+  background: #2a2a2a;
+  color: #ccc;
+  border: 1px solid #444;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.save-btn:hover { background: #3a3a3a; color: #fff; }
+.save-btn-cancel { color: #888; }
 </style>

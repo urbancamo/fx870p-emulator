@@ -19,6 +19,12 @@ let bytesSent      = 0;     // total bytes delivered from our queue to the UART
 
 const outputBuffer = new Array<number>(); // bytes received FROM the calculator
 
+// Receive-complete callback: fired when calculator finishes a SAVE (EOF received)
+let _onReceiveComplete: ((data: Uint8Array) => void) | null = null;
+export function setOnReceiveComplete(fn: ((data: Uint8Array) => void) | null): void {
+  _onReceiveComplete = fn;
+}
+
 // Bidirectional stream: direction + byte pairs for the UI
 export interface CommStreamEntry { dir: 'tx' | 'rx'; byte: number; }
 const streamBuffer: CommStreamEntry[] = [];
@@ -113,12 +119,16 @@ function commReadFn(): number {
 // Called by port.ts when the calculator transmits a byte to us.
 // In Sending mode: 0x13 = XOFF (pause), 0x11 = XON (resume).
 // All bytes are also captured in outputBuffer for the UI to display.
+// When not sending and EOF (0x1A) is received, fires the receive-complete callback.
 function commWriteFn(b: number): void {
   outputBuffer.push(b);
   streamBuffer.push({ dir: 'rx', byte: b });
   if (sending) {
     if (b === 0x13)      suspend = true;   // XOFF — calculator buffer full
     else if (b === 0x11) suspend = false;  // XON  — calculator ready for more
+  } else if (b === 0x1A && _onReceiveComplete) {
+    // Calculator finished a SAVE — deliver the received data
+    _onReceiveComplete(new Uint8Array(outputBuffer));
   }
 }
 
