@@ -22,6 +22,58 @@ const editedRows = reactive<Record<number, string[]>>({});
 // Reactivity trigger bumped whenever editorPixels changes
 const editorTick = ref(0);
 
+// ─── localStorage persistence for user-defined characters (252-255) ──────────
+const LS_KEY = 'fx870p-userchars';
+
+// Stored format: { "252": "AABBCCDDEE", "253": "...", ... }
+// Each value is the 5 column bytes as a 10-char hex string (same as DEFCHR$).
+
+function bytesToRows(bytes: number[]): string[] {
+  const lines: string[] = [];
+  for (let row = 0; row < 8; row++) {
+    let line = '';
+    for (let col = 0; col < 5; col++) {
+      line += (bytes[col]! & (1 << (7 - row))) ? ON : OFF;
+    }
+    line += OFF;
+    lines.push(line);
+  }
+  return lines;
+}
+
+function loadUserChars(): void {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw) as Record<string, string>;
+    for (const key of Object.keys(saved)) {
+      const code = Number(key);
+      if (code < 252 || code > 255) continue;
+      const hexStr = saved[key]!;
+      if (hexStr.length !== 10) continue;
+      const bytes: number[] = [];
+      for (let i = 0; i < 5; i++) {
+        bytes.push(parseInt(hexStr.substring(i * 2, i * 2 + 2), 16));
+      }
+      editedRows[code] = bytesToRows(bytes);
+    }
+  } catch { /* ignore corrupt data */ }
+}
+
+function saveUserChar(code: number, columnBytes: number[]): void {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    const saved: Record<string, string> = raw ? JSON.parse(raw) : {};
+    saved[String(code)] = columnBytes
+      .map(b => b.toString(16).toUpperCase().padStart(2, '0'))
+      .join('');
+    localStorage.setItem(LS_KEY, JSON.stringify(saved));
+  } catch { /* ignore storage errors */ }
+}
+
+// Load saved user-defined characters on component init
+loadUserChars();
+
 interface CellData {
   code: number;
   hexStr: string;
@@ -124,10 +176,29 @@ function openEditor(code: number): void {
   const rom1b = memdef[3]?.data;
   const fontBase = getOption2() === 1 ? JP_FONT : EN_FONT;
 
+  // Try to load saved user-defined char from localStorage
+  let savedBytes: number[] | null = null;
+  if (code >= 0xFC) {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw) as Record<string, string>;
+        const hexStr = saved[String(code)];
+        if (hexStr && hexStr.length === 10) {
+          savedBytes = [];
+          for (let i = 0; i < 5; i++) {
+            savedBytes.push(parseInt(hexStr.substring(i * 2, i * 2 + 2), 16));
+          }
+        }
+      }
+    } catch { /* ignore */ }
+  }
+
   for (let col = 0; col < 5; col++) {
     let byte = 0;
-    if (code >= 0xFC) {
-      // User-defined: start blank
+    if (savedBytes) {
+      byte = savedBytes[col]!;
+    } else if (code >= 0xFC) {
       byte = 0;
     } else if (code >= 0x20 && rom1b) {
       const offset = fontBase + (code - 0x20) * 6;
@@ -143,6 +214,18 @@ function saveEditorToTable(): void {
   const code = editorCode.value;
   if (code === null) return;
   editedRows[code] = rowsFromEditor();
+  // Persist user-defined characters to localStorage
+  if (code >= 0xFC && code <= 0xFF) {
+    const bytes: number[] = [];
+    for (let col = 0; col < 5; col++) {
+      let byte = 0;
+      for (let row = 0; row < 8; row++) {
+        if (editorPixels[col]![row]) byte |= (1 << (7 - row));
+      }
+      bytes.push(byte);
+    }
+    saveUserChar(code, bytes);
+  }
 }
 
 function closeEditor(): void {
