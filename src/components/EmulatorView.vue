@@ -375,15 +375,16 @@ onUnmounted(() => {
 .divider {
   width: 6px;
   cursor: col-resize;
-  background: #1a1a1a;
+  background: #333;
   flex-shrink: 0;
+  align-self: stretch;
   position: relative;
   z-index: 2;
   transition: background 0.15s;
 }
 .divider:hover,
 .divider:active {
-  background: #444;
+  background: #666;
 }
 
 /* ── side panels ── */
