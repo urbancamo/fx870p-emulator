@@ -17,13 +17,6 @@ designed to purely make the code behind that emulator available to a wider audie
 This version of the emulator implemented by [Mark Wickens](https://urbancamo.github.com) and is hosted 
 on GitHub [here](https://github.com/urbancamo/fx870p-emulator/).
 
-## Limitations
-
-IO is not yet implemented in any capacity. This is a work in progress. I'm also planning on implementing direct
-keyboard entry - at the moment you have to use the mouse to click the keyboard buttons directly.
-
----
-
 ## Hardware Emulated
 
 | Component | Details                                                                               |
@@ -74,28 +67,43 @@ The app is served under the `/fx870p-emulator/` base path in both dev and produc
 ```
 src/
   emulator/
-    cpu.ts          HD61700 CPU core — reset, fetch/decode/execute loop
-    exec.ts         Instruction handlers (~2100 lines)
-    decoder.ts      256-entry instruction dispatch table
-    def.ts          CPU state, memory map, srcRead/dstWrite
-    lcd.ts          HD44352A01 LCD controller → Canvas ImageData
-    keyboard.ts     83-key matrix — keydown + mouse events
-    port.ts         I/O ports and UART state machine
-    comm.ts         RS-232C TX/RX queue, XON/XOFF
-    fdd.ts          MD-120 floppy disk (OPFS-backed)
-    emulator.ts     Main rAF loop, ROM loading, state persistence
-    remote-log.ts   Debug logging (dev only)
+    cpu.ts            HD61700 CPU core — reset, fetch/decode/execute loop
+    exec.ts           Instruction handlers (~2100 lines)
+    decoder.ts        256-entry instruction dispatch table
+    def.ts            CPU state, memory map, srcRead/dstWrite
+    disassemble.ts    Runtime disassembler (used by DebugPanel)
+    lcd.ts            HD44352A01 LCD controller → Canvas ImageData
+    keyboard.ts       83-key matrix — keydown + mouse events
+    port.ts           I/O ports and UART state machine
+    comm.ts           RS-232C TX/RX queue, XON/XOFF, SAVE receive
+    emulator.ts       Main rAF loop, ROM loading, state persistence
+    remote-log.ts     Debug logging (dev only)
+    trace.ts          Per-instruction JSONL trace recorder
   components/
-    EmulatorView.vue    Top-level orchestrator
+    EmulatorView.vue    Top-level orchestrator + panel layout
     LcdCanvas.vue       Canvas LCD renderer
-    KeyboardOverlay.vue Clickable key hit regions over face.png
-    CommPanel.vue       Serial/debug panel
+    KeyboardOverlay.vue Clickable key hit regions over face images
+    CommPanel.vue       Serial comms panel + toolbar buttons
+    DebugPanel.vue      CPU debugger (registers, flags, disassembly)
+    AboutPopup.vue      About dialog (renders ABOUT.md)
 public/
-  images/face.png   Calculator faceplate graphic
-  roms/             ROM and charset binaries (not in repo)
-reference/          Documentation and Delphi source
-docs/               Implementation notes
-tools/dis.ts        Standalone disassembler (npm run dis)
+  ABOUT.md            User-facing documentation (rendered in About popup)
+  basic/              Sample BASIC programs (.bas, .fx)
+  images/
+    face.png          Calculator faceplate (standard)
+    face-large.png    Calculator faceplate (large)
+    face-huge.png     Calculator faceplate (huge)
+    keys.png          Key overlay reference
+    casio-logo.svg    Casio logo (used as About popup watermark)
+  roms/               ROM and charset binaries (not in repo)
+tests/
+  emu-harness.ts      Headless emulator boot + keystroke helpers
+  sin90.test.ts       SIN(90) regression test
+tools/
+  dis.ts              Standalone disassembler (npm run dis)
+  compare-traces.mjs  Delphi vs TypeScript trace comparison
+reference/            Documentation and Delphi source
+docs/                 Implementation notes
 ```
 
 ---
@@ -148,13 +156,12 @@ Tests require ROM files in `public/roms/` (same as the dev server).
 
 ## Debug Logging
 
-The dev server exposes a `/fx870p-emulator/log` endpoint that writes to `emulator-debug.log`.
+The dev server exposes a `/fx870p-emulator/log` endpoint that writes to `emulator-debug.log`. Enable logging from the browser console:
 
-1. Start the dev server
-2. Open the app and click **Log** (turns red) before clicking **Fresh Start**
-3. Wait ~3 seconds for boot to complete
-4. Click **Log** again to flush and stop
-5. Inspect `emulator-debug.log`
+```js
+window.ioDebug(true)   // enable
+window.ioDebug(false)  // disable
+```
 
 ---
 
