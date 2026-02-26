@@ -31,11 +31,82 @@ export const keypad: readonly KeyBlock[] = [
 ];
 
 // ─── key state ────────────────────────────────────────────────────────────────
-export let keyCode1 = 0; // key pressed via mouse
-export let keyCode2 = 0; // key pressed via keyboard
+export let keyCode1  = 0; // key pressed via mouse
+export let keyCode2  = 0; // key pressed via keyboard (base key)
+export let keyCode2b = 0; // simultaneous modifier key from keyboard (e.g. red S for shift combos)
 
-export function setKeyCode1(v: number) { keyCode1 = v; }
-export function setKeyCode2(v: number) { keyCode2 = v; }
+export function setKeyCode1(v: number)  { keyCode1  = v; }
+export function setKeyCode2(v: number)  { keyCode2  = v; }
+export function setKeyCode2b(v: number) { keyCode2b = v; }
+
+// ─── keyboard input buffer ──────────────────────────────────────────────────
+// Queues keystroke events so that fast typing doesn't drop characters.
+// Each key is held active for a minimum duration before the next is presented,
+// guaranteeing the ROM's 256 Hz key-scan loop sees every press.
+
+interface BufferedKey {
+  code: number;       // keyCode2 value
+  modifier: number;   // keyCode2b value (e.g. RED_S for shift combos)
+  interrupt: boolean;  // whether to fire keyInterrupt after presenting
+}
+
+const _keyBuffer: BufferedKey[] = [];
+let _bufferTimer: ReturnType<typeof setTimeout> | null = null;
+let _interruptFn: (() => void) | null = null;
+
+// Minimum time (ms) a key is held before the next buffered key is presented.
+// At 256 Hz scan rate, 35 ms guarantees ~9 scan cycles — enough for the ROM
+// to detect the press AND the subsequent release gap.
+const KEY_HOLD_MS = 35;
+// Gap between keys where keyCode2=0, so the ROM sees a release before next key.
+const KEY_GAP_MS = 15;
+
+/** Register the interrupt callback (called from KeyboardOverlay on mount). */
+export function setKeyInterruptFn(fn: (() => void) | null): void {
+  _interruptFn = fn;
+}
+
+/** Push a key event into the buffer. If nothing is active, present it now. */
+export function bufferKey(code: number, modifier: number = 0, interrupt: boolean = true): void {
+  _keyBuffer.push({ code, modifier, interrupt });
+  if (_bufferTimer === null && keyCode2 === 0) {
+    _presentNext();
+  }
+}
+
+/** Clear the buffer and release current key (used on keyUp for the active key). */
+export function bufferClear(): void {
+  _keyBuffer.length = 0;
+  if (_bufferTimer !== null) { clearTimeout(_bufferTimer); _bufferTimer = null; }
+  keyCode2 = 0;
+  keyCode2b = 0;
+}
+
+function _presentNext(): void {
+  if (_keyBuffer.length === 0) {
+    // Nothing queued — release key and stop
+    keyCode2 = 0;
+    keyCode2b = 0;
+    _bufferTimer = null;
+    return;
+  }
+  const entry = _keyBuffer.shift()!;
+  keyCode2 = entry.code;
+  keyCode2b = entry.modifier;
+  if (entry.interrupt && _interruptFn) _interruptFn();
+  // Hold this key for KEY_HOLD_MS, then insert a release gap
+  _bufferTimer = setTimeout(() => {
+    keyCode2 = 0;
+    keyCode2b = 0;
+    // Brief gap so ROM sees the release, then present next key
+    _bufferTimer = setTimeout(() => {
+      _presentNext();
+    }, KEY_GAP_MS);
+  }, KEY_HOLD_MS);
+}
+
+/** Number of pending keys in the buffer (for diagnostics). */
+export function bufferLength(): number { return _keyBuffer.length; }
 
 // ─── KeyTab[KO][keyCode] → KY contribution ───────────────────────────────────
 // Verbatim from keyboard.pas — 16 KO columns × 84 key codes
@@ -334,5 +405,5 @@ export const keyTab: readonly (readonly number[])[] = [
 // Return KY register contribution for KO column
 export function readKy(ko: number): number {
   const row = keyTab[ko & 0xF];
-  return (row[keyCode1] | row[keyCode2]) & 0xFFFF;
+  return (row[keyCode1] | row[keyCode2] | row[keyCode2b]) & 0xFFFF;
 }

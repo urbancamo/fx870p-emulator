@@ -3,9 +3,30 @@
 // Loads ROMs, starts the emulator, and composes:
 //   face.png → LcdCanvas (at x=48,y=36) → KeyboardOverlay
 
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 
 const base = import.meta.env.BASE_URL;
+
+// ─── responsive scaling ─────────────────────────────────────────────────────
+// The face image is 709×280 px. We scale the entire emulator column to fill
+// the viewport width with a small border, keeping the aspect ratio intact.
+const FACE_W = 709;
+const BORDER_PX = 24; // padding each side
+const windowWidth = ref(window.innerWidth);
+function onResize() { windowWidth.value = window.innerWidth; }
+const scaleFactor = computed(() => {
+  const available = windowWidth.value - BORDER_PX * 2;
+  return Math.min(available / FACE_W, 4); // cap at 4× to stay sane on ultrawide
+});
+
+// Pick the sharpest face image that won't be upscaled.
+// face.png = 709px (1×), face-large.png = 1418px (2×), face-huge.png = 2836px (4×).
+const faceImage = computed(() => {
+  const rendered = FACE_W * scaleFactor.value;
+  if (rendered > 1418) return `${base}images/face-huge.png`;
+  if (rendered > 709)  return `${base}images/face-large.png`;
+  return `${base}images/face.png`;
+});
 import {
   loadRoms, loadCharset,
   emulatorReset, emulatorStart, emulatorStop,
@@ -60,12 +81,14 @@ onMounted(() => {
   init();
   window.addEventListener('keydown', onKeyDown);
   window.addEventListener('beforeunload', beforeUnload);
+  window.addEventListener('resize', onResize);
 });
 
 onUnmounted(() => {
   emulatorStop();
   window.removeEventListener('keydown', onKeyDown);
   window.removeEventListener('beforeunload', beforeUnload);
+  window.removeEventListener('resize', onResize);
 });
 </script>
 
@@ -74,25 +97,30 @@ onUnmounted(() => {
     <div v-if="loading" class="overlay-msg">Loading ROMs…</div>
     <div v-else-if="error" class="overlay-msg error">{{ error }}</div>
 
-    <div class="face-container">
-      <img
-        :src="`${base}images/face.png`"
-        alt="CASIO fx-870P"
-        class="face-img"
-        draggable="false"
-      />
-      <!-- LCD canvas positioned at face.png pixel (48, 36) -->
-      <LcdCanvas class="lcd-overlay" />
-      <!-- Transparent keyboard hit-test overlay -->
-      <KeyboardOverlay />
+    <div
+      class="emulator-scaler"
+      :style="{ transform: `scale(${scaleFactor})` }"
+    >
+      <div class="face-container">
+        <img
+          :src="faceImage"
+          alt="CASIO fx-870P"
+          class="face-img"
+          draggable="false"
+        />
+        <!-- LCD canvas positioned at face.png pixel (48, 36) -->
+        <LcdCanvas class="lcd-overlay" />
+        <!-- Transparent keyboard hit-test overlay -->
+        <KeyboardOverlay />
+      </div>
+      <CommPanel />
+      <div class="debug-toggle-row">
+        <button class="debug-toggle-btn" @click="showDebug = !showDebug">
+          {{ showDebug ? 'Hide Debugger' : 'Debugger' }}
+        </button>
+      </div>
+      <DebugPanel v-if="showDebug" />
     </div>
-    <CommPanel />
-    <div class="debug-toggle-row">
-      <button class="debug-toggle-btn" @click="showDebug = !showDebug">
-        {{ showDebug ? 'Hide Debugger' : 'Debugger' }}
-      </button>
-    </div>
-    <DebugPanel v-if="showDebug" />
   </div>
 </template>
 
@@ -101,9 +129,16 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   min-height: 100vh;
-  background: #1a1a1a;
+  background: #000;
+  padding-top: 24px;
+}
+
+.emulator-scaler {
+  transform-origin: top center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 /* Natural face dimensions: 709 × 280 px */
