@@ -28,46 +28,46 @@ Press **F9** at any time to perform a hardware reset (equivalent to pressing the
 
 Most keys on your PC keyboard map directly to the corresponding calculator keys:
 
-| PC Key | Calculator Key |
-|--------|---------------|
-| **A**–**Z** | Letter keys (auto-adjusts CAPS to match case) |
-| **0**–**9** | Number keys |
-| **Enter** | EXE |
-| **Escape** | BRK / ON |
-| **Backspace** or **Delete** | BS (backspace) |
-| **Insert** | INS |
-| **Arrow keys** | Cursor movement |
-| **Page Down** | CAPS |
-| **Page Up** | Red S (Shift / 2nd function) |
-| **Space** | Space |
-| **+ - * /** | Arithmetic operators |
-| **( ) ^ . , =** | Punctuation keys |
+| PC Key                      | Calculator Key                                |
+|-----------------------------|-----------------------------------------------|
+| **A**–**Z**                 | Letter keys (auto-adjusts CAPS to match case) |
+| **0**–**9**                 | Number keys                                   |
+| **Enter**                   | EXE                                           |
+| **Escape**                  | BRK / ON                                      |
+| **Backspace** or **Delete** | BS (backspace)                                |
+| **Insert**                  | INS                                           |
+| **Arrow keys**              | Cursor movement                               |
+| **Page Down**               | CAPS                                          |
+| **Page Up**                 | Red S (Shift / 2nd function)                  |
+| **Space**                   | Space                                         |
+| **+ - * /**                 | Arithmetic operators                          |
+| **( ) ^ . , =**             | Punctuation keys                              |
 
 #### Shifted Symbols
 
 Many symbols are entered using the calculator's red **S** (Shift) key. When you type these characters on your PC keyboard, the emulator automatically sends the correct Shift + key combination:
 
-| PC Key | Calculator Entry |
-|--------|-----------------|
-| **!** | S + Q |
-| **"** | S + W |
-| **#** | S + E |
-| **$** | S + R |
-| **%** | S + T |
-| **&** | S + Y |
-| **'** | S + U |
-| **@** | S + A |
-| **~** | S + S |
-| **?** | S + D |
-| **{ }** | S + F / S + G |
-| **[ ]** | S + H / S + J |
-| **< >** | S + K / S + L |
-| **; :** | S + , / S + = |
-| **_** | S + Space |
+| PC Key  | Calculator Entry |
+|---------|------------------|
+| **!**   | S + Q            |
+| **"**   | S + W            |
+| **#**   | S + E            |
+| **$**   | S + R            |
+| **%**   | S + T            |
+| **&**   | S + Y            |
+| **'**   | S + U            |
+| **@**   | S + A            |
+| **~**   | S + S            |
+| **?**   | S + D            |
+| **{ }** | S + F / S + G    |
+| **[ ]** | S + H / S + J    |
+| **< >** | S + K / S + L    |
+| **; :** | S + , / S + =    |
+| **_**   | S + Space        |
 
 #### Function Keys
 
-Calculator function keys (SIN, COS, TAN, LOG, LN, etc.) do not have PC keyboard equivalents. Use the mouse to click them on the calculator faceplate, or enter the function name as text when in BASIC programming mode.
+Named functions such as SIN, COS, TAN, LOG, and LN can be typed directly on the PC keyboard by spelling out the function name (e.g. type `S`, `I`, `N` for SIN). The calculator accepts both the typed name and the dedicated function key on the faceplate. You can also click the function keys on the calculator image with the mouse.
 
 ### Calculator Modes
 
@@ -85,15 +85,15 @@ For a comprehensive guide to all calculator features and the BASIC programming l
 
 The toolbar below the calculator provides the following controls:
 
-| Button | Function |
-|--------|----------|
-| **Send...** | Select a BASIC program file (.bas, .fx) to send to the calculator via the emulated RS-232C serial port |
-| **Stop** | Abort the current file transfer |
-| **Import RAM...** | Load a raw RAM image (e.g. from the Delphi emulator) to restore calculator state |
-| **Comms** | Show or hide the communications diagnostics panel |
-| **Debugger** | Show or hide the CPU debugger panel |
-| **About** | Display this information popup |
-| **Arrow** | Cycle the panel layout: bottom, right, or left of the calculator |
+| Button            | Function                                                                                               |
+|-------------------|--------------------------------------------------------------------------------------------------------|
+| **Send...**       | Select a BASIC program file (.bas, .fx) to send to the calculator via the emulated RS-232C serial port |
+| **Stop**          | Abort the current file transfer                                                                        |
+| **Import RAM...** | Load a raw RAM image (e.g. from the Delphi emulator) to restore calculator state                       |
+| **Comms**         | Show or hide the communications diagnostics panel                                                      |
+| **Debugger**      | Show or hide the CPU debugger panel                                                                    |
+| **About**         | Display this information popup                                                                         |
+| **Arrow**         | Cycle the panel layout: bottom, right, or left of the calculator                                       |
 
 The progress bar between Send and Stop shows transfer progress, turning green when actively sending and amber when paused by flow control.
 
@@ -102,7 +102,8 @@ The progress bar between Send and Stop shows transfer progress, turning green wh
 To load a BASIC program file into the calculator:
 
 1. Click **Send...** and select a `.bas` or `.fx` file
-2. On the calculator, type: `LOAD "COM0:6,N,8,1,N,N,N,N,N"` and press **EXE**
+2. On the calculator, type: `LOAD "COM0:6,N,8,1,N,N,N,N,N"` or use the F-COM panel (Shift - CASL then select 'L' for LOAD, use arrow keys to choose program location) 
+and press **EXE**
 3. The file will transfer automatically with XON/XOFF flow control
 4. When complete, type `LIST` and press **EXE** to verify the program loaded
 
