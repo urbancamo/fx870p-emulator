@@ -19,7 +19,7 @@ export function setLcdctrl(v: number) {
 }
 
 // ─── internal state ───────────────────────────────────────────────────────────
-const lcdmem = new Uint8Array(2 * 768); // lcdmem[bank * 768 + index]
+export const lcdmem = new Uint8Array(2 * 768); // lcdmem[bank * 768 + index]
 
 interface CursorParam {
   mem:    Uint8Array; // 16 nibbles
@@ -37,6 +37,10 @@ let index     = 0;
 let CharWidth = 8;
 let Visible   = false;
 let DataByte  = 0;
+
+// Debug hook: called when a character is written to LCD
+let _charOutputHook: ((db: number, idx: number, cw: number, bank: number, op: number) => void) | null = null;
+export function setCharOutputHook(fn: typeof _charOutputHook): void { _charOutputHook = fn; }
 
 const cursor: CursorParam[] = [
   { mem: new Uint8Array(16), offset: 0, page: 0, col: 0, row: 0 },
@@ -189,6 +193,7 @@ export function lcdTransfer(data: number): number {
         } else {
           // HD44352A01: DataByte = (DataByte << 4) | data  (low nibble last)
           DataByte = ((DataByte << 4) | data) & 0xFF;
+          if (_charOutputHook) _charOutputHook(DataByte, index % 768, CharWidth, bank, param[1] >> 1);
           for (let i = 0; i < 2 * CharWidth; i++) {
             const idx = index % 768;
             nexus(lcdmem, bank * 768 + idx, lcdchr[DataByte * 16 + i], op);

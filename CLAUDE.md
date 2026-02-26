@@ -9,9 +9,10 @@ npm run dev          # dev server on http://localhost:3007/fx870p-emulator/ (wit
 npm run build        # vue-tsc type-check + vite build → dist/
 npm run preview      # serve the production build locally
 npm run dis          # run the CLI disassembler: npx tsx tools/dis.ts <romfile> [start] [end]
+npm test             # run vitest test suite (headless emulator tests)
 ```
 
-No test suite exists. Type-check via `vue-tsc -b` (run as part of `npm run build`).
+Type-check via `vue-tsc -b` (run as part of `npm run build`).
 
 ROM files are **not in the repo** — place `rom0.bin`, `rom1.bin`, `charset.bin` in `public/roms/` before running.
 
@@ -101,5 +102,8 @@ For the stack to be in RAM, bits 3:2 of UA must be `01` (e.g. UA=0x14, 0x44, 0x5
 |-------------|-------------|-----|-----|
 | `adwSbw` (`sbcw`/`adcw` to memory) | 0xB8–0xBF (`adwSbw_B8`) | Subtraction carry used `y > 0xFF` — always false for negative JS numbers | `(y >>> 0) > 0xFF` (matches byte-wide `adSb_38`) |
 | `cpuReset` | — | Did not zero `mr[]`, `sx`/`sy`/`sz`, `flag` | `mr.fill(0)` + zero all size/index registers |
+| `subBcd` | — (BCD helper) | Used arithmetic `r - 6 - 0x10` for borrow propagation instead of bitwise OR | `((r - 6) \| ((-0x10) >>> 0)) >>> 0` (matches Delphi `(r - $06) or cardinal(-$10)`) |
 
 The `adwSbw` carry bug caused `sbcw (iz+$sy),$6` to leave C_bit=0 even when borrow occurred, making conditional-return instructions (`rtn nc`) fire incorrectly. Symptom: `LIST` returned after CR/LF header without displaying any lines.
+
+The `subBcd` bug caused all BCD floating-point results to have the exponent off by -10 (e.g., `1 EXE` → `0.0000000001`). The Delphi reference uses `(Result - $06) or cardinal(-$10)` which performs bitwise OR with `0xFFFFFFF0` to propagate the borrow into the upper nibble, while the TypeScript used arithmetic subtraction which produces entirely different values on underflow.

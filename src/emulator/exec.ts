@@ -122,9 +122,9 @@ function addBcd(a: number, b: number): number {
 
 function subBcd(a: number, b: number): number {
   let r = ((a & 0x0F) - (b & 0x0F)) >>> 0;
-  if (r > 9) r = (r - 6 - 0x10) >>> 0;
+  if (r > 9) r = ((r - 6) | ((-0x10) >>> 0)) >>> 0;
   r = (r + (a & 0xF0) - (b & 0xF0)) >>> 0;
-  if (r > 0x9F) r = (r - 0x60 - 0x100) >>> 0;
+  if (r > 0x9F) r = ((r - 0x60) | ((-0x100) >>> 0)) >>> 0;
   return r >>> 0;
 }
 

@@ -9,7 +9,8 @@
     "stop": "lsof -ti :3007 | xargs kill -9",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
-    "dis": "tsx tools/dis.ts"
+    "dis": "tsx tools/dis.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "vue": "^3.5.25"
@@ -21,6 +22,7 @@
     "tsx": "^4.21.0",
     "typescript": "~5.9.3",
     "vite": "^7.3.1",
+    "vitest": "^4.0.18",
     "vue-tsc": "^3.1.5"
   }
 }
