@@ -70,9 +70,35 @@ export function rxBytesRemaining(): number {
   return sending ? rxQueue.length : 0;
 }
 
+let receiving      = false; // true while calculator is sending us data (SAVE)
+let bytesReceived  = 0;    // bytes received in current SAVE operation
+let receiveTimer: ReturnType<typeof setTimeout> | null = null;
+const RECEIVE_TIMEOUT_MS = 2000; // discard partial data if no byte arrives within 2s
+
+function resetReceiveTimeout(): void {
+  if (receiveTimer !== null) clearTimeout(receiveTimer);
+  receiveTimer = setTimeout(() => {
+    if (receiving) {
+      receiving = false;
+      bytesReceived = 0;
+      outputBuffer.length = 0;
+    }
+    receiveTimer = null;
+  }, RECEIVE_TIMEOUT_MS);
+}
+
+function clearReceiveTimeout(): void {
+  if (receiveTimer !== null) {
+    clearTimeout(receiveTimer);
+    receiveTimer = null;
+  }
+}
+
 export function isSending(): boolean { return sending; }
 export function isSuspended(): boolean { return suspend; }
+export function isReceiving(): boolean { return receiving; }
 export function getBytesSent(): number { return bytesSent; }
+export function getBytesReceived(): number { return bytesReceived; }
 export function getOutput(): number[] { return outputBuffer; }
 
 // Decrement the char-delay timer by the given CPU cycle count.
@@ -126,9 +152,21 @@ function commWriteFn(b: number): void {
   if (sending) {
     if (b === 0x13)      suspend = true;   // XOFF — calculator buffer full
     else if (b === 0x11) suspend = false;  // XON  — calculator ready for more
-  } else if (b === 0x1A && _onReceiveComplete) {
-    // Calculator finished a SAVE — deliver the received data
-    _onReceiveComplete(new Uint8Array(outputBuffer));
+  } else {
+    // Receiving data from calculator (SAVE operation)
+    if (!receiving) {
+      receiving = true;
+      bytesReceived = 0;
+    }
+    bytesReceived++;
+    resetReceiveTimeout();
+    if (b === 0x1A) {
+      clearReceiveTimeout();
+      receiving = false;
+      if (_onReceiveComplete) {
+        _onReceiveComplete(new Uint8Array(outputBuffer));
+      }
+    }
   }
 }
 

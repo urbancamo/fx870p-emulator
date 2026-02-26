@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import {
   loadFileBytes, stopTransfer, clearOutput,
-  isSending, isSuspended, getBytesSent, getOutput,
+  isSending, isSuspended, isReceiving, getBytesSent, getBytesReceived, getOutput,
   getStream, clearStream, setOnReceiveComplete,
 } from '../emulator/comm.js';
 import { getUartRegs, pd, pe, pdi } from '../emulator/port.js';
@@ -28,6 +28,8 @@ const totalBytes   = ref(0);
 const bytesSentRef = ref(0);
 const sending      = ref(false);
 const suspended    = ref(false);
+const receiving    = ref(false);
+const bytesRecvRef = ref(0);
 const outputLines  = ref<string[]>([]);
 
 // Bidirectional stream display
@@ -55,6 +57,7 @@ const progress = computed(() =>
 
 const statusClass = computed(() => {
   if (sending.value) return suspended.value ? 'suspended' : 'sending';
+  if (receiving.value) return 'receiving';
   return 'idle';
 });
 
@@ -174,9 +177,17 @@ function poll(): void {
   suspended.value  = isSuspended();
   bytesSentRef.value = getBytesSent();
 
-  if (!s && status.value.startsWith('Sending')) {
+  const r = isReceiving();
+  receiving.value   = r;
+  bytesRecvRef.value = getBytesReceived();
+
+  if (r) {
+    status.value = `Receiving: ${bytesRecvRef.value} bytes`;
+  } else if (!s && status.value.startsWith('Sending')) {
     status.value = 'Idle';
     fileName.value = '';
+  } else if (!s && status.value.startsWith('Receiving')) {
+    status.value = 'Idle';
   }
 
   // UART regs
@@ -298,8 +309,8 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
       <div class="progress-wrap">
         <div
           class="progress-bar"
-          :class="{ active: sending, suspended: suspended }"
-          :style="{ width: progress + '%' }"
+          :class="{ active: sending, suspended: suspended, receiving: receiving }"
+          :style="{ width: receiving ? '100%' : progress + '%' }"
         />
       </div>
 
@@ -480,6 +491,19 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
 }
 .progress-bar.active    { background: #8bc34a; }
 .progress-bar.suspended { background: #f0a030; }
+.progress-bar.receiving {
+  background: repeating-linear-gradient(
+    -45deg,
+    #f0a030 0px, #f0a030 6px,
+    #c07820 6px, #c07820 12px
+  );
+  background-size: 17px 100%;
+  animation: barber-pole 0.6s linear infinite;
+}
+@keyframes barber-pole {
+  from { background-position: 0 0; }
+  to   { background-position: 17px 0; }
+}
 
 .comm-status {
   font-size: 0.72rem;
@@ -489,6 +513,7 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
 }
 .comm-status.sending   { color: #8bc34a; }
 .comm-status.suspended { color: #f0a030; }
+.comm-status.receiving { color: #f0a030; }
 .comm-status.idle      { color: #555; }
 
 /* ── hint ── */
