@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import {
   loadFileBytes, stopTransfer, clearOutput,
   isSending, isSuspended, getBytesSent, getOutput,
+  getStream, clearStream,
 } from '../emulator/comm.js';
 import { getUartRegs, pd, pe, pdi, setIoDebug } from '../emulator/port.js';
 import { importRamState, emulatorReset, emulatorStart, freshReset, readRamByte } from '../emulator/emulator.js';
@@ -16,6 +17,11 @@ const bytesSentRef = ref(0);
 const sending      = ref(false);
 const suspended    = ref(false);
 const outputLines  = ref<string[]>([]);
+
+// Bidirectional stream display
+interface StreamSpan { dir: 'tx' | 'rx'; text: string; }
+const streamSpans = ref<StreamSpan[]>([]);
+let _lastStreamLen = 0;
 
 // UART diagnostics (polled)
 const uartRd   = ref<number[]>(Array(8).fill(0xFF));
@@ -95,32 +101,57 @@ function onStop(): void {
 let _lastOutputLen = 0;
 const outputEl = ref<HTMLElement | null>(null);
 
+function formatByte(b: number): string {
+  if (b === 0x0D) return '\\r';
+  if (b === 0x0A) return '\\n';
+  if (b === 0x1A) return '[EOF]';
+  if (b === 0x11) return '[XON]';
+  if (b === 0x13) return '[XOFF]';
+  if (b >= 0x20 && b < 0x7F) return String.fromCharCode(b);
+  return `[${b.toString(16).padStart(2, '0').toUpperCase()}]`;
+}
+
 function flushOutput(): void {
+  // Legacy line-based output (kept for getOutput/save)
   const buf = getOutput();
-  if (buf.length === _lastOutputLen) return;
-  // Render new bytes
-  const newBytes = buf.slice(_lastOutputLen);
-  _lastOutputLen = buf.length;
-  // Build printable string, escaping non-printable chars
-  let chunk = '';
-  for (const b of newBytes) {
-    if (b === 0x0D) {
-      // CR — start new line
-      if (chunk) outputLines.value.push(chunk);
-      chunk = '';
-    } else if (b === 0x0A) {
-      // LF — ignore (CR already made a new line)
-    } else if (b >= 0x20 && b < 0x7F) {
-      chunk += String.fromCharCode(b);
-    } else {
-      chunk += `[${b.toString(16).padStart(2, '0').toUpperCase()}]`;
+  if (buf.length !== _lastOutputLen) {
+    const newBytes = buf.slice(_lastOutputLen);
+    _lastOutputLen = buf.length;
+    let chunk = '';
+    for (const b of newBytes) {
+      if (b === 0x0D) {
+        if (chunk) outputLines.value.push(chunk);
+        chunk = '';
+      } else if (b === 0x0A) {
+        // ignore
+      } else if (b >= 0x20 && b < 0x7F) {
+        chunk += String.fromCharCode(b);
+      } else {
+        chunk += `[${b.toString(16).padStart(2, '0').toUpperCase()}]`;
+      }
     }
+    if (chunk) outputLines.value.push(chunk);
+    if (outputLines.value.length > 200) outputLines.value.splice(0, outputLines.value.length - 200);
   }
-  if (chunk) outputLines.value.push(chunk);
-  // Keep last 200 lines
-  if (outputLines.value.length > 200) outputLines.value.splice(0, outputLines.value.length - 200);
-  // Auto-scroll
-  if (outputEl.value) outputEl.value.scrollTop = outputEl.value.scrollHeight;
+
+  // Bidirectional stream
+  const stream = getStream();
+  if (stream.length !== _lastStreamLen) {
+    const newEntries = stream.slice(_lastStreamLen);
+    _lastStreamLen = stream.length;
+    for (const entry of newEntries) {
+      const text = formatByte(entry.byte);
+      const last = streamSpans.value.length > 0 ? streamSpans.value[streamSpans.value.length - 1] : null;
+      if (last && last.dir === entry.dir) {
+        last.text += text;
+      } else {
+        streamSpans.value.push({ dir: entry.dir, text });
+      }
+    }
+    // Trim old spans if too many
+    if (streamSpans.value.length > 500) streamSpans.value.splice(0, streamSpans.value.length - 500);
+    if (outputEl.value) outputEl.value.scrollTop = outputEl.value.scrollHeight;
+  }
 }
 
 // ─── poll loop ────────────────────────────────────────────────────────────────
@@ -198,8 +229,11 @@ function toggleDebugLog(): void {
 // ─── output save / clear ──────────────────────────────────────────────────────
 function clearLog(): void {
   clearOutput();
-  outputLines.value = [];
-  _lastOutputLen    = 0;
+  clearStream();
+  outputLines.value  = [];
+  streamSpans.value  = [];
+  _lastOutputLen     = 0;
+  _lastStreamLen     = 0;
 }
 
 function saveOutput(): void {
@@ -240,7 +274,7 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
         Fresh Start
       </button>
       <button class="btn btn-diag" @click="showDiag = !showDiag">
-        {{ showDiag ? 'Hide diag' : 'Diag' }}
+        {{ showDiag ? 'Hide Comms' : 'Comms' }}
       </button>
       <button
         class="btn btn-dbg"
@@ -296,15 +330,20 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
         </span>
       </div>
 
-      <!-- output from calculator -->
+      <!-- bidirectional serial stream -->
       <div class="output-header">
-        <span>← calc output ({{ getOutput().length }} bytes)</span>
+        <span>serial stream ({{ getStream().length }} bytes)</span>
+        <span class="stream-legend"><span class="legend-tx">■</span> sent <span class="legend-rx">■</span> received</span>
         <button class="btn btn-sm" @click="saveOutput">Save…</button>
         <button class="btn btn-sm" @click="clearLog">Clear</button>
       </div>
       <div ref="outputEl" class="output-log">
-        <div v-for="(line, i) in outputLines" :key="i" class="output-line">{{ line }}</div>
-        <div v-if="outputLines.length === 0" class="output-empty">(no output yet)</div>
+        <span
+          v-for="(span, i) in streamSpans"
+          :key="i"
+          :class="span.dir === 'tx' ? 'stream-tx' : 'stream-rx'"
+        >{{ span.text }}</span>
+        <span v-if="streamSpans.length === 0" class="output-empty">(no data yet)</span>
       </div>
     </div>
 
@@ -445,13 +484,27 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
   border-radius: 2px;
   padding: 3px 6px;
   margin-top: 2px;
-}
-
-.output-line {
-  color: #8bc34a;
-  white-space: pre;
+  word-break: break-all;
+  white-space: pre-wrap;
   line-height: 1.4;
 }
+
+.stream-tx {
+  color: #8bc34a;
+}
+
+.stream-rx {
+  color: #f0a030;
+}
+
+.stream-legend {
+  margin-left: auto;
+  font-size: 0.65rem;
+  color: #444;
+}
+
+.legend-tx { color: #8bc34a; }
+.legend-rx { color: #f0a030; }
 
 .output-empty {
   color: #333;

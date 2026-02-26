@@ -19,6 +19,12 @@ let bytesSent      = 0;     // total bytes delivered from our queue to the UART
 
 const outputBuffer = new Array<number>(); // bytes received FROM the calculator
 
+// Bidirectional stream: direction + byte pairs for the UI
+export interface CommStreamEntry { dir: 'tx' | 'rx'; byte: number; }
+const streamBuffer: CommStreamEntry[] = [];
+export function getStream(): readonly CommStreamEntry[] { return streamBuffer; }
+export function clearStream(): void { streamBuffer.length = 0; }
+
 // Load raw file bytes into the TX queue.
 // Normalizes lone LF → CR+LF; appends 0x1A EOF if absent.
 export function loadFileBytes(raw: Uint8Array): void {
@@ -83,6 +89,7 @@ function commReadFn(): number {
     const b = rxQueue.shift()!;
     lastTxByte = b;
     bytesSent++;
+    streamBuffer.push({ dir: 'tx', byte: b });
     if (b === 0x1A) {
       // StopEof: halt transmission after delivering the EOF byte
       sending = false;
@@ -96,6 +103,7 @@ function commReadFn(): number {
   if (lastTxByte !== 0x1A) {
     lastTxByte = 0x1A;
     sending = false;
+    streamBuffer.push({ dir: 'tx', byte: 0x1A });
     return 0x1A;
   }
   sending = false;
@@ -107,6 +115,7 @@ function commReadFn(): number {
 // All bytes are also captured in outputBuffer for the UI to display.
 function commWriteFn(b: number): void {
   outputBuffer.push(b);
+  streamBuffer.push({ dir: 'rx', byte: b });
   if (sending) {
     if (b === 0x13)      suspend = true;   // XOFF — calculator buffer full
     else if (b === 0x11) suspend = false;  // XON  — calculator ready for more
