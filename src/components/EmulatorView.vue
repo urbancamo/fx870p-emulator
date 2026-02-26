@@ -14,9 +14,14 @@ const FACE_W = 709;
 const BORDER_PX = 24; // padding each side
 const windowWidth = ref(window.innerWidth);
 function onResize() { windowWidth.value = window.innerWidth; }
+const SIDE_PANEL_W = 709; // CommPanel / DebugPanel natural width
 const scaleFactor = computed(() => {
-  const available = windowWidth.value - BORDER_PX * 2;
-  return Math.min(available / FACE_W, 4); // cap at 4× to stay sane on ultrawide
+  let available = windowWidth.value - BORDER_PX * 2;
+  // In side layout, reserve space for the panel
+  if (panelLayout.value !== 'bottom') {
+    available -= SIDE_PANEL_W;
+  }
+  return Math.max(0.25, Math.min(available / FACE_W, 4));
 });
 
 // Pick the sharpest face image that won't be upscaled.
@@ -41,6 +46,24 @@ import { commInit } from '../emulator/comm.js';
 import { setIoDebug, isIoDebug } from '../emulator/port.js';
 
 const showDebug = ref(false);
+
+// Panel layout: bottom (default), right, or left of calculator
+type PanelLayout = 'bottom' | 'right' | 'left';
+const LAYOUT_KEY = 'fx870p-panel-layout';
+const panelLayout = ref<PanelLayout>(
+  (localStorage.getItem(LAYOUT_KEY) as PanelLayout) || 'bottom'
+);
+function cycleLayout(): void {
+  const order: PanelLayout[] = ['bottom', 'right', 'left'];
+  const idx = order.indexOf(panelLayout.value);
+  panelLayout.value = order[(idx + 1) % order.length]!;
+  localStorage.setItem(LAYOUT_KEY, panelLayout.value);
+}
+// In side layout, the scaler wrapper must set explicit width/height to the
+// scaled face dimensions, because CSS transform doesn't change layout size.
+const FACE_H = 280;
+const scalerWidth = computed(() => Math.round(FACE_W * scaleFactor.value));
+const scalerHeight = computed(() => Math.round(FACE_H * scaleFactor.value));
 
 const error    = ref<string | null>(null);
 const loading  = ref(true);
@@ -98,28 +121,83 @@ onUnmounted(() => {
     <div v-else-if="error" class="overlay-msg error">{{ error }}</div>
 
     <div
-      class="emulator-scaler"
-      :style="{ transform: `scale(${scaleFactor})` }"
+      class="emulator-layout"
+      :class="{
+        'layout-bottom': panelLayout === 'bottom',
+        'layout-right':  panelLayout === 'right',
+        'layout-left':   panelLayout === 'left',
+      }"
     >
-      <div class="face-container">
-        <img
-          :src="faceImage"
-          alt="CASIO fx-870P"
-          class="face-img"
-          draggable="false"
-        />
-        <!-- LCD canvas positioned at face.png pixel (48, 36) -->
-        <LcdCanvas class="lcd-overlay" />
-        <!-- Transparent keyboard hit-test overlay -->
-        <KeyboardOverlay />
+      <!-- Side panel (left) -->
+      <div v-if="panelLayout === 'left'" class="side-panels">
+        <CommPanel class="side-comm" />
+        <div class="debug-toggle-row side-toggle">
+          <button class="debug-toggle-btn" @click="cycleLayout" title="Cycle panel layout">{{ panelLayout }}</button>
+          <button class="debug-toggle-btn" @click="showDebug = !showDebug">
+            {{ showDebug ? 'Hide Debugger' : 'Debugger' }}
+          </button>
+        </div>
+        <DebugPanel v-if="showDebug" class="side-debug" />
       </div>
-      <CommPanel />
-      <div class="debug-toggle-row">
-        <button class="debug-toggle-btn" @click="showDebug = !showDebug">
-          {{ showDebug ? 'Hide Debugger' : 'Debugger' }}
-        </button>
+
+      <!-- Calculator (always present, always scaled) -->
+      <div
+        v-if="panelLayout !== 'bottom'"
+        class="scaler-sizer"
+        :style="{ width: scalerWidth + 'px', height: scalerHeight + 'px' }"
+      >
+        <div
+          class="emulator-scaler"
+          :style="{ transform: `scale(${scaleFactor})` }"
+        >
+          <div class="face-container">
+            <img
+              :src="faceImage"
+              alt="CASIO fx-870P"
+              class="face-img"
+              draggable="false"
+            />
+            <LcdCanvas class="lcd-overlay" />
+            <KeyboardOverlay />
+          </div>
+        </div>
       </div>
-      <DebugPanel v-if="showDebug" />
+      <div
+        v-else
+        class="emulator-scaler"
+        :style="{ transform: `scale(${scaleFactor})` }"
+      >
+        <div class="face-container">
+          <img
+            :src="faceImage"
+            alt="CASIO fx-870P"
+            class="face-img"
+            draggable="false"
+          />
+          <LcdCanvas class="lcd-overlay" />
+          <KeyboardOverlay />
+        </div>
+        <CommPanel />
+        <div class="debug-toggle-row">
+          <button class="debug-toggle-btn" @click="cycleLayout" title="Cycle panel layout">{{ panelLayout }}</button>
+          <button class="debug-toggle-btn" @click="showDebug = !showDebug">
+            {{ showDebug ? 'Hide Debugger' : 'Debugger' }}
+          </button>
+        </div>
+        <DebugPanel v-if="showDebug" />
+      </div>
+
+      <!-- Side panel (right) -->
+      <div v-if="panelLayout === 'right'" class="side-panels">
+        <CommPanel class="side-comm" />
+        <div class="debug-toggle-row side-toggle">
+          <button class="debug-toggle-btn" @click="cycleLayout" title="Cycle panel layout">{{ panelLayout }}</button>
+          <button class="debug-toggle-btn" @click="showDebug = !showDebug">
+            {{ showDebug ? 'Hide Debugger' : 'Debugger' }}
+          </button>
+        </div>
+        <DebugPanel v-if="showDebug" class="side-debug" />
+      </div>
     </div>
   </div>
 </template>
@@ -134,11 +212,40 @@ onUnmounted(() => {
   padding-top: 24px;
 }
 
+/* ── outer layout container ── */
+.emulator-layout {
+  display: flex;
+  align-items: flex-start;
+}
+.layout-bottom {
+  flex-direction: column;
+  align-items: center;
+}
+.layout-right {
+  flex-direction: row;
+}
+.layout-left {
+  flex-direction: row;
+}
+
 .emulator-scaler {
   transform-origin: top center;
   display: flex;
   flex-direction: column;
   align-items: center;
+  flex-shrink: 0;
+}
+
+/* Side layout: scale from top-left; the sizer wrapper handles positioning */
+.layout-right .emulator-scaler,
+.layout-left .emulator-scaler {
+  transform-origin: top left;
+}
+
+/* Sizer wrapper: reserves the exact scaled dimensions in the flex layout */
+.scaler-sizer {
+  flex-shrink: 0;
+  overflow: hidden;
 }
 
 /* Natural face dimensions: 709 × 280 px */
@@ -183,10 +290,12 @@ onUnmounted(() => {
   color: #f66;
 }
 
+/* ── toggle row (shared between bottom and side) ── */
 .debug-toggle-row {
   width: 709px;
   display: flex;
   justify-content: flex-end;
+  gap: 4px;
   padding: 2px 8px;
   background: #0d0d0d;
   border-top: 1px solid #1a1a1a;
@@ -204,4 +313,17 @@ onUnmounted(() => {
   cursor: pointer;
 }
 .debug-toggle-btn:hover { color: #999; background: #2a2a2a; }
+
+/* ── side panels ── */
+.side-panels {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  max-height: 100vh;
+  overflow-y: auto;
+}
+
+.side-toggle {
+  width: auto;
+}
 </style>
