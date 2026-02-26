@@ -377,6 +377,7 @@ onUnmounted(() => {
   font-size: 0.72rem;
   color: #bbb;
   box-sizing: border-box;
+  padding-bottom: 24px;
 }
 
 /* ── toolbar ── */
