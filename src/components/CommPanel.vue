@@ -6,7 +6,7 @@ import {
   getStream, clearStream,
 } from '../emulator/comm.js';
 import { getUartRegs, pd, pe, pdi, setIoDebug } from '../emulator/port.js';
-import { importRamState, emulatorReset, emulatorStart, freshReset, readRamByte } from '../emulator/emulator.js';
+import { importRamState, emulatorReset, emulatorStart, readRamByte } from '../emulator/emulator.js';
 import { enableRemoteLog, isRemoteLogEnabled, flushLog } from '../emulator/remote-log.js';
 
 // ─── state ────────────────────────────────────────────────────────────────────
@@ -210,13 +210,6 @@ async function onRamSelected(e: Event): Promise<void> {
   emulatorStart();
 }
 
-// ─── fresh start ──────────────────────────────────────────────────────────────
-// Uses freshReset() (no page reload) so the Log toggle survives across the reset.
-// This lets debug logging capture the full cold-boot device detection sequence.
-async function freshStart(): Promise<void> {
-  await freshReset();
-}
-
 // ─── server-side debug log ────────────────────────────────────────────────────
 function toggleDebugLog(): void {
   const next = !isRemoteLogEnabled();
@@ -269,9 +262,6 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
 
       <button class="btn btn-ram" @click="openRamPicker" title="Load a ram0.bin from the Delphi emulator to restore a working device table">
         Import RAM…
-      </button>
-      <button class="btn btn-warn" @click="freshStart" title="Wipes IndexedDB + localStorage and reloads">
-        Fresh Start
       </button>
       <button class="btn btn-diag" @click="showDiag = !showDiag">
         {{ showDiag ? 'Hide Comms' : 'Comms' }}
@@ -400,8 +390,6 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
 .btn:disabled { opacity: 0.4; cursor: default; }
 .btn-ram  { color: #7eb8f7; border-color: #204050; margin-left: auto; }
 .btn-ram:hover  { background: #102030; color: #aad4ff; }
-.btn-warn { color: #f0a030; border-color: #554020; }
-.btn-warn:hover { background: #3a2a10; color: #ffbb55; }
 .btn-diag { }
 .btn-dbg        { color: #aaa; }
 .btn-dbg.active { color: #f55; border-color: #622; background: #2a1010; }
