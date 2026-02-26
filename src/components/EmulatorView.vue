@@ -3,7 +3,24 @@
 // Loads ROMs, starts the emulator, and composes:
 //   face.png → LcdCanvas (at x=48,y=36) → KeyboardOverlay
 
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import {computed, onMounted, onUnmounted, ref} from 'vue';
+import {
+  emulatorReset,
+  emulatorStart,
+  emulatorStop,
+  loadCharset,
+  loadConfig,
+  loadRoms,
+  restoreState,
+  saveConfig,
+  saveState,
+} from '../emulator/emulator.js';
+import LcdCanvas from './LcdCanvas.vue';
+import KeyboardOverlay from './KeyboardOverlay.vue';
+import CommPanel from './CommPanel.vue';
+import DebugPanel from './DebugPanel.vue';
+import {commInit} from '../emulator/comm.js';
+import {isIoDebug, setIoDebug} from '../emulator/port.js';
 
 const base = import.meta.env.BASE_URL;
 
@@ -44,8 +61,7 @@ function onDividerMove(e: PointerEvent): void {
     // [calculator] [divider] [panel] — calc is on the left
     calcWidth = e.clientX - BORDER_PX;
   }
-  const ratio = Math.max(0.3, Math.min(0.8, calcWidth / total));
-  splitRatio.value = ratio;
+  splitRatio.value = Math.max(0.3, Math.min(0.8, calcWidth / total));
 }
 
 function onDividerUp(): void {
@@ -76,18 +92,6 @@ const faceImage = computed(() => {
   if (rendered > 709)  return `${base}images/face-large.png`;
   return `${base}images/face.png`;
 });
-import {
-  loadRoms, loadCharset,
-  emulatorReset, emulatorStart, emulatorStop,
-  saveState, restoreState,
-  loadConfig, saveConfig,
-} from '../emulator/emulator.js';
-import LcdCanvas from './LcdCanvas.vue';
-import KeyboardOverlay from './KeyboardOverlay.vue';
-import CommPanel from './CommPanel.vue';
-import DebugPanel from './DebugPanel.vue';
-import { commInit } from '../emulator/comm.js';
-import { setIoDebug, isIoDebug } from '../emulator/port.js';
 
 const showDebug = ref(false);
 const showToolbar = ref(true);
@@ -240,7 +244,9 @@ onUnmounted(() => {
       <div
         v-else
         class="emulator-scaler"
-        :style="{ transform: `scale(${scaleFactor})` }"
+        :style="showToolbar
+          ? { transform: `scale(${scaleFactor})` }
+          : { transform: `scale(${scaleFactor})`, width: scalerWidth + 'px', height: scalerHeight + 'px' }"
       >
         <div class="face-container">
           <img
@@ -288,8 +294,14 @@ onUnmounted(() => {
 
 .emulator-root.compact {
   padding: 0;
-  min-height: 100vh;
+  height: 100vh;
   justify-content: center;
+  align-items: center;
+}
+
+.compact .emulator-scaler {
+  transform-origin: 0 0;
+  overflow: visible;
 }
 
 /* ── outer layout container ── */
