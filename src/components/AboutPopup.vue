@@ -65,7 +65,7 @@ function onBackdrop(e: MouseEvent): void {
   background-repeat: no-repeat;
   background-position: center center;
   background-size: 70%;
-  opacity: 0.07;
+  opacity: 0.12;
   pointer-events: none;
 }
 
