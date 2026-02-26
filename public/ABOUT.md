@@ -85,33 +85,44 @@ For a comprehensive guide to all calculator features and the BASIC programming l
 
 The toolbar below the calculator provides the following controls:
 
-| Button            | Function                                                                                               |
-|-------------------|--------------------------------------------------------------------------------------------------------|
-| **Send...**       | Select a BASIC program file (.bas, .fx) to send to the calculator via the emulated RS-232C serial port |
-| **Stop**          | Abort the current file transfer                                                                        |
-| **Import RAM...** | Load a raw RAM image (e.g. from the Delphi emulator) to restore calculator state                       |
-| **Comms**         | Show or hide the communications diagnostics panel                                                      |
-| **Debugger**      | Show or hide the CPU debugger panel                                                                    |
-| **About**         | Display this information popup                                                                         |
-| **Arrow**         | Cycle the panel layout: bottom, right, or left of the calculator                                       |
+| Button        | Function                                                                                               |
+|---------------|--------------------------------------------------------------------------------------------------------|
+| **LOAD**      | Select a BASIC program file (.bas, .fx) to send to the calculator via the emulated RS-232C serial port |
+| **STOP**      | Abort the current file transfer                                                                        |
+| **RAM ↑**     | Import a raw RAM image (e.g. from the Delphi emulator) to restore calculator state                     |
+| **RAM ↓**     | Download the current RAM contents as a binary file                                                     |
+| **COMMS ▾/▴** | Show or hide the communications diagnostics panel                                                      |
+| **DEBUG ▾/▴** | Show or hide the CPU debugger panel                                                                    |
+| **ABOUT**     | Display this information popup                                                                         |
+| **Arrow**     | Cycle the panel layout: bottom, right, or left of the calculator                                       |
 
-The progress bar between Send and Stop shows transfer progress, turning green when actively sending and amber when paused by flow control.
+The progress bar between LOAD and STOP shows transfer progress, turning green when actively sending and amber when paused by flow control. During a SAVE operation (receiving data from the calculator), the bar shows an animated striped pattern with a byte count.
 
 ### Loading a Program via Serial
 
 To load a BASIC program file into the calculator:
 
-1. Click **Send...** and select a `.bas` or `.fx` file
-2. On the calculator, type: `LOAD "COM0:6,N,8,1,N,N,N,N,N"` or use the F-COM panel (Shift - CASL then select 'L' for LOAD, use arrow keys to choose program location) 
-and press **EXE**
+1. Click **LOAD** and select a `.bas` or `.fx` file
+2. On the calculator, type: `LOAD "COM0:6,N,8,1,N,N,N,N,N"` or use the F-COM panel (Shift - CASL then select 'L' for LOAD, use arrow keys to choose program location) and press **EXE**
 3. The file will transfer automatically with XON/XOFF flow control
 4. When complete, type `LIST` and press **EXE** to verify the program loaded
+
+### Saving a Program via Serial
+
+To save a BASIC program from the calculator to a file:
+
+1. On the calculator, type: `SAVE "COM0:6,N,8,1,N,N,N,N,N"` and press **EXE**
+2. The progress bar will show an animated pattern as data is received
+3. When the transfer completes (EOF received), a dialog will prompt you for a filename
+4. Click **Save** to download the file, or **Cancel** to discard
+
+If the transfer is interrupted (e.g. by pressing BRK on the calculator), the partial data is automatically discarded after a 2-second timeout.
 
 ---
 
 ## Comms Panel
 
-Click **Comms** to reveal the communications diagnostics panel. This shows the real-time state of the emulated RS-232C serial port and UART hardware.
+Click **COMMS** to reveal the communications diagnostics panel. This shows the real-time state of the emulated RS-232C serial port and UART hardware.
 
 ### Diagnostics
 
@@ -129,13 +140,13 @@ The stream display at the bottom shows all bytes exchanged between the emulator 
 
 Control characters are displayed with labels: `[XON]` (resume transmission), `[XOFF]` (pause transmission), `[EOF]` (end of file), `\r` (carriage return), `\n` (line feed). Printable ASCII characters are shown as-is.
 
-The **Save...** button downloads the raw received bytes as a binary file. **Clear** resets the stream display.
+The **SAVE** button downloads the raw received bytes as a binary file. **CLEAR** resets the stream display.
 
 ---
 
 ## Debugger Panel
 
-Click **Debugger** to reveal the CPU debugger. This shows the live internal state of the HD61700 processor:
+Click **DEBUG** to reveal the CPU debugger. This shows the live internal state of the HD61700 processor:
 
 - **PC** — Program counter (current instruction address)
 - **SP** — Stack pointer

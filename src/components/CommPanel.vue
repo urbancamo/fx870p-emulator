@@ -303,8 +303,8 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
   <div class="comm-panel">
     <!-- ── toolbar ── -->
     <div class="toolbar">
-      <button class="btn" :disabled="sending" @click="openSendPicker">Send…</button>
-      <button class="btn" :disabled="!sending" @click="onStop">Stop</button>
+      <button class="btn" :disabled="sending" @click="openSendPicker">LOAD</button>
+      <button class="btn" :disabled="!sending" @click="onStop">STOP</button>
 
       <div class="progress-wrap">
         <div
@@ -322,12 +322,12 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
         <button class="btn btn-ram" @click="downloadRam" title="Download RAM snapshot">&#x2193;</button>
       </span>
       <button class="btn btn-diag" @click="showDiag = !showDiag">
-        {{ showDiag ? 'Hide Comms' : 'Comms' }}
+        COMMS {{ showDiag ? '\u25B4' : '\u25BE' }}
       </button>
       <button class="btn" @click="emit('update:showDebug', !props.showDebug)">
-        {{ props.showDebug ? 'Hide Debugger' : 'Debugger' }}
+        DEBUG {{ props.showDebug ? '\u25B4' : '\u25BE' }}
       </button>
-      <button class="btn" @click="showAbout = true">About</button>
+      <button class="btn" @click="showAbout = true">ABOUT</button>
       <button class="btn" @click="emit('cycleLayout')" title="Cycle panel layout">{{ props.panelLayout === 'bottom' ? '\u2192' : props.panelLayout === 'right' ? '\u2190' : '\u2193' }}</button>
     </div>
 
@@ -379,8 +379,8 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
       <div class="output-header">
         <span>serial stream ({{ getStream().length }} bytes)</span>
         <span class="stream-legend"><span class="legend-tx">■</span> sent <span class="legend-rx">■</span> received</span>
-        <button class="btn btn-sm" @click="saveOutput">Save…</button>
-        <button class="btn btn-sm" @click="clearLog">Clear</button>
+        <button class="btn btn-sm" @click="saveOutput">SAVE</button>
+        <button class="btn btn-sm" @click="clearLog">CLEAR</button>
       </div>
       <div ref="outputEl" class="output-log">
         <span
