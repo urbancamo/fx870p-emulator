@@ -6,6 +6,8 @@ The FX-870P was a 1986 programmable calculator running a **Hitachi HD61700** CPU
 83-key keyboard, serial port, and optional MD-120 floppy drive. This emulator is a full port of the 
 original Delphi reference implementation to the web platform.
 
+![screenshot.png](docs/screenshot.png)
+
 ## Credits
 
 The original emulator is available on the [PISI](https://www.pisi.com.pl/piotr433/index.htm#fx870) and credit 
