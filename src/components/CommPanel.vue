@@ -7,6 +7,9 @@ import {
 } from '../emulator/comm.js';
 import { getUartRegs, pd, pe, pdi } from '../emulator/port.js';
 import { importRamState, emulatorReset, emulatorStart, readRamByte } from '../emulator/emulator.js';
+import AboutPopup from './AboutPopup.vue';
+
+const showAbout = ref(false);
 
 const props = defineProps<{
   showDebug: boolean;
@@ -266,6 +269,7 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
       <button class="btn" @click="emit('update:showDebug', !props.showDebug)">
         {{ props.showDebug ? 'Hide Debugger' : 'Debugger' }}
       </button>
+      <button class="btn" @click="showAbout = true">About</button>
       <button class="btn" @click="emit('cycleLayout')" title="Cycle panel layout">{{ props.panelLayout === 'bottom' ? '\u2192' : props.panelLayout === 'right' ? '\u2190' : '\u2193' }}</button>
     </div>
 
@@ -344,6 +348,9 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
       style="display: none"
       @change="onRamSelected"
     />
+    <Teleport to="body">
+      <AboutPopup v-if="showAbout" @close="showAbout = false" />
+    </Teleport>
   </div>
 </template>
 
