@@ -244,9 +244,7 @@ onUnmounted(() => {
       <div
         v-else
         class="emulator-scaler"
-        :style="showToolbar
-          ? { transform: `scale(${scaleFactor})` }
-          : { transform: `scale(${scaleFactor})`, width: scalerWidth + 'px', height: scalerHeight + 'px' }"
+        :style="{ transform: `scale(${scaleFactor})` }"
       >
         <div class="face-container">
           <img
@@ -294,14 +292,8 @@ onUnmounted(() => {
 
 .emulator-root.compact {
   padding: 0;
-  height: 100vh;
+  min-height: 100vh;
   justify-content: center;
-  align-items: center;
-}
-
-.compact .emulator-scaler {
-  transform-origin: 0 0;
-  overflow: visible;
 }
 
 /* ── outer layout container ── */
