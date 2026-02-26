@@ -30,6 +30,42 @@ export const keypad: readonly KeyBlock[] = [
   /* 8 */ { L:5,   T:5,   W:17, H:17, SX:18, SY:33, col:2,  cnt:2,  OX:164, OY:0   }, // app min/close
 ];
 
+// ─── key position lookup ─────────────────────────────────────────────────────
+// Maps a key code to its pixel position on face.png and sprite sheet coords.
+
+export interface KeyPosition {
+  x: number;   // face.png left pixel
+  y: number;   // face.png top pixel
+  w: number;   // key width
+  h: number;   // key height
+  ox: number;  // sprite sheet X (pressed state at ox, released at ox+w)
+  oy: number;  // sprite sheet Y
+}
+
+export function keyCodeToPosition(code: number): KeyPosition | null {
+  if (code < 1 || code > LASTKEYCODE) return null;
+  let base = 1;
+  for (let i = 0; i <= KEYPADS; i++) {
+    const b = keypad[i];
+    if (code < base + b.cnt) {
+      if (b.OX >= 512) return null; // no sprite (e.g. All Reset)
+      const idx = code - base;
+      const col = idx % b.col;
+      const row = Math.floor(idx / b.col);
+      return {
+        x: b.L + col * b.SX,
+        y: b.T + row * b.SY,
+        w: b.W,
+        h: b.H,
+        ox: b.OX,
+        oy: b.OY,
+      };
+    }
+    base += b.cnt;
+  }
+  return null;
+}
+
 // ─── key state ────────────────────────────────────────────────────────────────
 export let keyCode1  = 0; // key pressed via mouse
 export let keyCode2  = 0; // key pressed via keyboard (base key)

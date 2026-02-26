@@ -3,15 +3,18 @@
 // and keyboard events to set keyCode1 / keyCode2.
 // Coordinates are in face.png pixel space (709×280).
 
-import { onMounted, onUnmounted } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import {
   keypad, KEYPADS, LASTKEYCODE,
   setKeyCode1, keyCode1,
   bufferKey, setKeyInterruptFn,
+  keyCodeToPosition,
 } from '../emulator/keyboard.js';
 import { ia, setIfl } from '../emulator/def.js';
 import { KEYPULSE_bit } from '../emulator/def.js';
 import { cpuWakeUp } from '../emulator/cpu.js';
+
+const base = import.meta.env.BASE_URL;
 
 const emit = defineEmits<{ iconize: [] }>();
 
@@ -188,6 +191,50 @@ function hitTest(x: number, y: number): number {
   return 0; // no key hit
 }
 
+// ── Key press sprite overlay ─────────────────────────────────────────────────
+const keyCvs = ref<HTMLCanvasElement | null>(null);
+let keyCtx: CanvasRenderingContext2D | null = null;
+let spriteCanvas: HTMLCanvasElement | null = null;
+
+function loadKeySprites(): void {
+  const img = new Image();
+  img.src = `${base}images/keys.png`;
+  img.onload = () => {
+    // Draw to offscreen canvas and replace white (#FFFFFF) with transparent
+    const off = document.createElement('canvas');
+    off.width = img.width;
+    off.height = img.height;
+    const ctx = off.getContext('2d')!;
+    ctx.drawImage(img, 0, 0);
+    const id = ctx.getImageData(0, 0, off.width, off.height);
+    const d = id.data;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i] === 255 && d[i + 1] === 255 && d[i + 2] === 255) {
+        d[i + 3] = 0; // make white pixels transparent
+      }
+    }
+    ctx.putImageData(id, 0, 0);
+    spriteCanvas = off;
+  };
+}
+
+function drawPressedKey(code: number): void {
+  const pos = keyCodeToPosition(code);
+  if (!pos || !keyCtx || !spriteCanvas) return;
+  // Blit the pressed sprite (at ox, oy) onto face overlay at (x, y)
+  keyCtx.clearRect(0, 0, FACE_W, FACE_H);
+  keyCtx.drawImage(
+    spriteCanvas,
+    pos.ox, pos.oy, pos.w, pos.h,  // source: pressed state
+    pos.x, pos.y, pos.w, pos.h,    // dest: key position on face
+  );
+}
+
+function clearPressedKey(): void {
+  if (!keyCtx) return;
+  keyCtx.clearRect(0, 0, FACE_W, FACE_H);
+}
+
 // ── Minimum hold time for mouse/touch clicks ────────────────────────────────
 // The ROM's CHATA debounce loop re-scans the same KO column ~32 times after
 // detecting a key.  Quick mouse clicks can fire mouseup before debounce
@@ -209,6 +256,7 @@ function pressAt(el: HTMLElement, clientX: number, clientY: number): void {
   setKeyCode1(k <= LASTKEYCODE ? k : 0);
   if (k === CAPS_KEY_CODE) noteCapsPress();
   if (keyCode1 > 0 && keyCode1 <= LASTKEYCODE - 2) {
+    drawPressedKey(keyCode1);
     keyInterrupt();
     // Start the minimum hold timer — keyCode1 cannot be cleared before this fires
     _holdTimer = setTimeout(() => {
@@ -220,6 +268,7 @@ function pressAt(el: HTMLElement, clientX: number, clientY: number): void {
 
 function doRelease(): void {
   if (keyCode1 === ON_KEY_CODE) cpuWakeUp(false);
+  clearPressedKey();
   setKeyCode1(0);
   _releaseRequested = false;
 }
@@ -331,6 +380,8 @@ onMounted(() => {
   setKeyInterruptFn(keyInterrupt);
   window.addEventListener('keydown', onKeyDown);
   window.addEventListener('keyup', onKeyUp);
+  if (keyCvs.value) keyCtx = keyCvs.value.getContext('2d');
+  loadKeySprites();
 });
 
 onUnmounted(() => {
@@ -341,17 +392,20 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div
-    class="keyboard-overlay"
-    @mousedown="onMouseDown"
-    @mouseup="onMouseUp"
-    @mousemove="onMouseMove"
-    @mouseleave="onMouseUp"
-    @touchstart="onTouchStart"
-    @touchend="onTouchEnd"
-    @touchcancel="onTouchEnd"
-    @touchmove="onTouchMove"
-  />
+  <div class="keyboard-overlay">
+    <canvas ref="keyCvs" class="key-canvas" width="709" height="280" />
+    <div
+      class="hit-layer"
+      @mousedown="onMouseDown"
+      @mouseup="onMouseUp"
+      @mousemove="onMouseMove"
+      @mouseleave="onMouseUp"
+      @touchstart="onTouchStart"
+      @touchend="onTouchEnd"
+      @touchcancel="onTouchEnd"
+      @touchmove="onTouchMove"
+    />
+  </div>
 </template>
 
 <style scoped>
@@ -361,5 +415,16 @@ onUnmounted(() => {
   cursor: pointer;
   user-select: none;
   touch-action: none;
+}
+.key-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.hit-layer {
+  position: absolute;
+  inset: 0;
 }
 </style>
