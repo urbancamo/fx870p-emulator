@@ -33,6 +33,7 @@ on GitHub [here](https://github.com/urbancamo/fx870p-emulator/) and it is
 
 - **Responsive calculator face** — scales to fit any screen size with multiple resolution faceplate images
 - **Full keyboard mapping** — type directly on your PC keyboard with automatic CAPS and shifted-symbol handling
+- **Program library** — built-in curated collection of sample BASIC programs loadable directly from the toolbar
 - **RS-232C serial** — LOAD and SAVE BASIC programs via emulated COM0 with XON/XOFF flow control
 - **Floppy disk** — MD-120 disk emulation via Origin Private File System (OPFS)
 - **Character set table** — interactive 16x16 hex grid showing all 256 character bitmaps from the ROM font
@@ -97,6 +98,7 @@ src/
     CommPanel.vue       Serial comms panel + toolbar buttons
     DebugPanel.vue      CPU debugger (registers, flags, disassembly)
     CharsetPopup.vue    Character set table + DEFCHR$ pixel editor
+    LibraryPopup.vue    Program library popup (browse + load sample programs)
     AboutPopup.vue      About dialog (renders ABOUT.md)
 public/
   ABOUT.md            User-facing documentation (rendered in About popup)

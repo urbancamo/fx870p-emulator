@@ -88,6 +88,7 @@ The toolbar below the calculator provides the following controls:
 | Button        | Function                                                                                               |
 |---------------|--------------------------------------------------------------------------------------------------------|
 | **LOAD**      | Select a BASIC program file (.bas, .fx) to send to the calculator via the emulated RS-232C serial port |
+| **LIB**       | Open the program library — browse and load curated sample BASIC programs                               |
 | **STOP**      | Abort the current file transfer                                                                        |
 | **TURBO**     | Toggle turbo mode — runs the CPU at ~50x normal speed for compute-heavy BASIC programs                 |
 | **RAM ↑**     | Import a raw RAM image (e.g. from the Delphi emulator) to restore calculator state                     |
@@ -113,6 +114,15 @@ To load a BASIC program file into the calculator:
 2. On the calculator, type: `LOAD "COM0:6,N,8,1,N,N,N,N,N"` or use the F-COM panel (Shift - CASL then select 'L' for LOAD, use arrow keys to choose program location) and press **EXE**
 3. The file will transfer automatically with XON/XOFF flow control
 4. When complete, type `LIST` and press **EXE** to verify the program loaded
+
+### Program Library (LIB)
+
+Click **LIB** in the toolbar to open the program library. This popup lists curated sample BASIC programs that are bundled with the emulator, so you can try them without downloading any files.
+
+Each program shows its name and a short description. Two buttons are available for each entry:
+
+- **INFO** — expands an inline documentation panel with details about the program, how to run it, and what to expect.
+- **LOAD** — fetches the program file and sends it to the calculator via the emulated serial port, just as if you had used the LOAD button with a local file. After clicking LOAD, type `LOAD "COM0:6,N,8,1,N,N,N,N,N"` on the calculator and press **EXE** to receive the program.
 
 ### Saving a Program via Serial
 
