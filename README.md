@@ -14,8 +14,9 @@ The original emulator is available on the [PISI](https://www.pisi.com.pl/piotr43
 is given to the original author of the amazing suite of emulators available on this site. This implementation is 
 designed to purely make the code behind that emulator available to a wider audience on the internet.
 
-This version of the emulator implemented by [Mark Wickens](https://urbancamo.github.com) and is hosted 
-on GitHub [here](https://github.com/urbancamo/fx870p-emulator/).
+This version of the emulator implemented by [Mark Wickens](https://urbancamo.github.com), the source code is hosted 
+on GitHub [here](https://github.com/urbancamo/fx870p-emulator/) and it is running
+[here](https://m5tea.uk/fx870p-emulator/)
 
 ## Hardware Emulated
 
@@ -27,8 +28,6 @@ on GitHub [here](https://github.com/urbancamo/fx870p-emulator/).
 | Keyboard  | 83-key matrix (9 blocks, 16 KO columns)                                               |
 | Serial    | UART with XON/XOFF flow control                                                       |
 | Storage   | MD-120 floppy disk via Origin Private File System (OPFS)                              |
-
----
 
 ## Running
 
@@ -59,8 +58,6 @@ npm run preview   # preview the built app
 ```
 
 The app is served under the `/fx870p-emulator/` base path in both dev and production.
-
----
 
 ## Project Structure
 
@@ -106,21 +103,17 @@ reference/            Documentation and Delphi source
 docs/                 Implementation notes
 ```
 
----
-
 ## Reference Documents
 
-| Document | Description |
-|---|---|
-| [`reference/fx870p-rom-annotations.md`](reference/fx870p-rom-annotations.md) | Annotated ROM address labels and call-flow notes |
-| [`reference/fx870p-roms.md`](reference/fx870p-roms.md) | Full ROM disassembly |
-| [`reference/FX-870P_VX-4 Manual.html`](<reference/FX-870P_VX-4 Manual.html>) | Original user manual (HTML) |
-| [`docs/CasioVX-4-Manual-Peter-Rost.pdf`](docs/CasioVX-4-Manual-Peter-Rost.pdf) | VX-4 manual by Peter Rost (PDF) |
-| [`docs/FX-870P emulator.pdf`](<docs/FX-870P emulator.pdf>) | Delphi emulator documentation (PDF) |
-| [`docs/plan.md`](docs/plan.md) | Web port implementation plan and component mapping |
-| [`reference/fx870_es/`](reference/fx870_es/) | Original Delphi 5 source (reference only) |
-
----
+| Document                                                                       | Description                                        |
+|--------------------------------------------------------------------------------|----------------------------------------------------|
+| [`reference/fx870p-rom-annotations.md`](reference/fx870p-rom-annotations.md)   | Annotated ROM address labels and call-flow notes   |
+| [`reference/fx870p-roms.md`](reference/fx870p-roms.md)                         | Full ROM disassembly                               |
+| [`reference/FX-870P_VX-4 Manual.html`](<reference/FX-870P_VX-4 Manual.html>)   | Original user manual (HTML)                        |
+| [`docs/CasioVX-4-Manual-Peter-Rost.pdf`](docs/CasioVX-4-Manual-Peter-Rost.pdf) | VX-4 manual by Peter Rost (PDF)                    |
+| [`docs/FX-870P emulator.pdf`](<docs/FX-870P emulator.pdf>)                     | Delphi emulator documentation (PDF)                |
+| [`docs/plan.md`](docs/plan.md)                                                 | Web port implementation plan and component mapping |
+| [`reference/fx870_es/`](reference/fx870_es/)                                   | Original Delphi 5 source (reference only)          |
 
 ## Testing
 
@@ -152,7 +145,6 @@ npx vitest
 
 Tests require ROM files in `public/roms/` (same as the dev server).
 
----
 
 ## Debug Logging
 
@@ -162,8 +154,6 @@ The dev server exposes a `/fx870p-emulator/log` endpoint that writes to `emulato
 window.ioDebug(true)   // enable
 window.ioDebug(false)  // disable
 ```
-
----
 
 ## Tech Stack
 
