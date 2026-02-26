@@ -55,8 +55,8 @@ function onDividerUp(): void {
 }
 
 const scaleFactor = computed(() => {
-  if (isFullscreen.value) {
-    // Fit both width and height with no border
+  if (!showToolbar.value) {
+    // Toolbar hidden (iconized): fit both width and height, no border
     const sw = windowWidth.value / FACE_W;
     const sh = windowHeight.value / FACE_H;
     return Math.max(0.25, Math.min(sw, sh, 4));
@@ -187,7 +187,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="emulatorRoot" class="emulator-root" :class="{ fullscreen: isFullscreen }">
+  <div ref="emulatorRoot" class="emulator-root" :class="{ compact: !showToolbar }">
     <div v-if="loading" class="overlay-msg">Loading ROMs…</div>
     <div v-else-if="error" class="overlay-msg error">{{ error }}</div>
 
@@ -286,7 +286,7 @@ onUnmounted(() => {
   box-sizing: border-box;
 }
 
-.emulator-root.fullscreen {
+.emulator-root.compact {
   padding: 0;
   min-height: 100vh;
   justify-content: center;
