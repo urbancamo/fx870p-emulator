@@ -223,6 +223,6 @@ Both modes support RS-232C serial communication for LOAD and SAVE operations.
 
 ## Reference
 
-- [FX-850P/FX-880P Owner's Manual](https://urbancamo.github.io/casio-basic/doc/casio-fx850-owners-manual.html) — comprehensive guide to Casio BASIC and all calculator functions
-- [Source code on GitHub](https://github.com/urbancamo/fx870p-emulator/) — TypeScript source, build instructions, and development documentation
-- [Original Delphi emulator (PISI)](https://www.pisi.com.pl/piotr433/index.htm#fx870) — the reference implementation this emulator is based on
+- [FX-850P/FX-880P Owner's Manual](https://urbancamo.github.io/casio-basic/doc/casio-fx850-owners-manual.html) — comprehensive guide to Casio BASIC and all calculator functions.
+- [Source code on GitHub](https://github.com/urbancamo/fx870p-emulator/) — TypeScript source, build instructions, and development documentation.
+- [Original Delphi emulator (PISI)](https://www.pisi.com.pl/piotr433/index.htm#fx870) — the reference implementation this emulator is based on.

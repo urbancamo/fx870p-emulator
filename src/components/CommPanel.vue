@@ -326,9 +326,8 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
           :class="{ active: sending, suspended: suspended, receiving: receiving }"
           :style="{ width: receiving ? '100%' : progress + '%' }"
         />
+        <span class="progress-label" :class="statusClass">{{ status }}</span>
       </div>
-
-      <span class="comm-status" :class="statusClass">{{ status }}</span>
 
       <span class="ram-group">
         <span class="ram-label">RAM</span>
@@ -505,11 +504,12 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
 
 .progress-wrap {
   flex: 1;
-  height: 8px;
+  height: 14px;
   background: #222;
   border: 1px solid #333;
   border-radius: 2px;
   overflow: hidden;
+  position: relative;
 }
 .progress-bar {
   height: 100%;
@@ -533,16 +533,21 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
   to   { background-position: 17px 0; }
 }
 
-.comm-status {
-  font-size: 0.72rem;
-  color: #555;
+.progress-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
   white-space: nowrap;
-  flex-shrink: 0;
+  pointer-events: none;
+  color: #555;
 }
-.comm-status.sending   { color: #8bc34a; }
-.comm-status.suspended { color: #f0a030; }
-.comm-status.receiving { color: #f0a030; }
-.comm-status.idle      { color: #555; }
+.progress-label.sending   { color: #fff; }
+.progress-label.suspended { color: #fff; }
+.progress-label.receiving { color: #fff; }
+.progress-label.idle      { color: #555; }
 
 /* ── hint ── */
 .hint-row {
