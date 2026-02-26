@@ -56,11 +56,6 @@ const scaleFactor = computed(() => {
   return Math.max(0.25, Math.min(available / FACE_W, 4));
 });
 
-const sidePanelWidth = computed(() => {
-  const total = windowWidth.value - BORDER_PX * 2 - DIVIDER_W;
-  return Math.round(total * (1 - splitRatio.value));
-});
-
 // Pick the sharpest face image that won't be upscaled.
 // face.png = 709px (1×), face-large.png = 1418px (2×), face-huge.png = 2836px (4×).
 const faceImage = computed(() => {
@@ -166,7 +161,7 @@ onUnmounted(() => {
       }"
     >
       <!-- Side panel (left) -->
-      <div v-if="panelLayout === 'left'" class="side-panels" :style="{ width: sidePanelWidth + 'px' }">
+      <div v-if="panelLayout === 'left'" class="side-panels">
         <CommPanel class="side-comm" />
         <div class="debug-toggle-row side-toggle">
           <button class="debug-toggle-btn" @click="cycleLayout" title="Cycle panel layout">{{ panelLayout }}</button>
@@ -245,7 +240,7 @@ onUnmounted(() => {
       />
 
       <!-- Side panel (right) -->
-      <div v-if="panelLayout === 'right'" class="side-panels" :style="{ width: sidePanelWidth + 'px' }">
+      <div v-if="panelLayout === 'right'" class="side-panels">
         <CommPanel class="side-comm" />
         <div class="debug-toggle-row side-toggle">
           <button class="debug-toggle-btn" @click="cycleLayout" title="Cycle panel layout">{{ panelLayout }}</button>
@@ -394,7 +389,8 @@ onUnmounted(() => {
   align-items: stretch;
   max-height: 100vh;
   overflow-y: auto;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
 }
 
 .side-panels :deep(.comm-panel) {
