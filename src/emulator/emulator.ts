@@ -317,6 +317,12 @@ export async function importRamState(data: Uint8Array): Promise<void> {
   await saveState(); // persist to IndexedDB so it survives reloads
 }
 
+export function exportRamState(): Uint8Array {
+  const ram0 = memdef[RAM0_IDX];
+  if (!ram0?.data) return new Uint8Array(0);
+  return new Uint8Array(ram0.data);
+}
+
 // ─── charset loading ──────────────────────────────────────────────────────────
 import { initCharset } from './lcd.js';
 

@@ -6,7 +6,7 @@ import {
   getStream, clearStream,
 } from '../emulator/comm.js';
 import { getUartRegs, pd, pe, pdi } from '../emulator/port.js';
-import { importRamState, emulatorReset, emulatorStart, readRamByte } from '../emulator/emulator.js';
+import { importRamState, exportRamState, emulatorReset, emulatorStart, readRamByte } from '../emulator/emulator.js';
 import AboutPopup from './AboutPopup.vue';
 
 const showAbout = ref(false);
@@ -219,6 +219,17 @@ async function onRamSelected(e: Event): Promise<void> {
   emulatorStart();
 }
 
+function downloadRam(): void {
+  const data = exportRamState();
+  const blob = new Blob([data.buffer as ArrayBuffer], { type: 'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'ram0.bin';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ─── output save / clear ──────────────────────────────────────────────────────
 function clearLog(): void {
   clearOutput();
@@ -260,9 +271,11 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
 
       <span class="comm-status" :class="statusClass">{{ status }}</span>
 
-      <button class="btn btn-ram" @click="openRamPicker" title="Load a ram0.bin from the Delphi emulator to restore a working device table">
-        Import RAM…
-      </button>
+      <span class="ram-group">
+        <span class="ram-label">RAM</span>
+        <button class="btn btn-ram" @click="openRamPicker" title="Import RAM snapshot">&#x2191;</button>
+        <button class="btn btn-ram" @click="downloadRam" title="Download RAM snapshot">&#x2193;</button>
+      </span>
       <button class="btn btn-diag" @click="showDiag = !showDiag">
         {{ showDiag ? 'Hide Comms' : 'Comms' }}
       </button>
@@ -388,7 +401,9 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
 }
 .btn:hover:not(:disabled) { background: #3a3a3a; color: #fff; }
 .btn:disabled { opacity: 0.4; cursor: default; }
-.btn-ram  { color: #7eb8f7; border-color: #204050; margin-left: auto; }
+.ram-group { display: flex; align-items: center; gap: 3px; margin-left: auto; }
+.ram-label { color: #555; font-size: 0.7rem; }
+.btn-ram  { color: #7eb8f7; border-color: #204050; padding: 2px 6px; }
 .btn-ram:hover  { background: #102030; color: #aad4ff; }
 .btn-sm { padding: 1px 5px; font-size: 0.7rem; }
 
