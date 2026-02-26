@@ -16,7 +16,8 @@ import { VDD2_bit } from '../emulator/def.js';
 // Canvas dimensions (internal resolution)
 const LCD_W = 394;
 const LCD_PAD_TOP = 2; // blank green rows above content
-const LCD_H = 64 + LCD_PAD_TOP;
+const LCD_PAD_BOT = 2; // blank green rows below content
+const LCD_H = 64 + LCD_PAD_TOP + LCD_PAD_BOT;
 
 // Sign indicator nibble indices and their bitmasks (from Delphi)
 const SIGN_IND  = [0x03BE, 0x047E, 0x053E, 0x053F, 0x05FF];
@@ -126,7 +127,7 @@ onUnmounted(() => {
     ref="canvasRef"
     class="lcd-canvas"
     :width="394"
-    :height="66"
+    :height="68"
   />
 </template>
 
@@ -134,6 +135,6 @@ onUnmounted(() => {
 .lcd-canvas {
   image-rendering: pixelated;
   width: 394px;
-  height: 66px;
+  height: 68px;
 }
 </style>
