@@ -89,6 +89,7 @@ The toolbar below the calculator provides the following controls:
 |---------------|--------------------------------------------------------------------------------------------------------|
 | **LOAD**      | Select a BASIC program file (.bas, .fx) to send to the calculator via the emulated RS-232C serial port |
 | **STOP**      | Abort the current file transfer                                                                        |
+| **TURBO**     | Toggle turbo mode — runs the CPU at ~50x normal speed for compute-heavy BASIC programs                 |
 | **RAM ↑**     | Import a raw RAM image (e.g. from the Delphi emulator) to restore calculator state                     |
 | **RAM ↓**     | Download the current RAM contents as a binary file                                                     |
 | **COMMS ▾/▴** | Show or hide the communications diagnostics panel                                                      |
@@ -98,7 +99,11 @@ The toolbar below the calculator provides the following controls:
 | **ABOUT**     | Display this information popup                                                                         |
 | **Arrow**     | Cycle the panel layout: bottom, right, or left of the calculator                                       |
 
-The progress bar between LOAD and STOP shows transfer progress, turning green when actively sending and amber when paused by flow control. During a SAVE operation (receiving data from the calculator), the bar shows an animated striped pattern with a byte count.
+The progress bar below the toolbar shows transfer progress, turning green when actively sending and amber when paused by flow control. During a SAVE operation (receiving data from the calculator), the bar shows an animated striped pattern with a byte count.
+
+### Turbo Mode
+
+Click **TURBO** to run the emulator at approximately 50x normal speed. The button highlights green when active. This is useful for compute-heavy BASIC programs (e.g. Conway's Game of Life) that would otherwise run very slowly at the real HD61700 clock speed of 921 kHz. Click TURBO again to return to normal speed. The LCD continues to update during turbo mode, and the keyboard remains responsive.
 
 ### Loading a Program via Serial
 

@@ -7,12 +7,18 @@ import {
 } from '../emulator/comm.js';
 import { getUartRegs, pd, pe, pdi } from '../emulator/port.js';
 import { importRamState, exportRamState, emulatorReset, emulatorStart, readRamByte, getOption2, saveConfig } from '../emulator/emulator.js';
-import { setOption2 } from '../emulator/def.js';
+import { setOption2, turbo as turboFlag, setTurbo } from '../emulator/def.js';
 import AboutPopup from './AboutPopup.vue';
 import CharsetPopup from './CharsetPopup.vue';
 
 const showAbout = ref(false);
 const showCharset = ref(false);
+const turboOn = ref(turboFlag);
+
+function toggleTurbo(): void {
+  turboOn.value = !turboOn.value;
+  setTurbo(turboOn.value);
+}
 
 const props = defineProps<{
   showDebug: boolean;
@@ -319,15 +325,7 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
     <div class="toolbar">
       <button class="btn" :disabled="sending" @click="openSendPicker">LOAD</button>
       <button class="btn" :disabled="!sending" @click="onStop">STOP</button>
-
-      <div class="progress-wrap">
-        <div
-          class="progress-bar"
-          :class="{ active: sending, suspended: suspended, receiving: receiving }"
-          :style="{ width: receiving ? '100%' : progress + '%' }"
-        />
-        <span class="progress-label" :class="statusClass">{{ status }}</span>
-      </div>
+      <button class="btn btn-turbo" :class="{ active: turboOn }" @click="toggleTurbo">TURBO</button>
 
       <span class="ram-group">
         <span class="ram-label">RAM</span>
@@ -353,9 +351,17 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
       <button class="btn" @click="emit('cycleLayout')" title="Cycle panel layout">{{ props.panelLayout === 'bottom' ? '\u2192' : props.panelLayout === 'right' ? '\u2190' : '\u2193' }}</button>
     </div>
 
-    <!-- ── hint ── -->
-    <div class="hint-row">
-      then on calc: <code>LOAD "COM0:6,N,8,1,N,N,N,N,N"</code>
+    <!-- ── progress + hint ── -->
+    <div class="status-row">
+      <div class="progress-wrap">
+        <div
+          class="progress-bar"
+          :class="{ active: sending, suspended: suspended, receiving: receiving }"
+          :style="{ width: receiving ? '100%' : progress + '%' }"
+        />
+        <span class="progress-label" :class="statusClass">{{ status }}</span>
+      </div>
+      <span class="hint-text">then on calc: <code>LOAD "COM0:6,N,8,1,N,N,N,N,N"</code></span>
     </div>
 
     <!-- ── diagnostics ── -->
@@ -492,11 +498,14 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
 }
 .btn:hover:not(:disabled) { background: #3a3a3a; color: #fff; }
 .btn:disabled { opacity: 0.4; cursor: default; }
-.ram-group { display: flex; align-items: center; gap: 3px; margin-left: auto; }
+.ram-group { display: flex; align-items: center; gap: 3px; }
 .ram-label { color: #555; font-size: 0.7rem; }
 .btn-ram  { color: #7eb8f7; border-color: #204050; padding: 2px 6px; }
 .btn-ram:hover  { background: #102030; color: #aad4ff; }
 .btn-sm { padding: 1px 5px; font-size: 0.7rem; }
+.btn-turbo { color: #6a6a6a; border-color: #333; }
+.btn-turbo:hover { color: #8bc34a; border-color: #3a5a20; }
+.btn-turbo.active { color: #8bc34a; border-color: #3a5a20; background: #1a2a10; }
 .btn-fw { color: #7eb8f7; border-color: #204050; }
 .btn-fw:hover { background: #102030; color: #aad4ff; }
 .btn-fw.fw-jp { color: #f0a030; border-color: #504020; }
@@ -549,13 +558,20 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
 .progress-label.receiving { color: #fff; }
 .progress-label.idle      { color: #555; }
 
-/* ── hint ── */
-.hint-row {
+/* ── status row (progress + hint) ── */
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 2px 10px 4px;
+}
+.hint-text {
   color: #444;
   font-size: 0.7rem;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
-.hint-row code { color: #666; }
+.hint-text code { color: #666; }
 
 /* ── diagnostics ── */
 .diag {

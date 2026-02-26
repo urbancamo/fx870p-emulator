@@ -37,6 +37,7 @@ on GitHub [here](https://github.com/urbancamo/fx870p-emulator/) and it is
 - **Floppy disk** — MD-120 disk emulation via Origin Private File System (OPFS)
 - **Character set table** — interactive 16x16 hex grid showing all 256 character bitmaps from the ROM font
 - **DEFCHR$ pixel editor** — click any character to open a drag-to-paint 5x8 pixel editor that generates the BASIC `DEFCHR$` command with a one-click copy button
+- **Turbo mode** — run the CPU at ~50x speed for compute-heavy BASIC programs
 - **Fullscreen mode** — hide toolbar and panels to use the calculator full-screen (useful on mobile)
 - **Firmware toggle** — switch between FX-870P (Japanese) and VX-4 (English) ROM modes
 - **CPU debugger** — live registers, flags, and disassembly view

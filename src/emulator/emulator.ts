@@ -27,6 +27,7 @@ import {
   sx, sy, sz, ix, iz, pc, ua, flag, mr,
   addr18, ib,
   Option2, setOption2,
+  turbo,
 } from './def.js';
 import { cpuReset, cpuRun, cpuWakeUp } from './cpu.js';
 import { ioInit, SerialRate, onSerialTick, pd, pe, pdi, getUartRegs } from './port.js';
@@ -64,11 +65,11 @@ function frame(now: number): void {
   rafHandle = requestAnimationFrame(frame);
   if (!running) return;
 
-  const elapsed = lastTime === 0 ? 16 : Math.min(now - lastTime, 50); // cap at 50 ms
+  const elapsed = lastTime === 0 ? 16 : turbo ? (now - lastTime) : Math.min(now - lastTime, 50);
   lastTime = now;
 
   // Cycle budget for this frame (OscFreq kHz × elapsed ms)
-  const frameCycles = Math.round(OscFreq * elapsed);
+  const frameCycles = Math.round(OscFreq * elapsed * (turbo ? 50 : 1));
 
   if (CpuDelay > 0) {
     setCpuDelay(CpuDelay - 1);

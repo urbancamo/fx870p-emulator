@@ -126,6 +126,7 @@ export let CpuSleep = false;
 export let CpuDelay = 0;
 export let CpuSteps = -1;
 export let BreakPoint = -1;
+export let turbo = false;
 export let Option2  = 1;  // 0 = International (VX-4); 1 = Japanese (FX-870P)
 
 // port / printer (needed by port.ts, referenced from def)
@@ -165,6 +166,7 @@ export function setCpuSleep(v: boolean)  { CpuSleep   = v; }
 export function setCpuDelay(v: number)   { CpuDelay   = v; }
 export function setCpuSteps(v: number)   { CpuSteps   = v; }
 export function setBreakPoint(v: number) { BreakPoint = v; }
+export function setTurbo(v: boolean)     { turbo      = v; }
 export function setOption2(v: number)    { Option2    = v; }
 export function setPrinterData(v: number){ PrinterData = v & 0xFF; }
 
