@@ -183,23 +183,29 @@ function hitTest(x: number, y: number): number {
   return 0; // no key hit
 }
 
-function onMouseDown(e: MouseEvent): void {
-  if (e.button !== 0) return;
-  const el = e.currentTarget as HTMLElement;
+// Shared press/release logic for both mouse and touch
+function pressAt(el: HTMLElement, clientX: number, clientY: number): void {
   const rect = el.getBoundingClientRect();
-  // Map click to face.png coordinates
-  const fx = Math.round((e.clientX - rect.left) * FACE_W / rect.width);
-  const fy = Math.round((e.clientY - rect.top)  * FACE_H / rect.height);
+  const fx = Math.round((clientX - rect.left) * FACE_W / rect.width);
+  const fy = Math.round((clientY - rect.top)  * FACE_H / rect.height);
   const k  = hitTest(fx, fy);
   setKeyCode1(k <= LASTKEYCODE ? k : 0);
   if (k === CAPS_KEY_CODE) noteCapsPress();
   if (keyCode1 > 0 && keyCode1 <= LASTKEYCODE - 2) keyInterrupt();
 }
 
-function onMouseUp(): void {
-  // Delphi: case 67 → ReleaseKey1(-1,-1); CpuWakeUp(False)  (on mouse release)
+function releaseKey(): void {
   if (keyCode1 === ON_KEY_CODE) cpuWakeUp(false);
   setKeyCode1(0);
+}
+
+function onMouseDown(e: MouseEvent): void {
+  if (e.button !== 0) return;
+  pressAt(e.currentTarget as HTMLElement, e.clientX, e.clientY);
+}
+
+function onMouseUp(): void {
+  releaseKey();
 }
 
 function onMouseMove(e: MouseEvent): void {
@@ -208,7 +214,29 @@ function onMouseMove(e: MouseEvent): void {
   const rect = el.getBoundingClientRect();
   const fx = Math.round((e.clientX - rect.left) * FACE_W / rect.width);
   const fy = Math.round((e.clientY - rect.top)  * FACE_H / rect.height);
-  // Release key if mouse moved off it (simplified: release on any move outside key)
+  const k = hitTest(fx, fy);
+  if (k !== keyCode1) setKeyCode1(0);
+}
+
+function onTouchStart(e: TouchEvent): void {
+  e.preventDefault();
+  const t = e.touches[0];
+  if (t) pressAt(e.currentTarget as HTMLElement, t.clientX, t.clientY);
+}
+
+function onTouchEnd(e: TouchEvent): void {
+  e.preventDefault();
+  releaseKey();
+}
+
+function onTouchMove(e: TouchEvent): void {
+  if (keyCode1 === 0) return;
+  const t = e.touches[0];
+  if (!t) return;
+  const el = e.currentTarget as HTMLElement;
+  const rect = el.getBoundingClientRect();
+  const fx = Math.round((t.clientX - rect.left) * FACE_W / rect.width);
+  const fy = Math.round((t.clientY - rect.top)  * FACE_H / rect.height);
   const k = hitTest(fx, fy);
   if (k !== keyCode1) setKeyCode1(0);
 }
@@ -285,6 +313,10 @@ onUnmounted(() => {
     @mouseup="onMouseUp"
     @mousemove="onMouseMove"
     @mouseleave="onMouseUp"
+    @touchstart="onTouchStart"
+    @touchend="onTouchEnd"
+    @touchcancel="onTouchEnd"
+    @touchmove="onTouchMove"
   />
 </template>
 
@@ -294,5 +326,6 @@ onUnmounted(() => {
   inset: 0;
   cursor: pointer;
   user-select: none;
+  touch-action: none;
 }
 </style>
