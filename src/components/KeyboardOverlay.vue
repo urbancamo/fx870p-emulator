@@ -13,11 +13,16 @@ import { ia, setIfl } from '../emulator/def.js';
 import { KEYPULSE_bit } from '../emulator/def.js';
 import { cpuWakeUp } from '../emulator/cpu.js';
 
+const emit = defineEmits<{ iconize: [] }>();
+
 // ON/BRK key code — matches Delphi case 67 which calls CpuWakeUp(False) on release
 const ON_KEY_CODE = 67;
 
 // CAPS key code — toggles upper/lowercase on the calculator
 const CAPS_KEY_CODE = 3;
+
+// App iconize button (code 82 in keypad block 8) — toggles toolbar visibility
+const ICONIZE_KEY_CODE = 82;
 
 // Mirror the FX-870P's CAPS state so we can auto-toggle before letter keys
 let fxCapsLocked = false;
@@ -183,20 +188,49 @@ function hitTest(x: number, y: number): number {
   return 0; // no key hit
 }
 
-// Shared press/release logic for both mouse and touch
+// ── Minimum hold time for mouse/touch clicks ────────────────────────────────
+// The ROM's CHATA debounce loop re-scans the same KO column ~32 times after
+// detecting a key.  Quick mouse clicks can fire mouseup before debounce
+// completes, causing the ROM to reject the key as unstable bounce.
+// We guarantee keyCode1 stays set for at least CLICK_HOLD_MS after pressAt().
+const CLICK_HOLD_MS = 150;
+let _holdTimer: ReturnType<typeof setTimeout> | null = null;
+let _releaseRequested = false; // true if mouseup/touchend arrived during hold
+
 function pressAt(el: HTMLElement, clientX: number, clientY: number): void {
   const rect = el.getBoundingClientRect();
   const fx = Math.round((clientX - rect.left) * FACE_W / rect.width);
   const fy = Math.round((clientY - rect.top)  * FACE_H / rect.height);
   const k  = hitTest(fx, fy);
+  if (k === ICONIZE_KEY_CODE) { emit('iconize'); return; }
+  // Cancel any pending deferred release from previous click
+  if (_holdTimer !== null) { clearTimeout(_holdTimer); _holdTimer = null; }
+  _releaseRequested = false;
   setKeyCode1(k <= LASTKEYCODE ? k : 0);
   if (k === CAPS_KEY_CODE) noteCapsPress();
-  if (keyCode1 > 0 && keyCode1 <= LASTKEYCODE - 2) keyInterrupt();
+  if (keyCode1 > 0 && keyCode1 <= LASTKEYCODE - 2) {
+    keyInterrupt();
+    // Start the minimum hold timer — keyCode1 cannot be cleared before this fires
+    _holdTimer = setTimeout(() => {
+      _holdTimer = null;
+      if (_releaseRequested) doRelease();
+    }, CLICK_HOLD_MS);
+  }
+}
+
+function doRelease(): void {
+  if (keyCode1 === ON_KEY_CODE) cpuWakeUp(false);
+  setKeyCode1(0);
+  _releaseRequested = false;
 }
 
 function releaseKey(): void {
-  if (keyCode1 === ON_KEY_CODE) cpuWakeUp(false);
-  setKeyCode1(0);
+  if (_holdTimer !== null) {
+    // Hold timer still active — defer the release
+    _releaseRequested = true;
+    return;
+  }
+  doRelease();
 }
 
 function onMouseDown(e: MouseEvent): void {
@@ -215,7 +249,7 @@ function onMouseMove(e: MouseEvent): void {
   const fx = Math.round((e.clientX - rect.left) * FACE_W / rect.width);
   const fy = Math.round((e.clientY - rect.top)  * FACE_H / rect.height);
   const k = hitTest(fx, fy);
-  if (k !== keyCode1) setKeyCode1(0);
+  if (k !== keyCode1) releaseKey(); // respects hold timer
 }
 
 function onTouchStart(e: TouchEvent): void {
@@ -238,7 +272,7 @@ function onTouchMove(e: TouchEvent): void {
   const fx = Math.round((t.clientX - rect.left) * FACE_W / rect.width);
   const fy = Math.round((t.clientY - rect.top)  * FACE_H / rect.height);
   const k = hitTest(fx, fy);
-  if (k !== keyCode1) setKeyCode1(0);
+  if (k !== keyCode1) releaseKey(); // respects hold timer
 }
 
 

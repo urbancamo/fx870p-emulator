@@ -78,6 +78,8 @@ import { commInit } from '../emulator/comm.js';
 import { setIoDebug, isIoDebug } from '../emulator/port.js';
 
 const showDebug = ref(false);
+const showToolbar = ref(true);
+function toggleToolbar(): void { showToolbar.value = !showToolbar.value; }
 
 // Panel layout: bottom (default), right, or left of calculator
 type PanelLayout = 'bottom' | 'right' | 'left';
@@ -161,14 +163,14 @@ onUnmounted(() => {
       }"
     >
       <!-- Side panel (left) -->
-      <div v-if="panelLayout === 'left'" class="side-panels">
+      <div v-if="panelLayout === 'left' && showToolbar" class="side-panels">
         <CommPanel class="side-comm" v-model:showDebug="showDebug" :panelLayout="panelLayout" @cycleLayout="cycleLayout" />
         <DebugPanel v-if="showDebug" class="side-debug" />
       </div>
 
       <!-- Divider (left layout) -->
       <div
-        v-if="panelLayout === 'left'"
+        v-if="panelLayout === 'left' && showToolbar"
         class="divider"
         @pointerdown="onDividerDown"
         @pointermove="onDividerMove"
@@ -194,7 +196,7 @@ onUnmounted(() => {
               draggable="false"
             />
             <LcdCanvas class="lcd-overlay" />
-            <KeyboardOverlay />
+            <KeyboardOverlay @iconize="toggleToolbar" />
           </div>
         </div>
       </div>
@@ -211,15 +213,15 @@ onUnmounted(() => {
             draggable="false"
           />
           <LcdCanvas class="lcd-overlay" />
-          <KeyboardOverlay />
+          <KeyboardOverlay @iconize="toggleToolbar" />
         </div>
-        <CommPanel v-model:showDebug="showDebug" :panelLayout="panelLayout" @cycleLayout="cycleLayout" />
-        <DebugPanel v-if="showDebug" />
+        <CommPanel v-if="showToolbar" v-model:showDebug="showDebug" :panelLayout="panelLayout" @cycleLayout="cycleLayout" />
+        <DebugPanel v-if="showToolbar && showDebug" />
       </div>
 
       <!-- Divider (right layout) -->
       <div
-        v-if="panelLayout === 'right'"
+        v-if="panelLayout === 'right' && showToolbar"
         class="divider"
         @pointerdown="onDividerDown"
         @pointermove="onDividerMove"
@@ -228,7 +230,7 @@ onUnmounted(() => {
       />
 
       <!-- Side panel (right) -->
-      <div v-if="panelLayout === 'right'" class="side-panels">
+      <div v-if="panelLayout === 'right' && showToolbar" class="side-panels">
         <CommPanel class="side-comm" v-model:showDebug="showDebug" :panelLayout="panelLayout" @cycleLayout="cycleLayout" />
         <DebugPanel v-if="showDebug" class="side-debug" />
       </div>

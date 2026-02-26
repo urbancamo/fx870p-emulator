@@ -6,7 +6,8 @@ import {
   getStream, clearStream, setOnReceiveComplete,
 } from '../emulator/comm.js';
 import { getUartRegs, pd, pe, pdi } from '../emulator/port.js';
-import { importRamState, exportRamState, emulatorReset, emulatorStart, readRamByte } from '../emulator/emulator.js';
+import { importRamState, exportRamState, emulatorReset, emulatorStart, readRamByte, getOption2, saveConfig } from '../emulator/emulator.js';
+import { setOption2 } from '../emulator/def.js';
 import AboutPopup from './AboutPopup.vue';
 
 const showAbout = ref(false);
@@ -46,6 +47,17 @@ const portPe   = ref(0);
 const portPd   = ref(0);
 
 const showDiag  = ref(false);
+
+// Firmware mode toggle: 0 = VX-4 (English, RS-232C), 1 = FX-870P (Japanese, MT)
+const fwMode = ref(getOption2());
+function toggleFwMode(): void {
+  const next = fwMode.value === 0 ? 1 : 0;
+  fwMode.value = next;
+  setOption2(next);
+  saveConfig();
+  emulatorReset();
+  emulatorStart();
+}
 
 // Device table diagnostic (first byte at 0x11100: bit4=COM0 present)
 const devTable  = ref<number[]>([]);
@@ -327,6 +339,14 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
       <button class="btn" @click="emit('update:showDebug', !props.showDebug)">
         DEBUG {{ props.showDebug ? '\u25B4' : '\u25BE' }}
       </button>
+      <button
+        class="btn btn-fw"
+        :class="{ 'fw-jp': fwMode === 1 }"
+        @click="toggleFwMode"
+        :title="fwMode === 0
+          ? 'VX-4 (English, RS-232C) — click to switch to FX-870P'
+          : 'FX-870P (Japanese, MT) — click to switch to VX-4'"
+      >{{ fwMode === 0 ? 'VX-4' : '870P' }}</button>
       <button class="btn" @click="showAbout = true">ABOUT</button>
       <button class="btn" @click="emit('cycleLayout')" title="Cycle panel layout">{{ props.panelLayout === 'bottom' ? '\u2192' : props.panelLayout === 'right' ? '\u2190' : '\u2193' }}</button>
     </div>
@@ -474,6 +494,10 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
 .btn-ram  { color: #7eb8f7; border-color: #204050; padding: 2px 6px; }
 .btn-ram:hover  { background: #102030; color: #aad4ff; }
 .btn-sm { padding: 1px 5px; font-size: 0.7rem; }
+.btn-fw { color: #7eb8f7; border-color: #204050; }
+.btn-fw:hover { background: #102030; color: #aad4ff; }
+.btn-fw.fw-jp { color: #f0a030; border-color: #504020; }
+.btn-fw.fw-jp:hover { background: #302010; color: #ffc060; }
 
 .progress-wrap {
   flex: 1;

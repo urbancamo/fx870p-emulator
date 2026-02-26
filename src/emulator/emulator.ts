@@ -26,6 +26,7 @@ import {
   setPcMonitor,
   sx, sy, sz, ix, iz, pc, ua, flag, mr,
   addr18, ib,
+  Option2, setOption2,
 } from './def.js';
 import { cpuReset, cpuRun, cpuWakeUp } from './cpu.js';
 import { ioInit, SerialRate, onSerialTick, pd, pe, pdi, getUartRegs } from './port.js';
@@ -307,6 +308,9 @@ export function readRamByte(physAddr: number): number {
   return ram0.data[idx] ?? 0xFF;
 }
 
+// ─── Option2 (firmware mode) ─────────────────────────────────────────────────
+export function getOption2(): number { return Option2; }
+
 // ─── RAM state import (load a ram0.bin saved by the Delphi emulator) ──────────
 
 export async function importRamState(data: Uint8Array): Promise<void> {
@@ -400,11 +404,12 @@ export async function restoreState(): Promise<void> {
 
 // Bumped to 3: stop persisting option2 (it is a compile-time constant in def.ts,
 // not a user preference). Any stored option2 value caused pdi to be wrong at boot.
-const CONFIG_VERSION = 3;
+const CONFIG_VERSION = 4;
 
 interface Config {
   version: number;
   oscFreq?: number;
+  option2?: number;
 }
 
 export function loadConfig(): void {
@@ -417,13 +422,14 @@ export function loadConfig(): void {
       return;
     }
     if (typeof cfg.oscFreq === 'number') setOscFreq(cfg.oscFreq);
+    if (typeof cfg.option2 === 'number') setOption2(cfg.option2);
   } catch {
     // ignore malformed config
   }
 }
 
 export function saveConfig(): void {
-  const cfg: Config = { version: CONFIG_VERSION, oscFreq: OscFreq };
+  const cfg: Config = { version: CONFIG_VERSION, oscFreq: OscFreq, option2: Option2 };
   localStorage.setItem('fx870p-config', JSON.stringify(cfg));
 }
 
