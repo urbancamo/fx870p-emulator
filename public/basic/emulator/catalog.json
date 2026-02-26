@@ -3,5 +3,10 @@
     "file": "LIFE.FX",
     "name": "Conway's Game of Life",
     "description": "Cellular automaton on a 31x4 toroidal grid with four preset patterns"
+  },
+  {
+    "file": "HANGMAN.FX",
+    "name": "Hangman",
+    "description": "Word-guessing game with 100 ROT13-encoded hidden words and 7 lives"
   }
 ]
