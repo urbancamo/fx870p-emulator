@@ -8,5 +8,10 @@
     "file": "HANGMAN.FX",
     "name": "Hangman",
     "description": "Word-guessing game with 100 ROT13-encoded hidden words and 7 lives"
+  },
+  {
+    "file": "BLKJACK.FX",
+    "name": "Blackjack",
+    "description": "Classic card game — hit or stand to beat the dealer without going over 21"
   }
 ]
