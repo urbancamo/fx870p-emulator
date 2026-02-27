@@ -28,42 +28,42 @@ Press **F9** at any time to perform a hardware reset (equivalent to pressing the
 
 Most keys on your PC keyboard map directly to the corresponding calculator keys:
 
-| PC Key                      | Calculator Key                                |
-|-----------------------------|-----------------------------------------------|
-| **A**–**Z**                 | Letter keys (auto-adjusts CAPS to match case) |
-| **0**–**9**                 | Number keys                                   |
-| **Enter**                   | EXE                                           |
-| **Escape**                  | BRK / ON                                      |
-| **Backspace** or **Delete** | BS (backspace)                                |
-| **Insert**                  | INS                                           |
-| **Arrow keys**              | Cursor movement                               |
-| **Page Down**               | CAPS                                          |
-| **Page Up**                 | Red S (Shift / 2nd function)                  |
-| **Space**                   | Space                                         |
-| **+ - * /**                 | Arithmetic operators                          |
-| **( ) ^ . , =**             | Punctuation keys                              |
+| PC Key                      | Calculator Key                                | Key |
+|-----------------------------|-----------------------------------------------|-----|
+| **A**–**Z**                 | Letter keys (auto-adjusts CAPS to match case) | ![A](images/keys/standard/a.png) |
+| **0**–**9**                 | Number keys                                   | ![0](images/keys/standard/0.png) |
+| **Enter**                   | EXE                                           | ![EXE](images/keys/standard/exe.png) |
+| **Escape**                  | BRK / ON                                      | ![BRK](images/keys/standard/brk.png) |
+| **Backspace** or **Delete** | BS (backspace)                                | ![BS](images/keys/standard/bs.png) |
+| **Insert**                  | INS                                           | ![INS](images/keys/standard/ins.png) |
+| **Arrow keys**              | Cursor movement                               | ![Up](images/keys/standard/up.png) ![Down](images/keys/standard/down.png) ![Left](images/keys/standard/left.png) ![Right](images/keys/standard/right.png) |
+| **Page Down**               | CAPS                                          | ![CAPS](images/keys/standard/caps.png) |
+| **Page Up**                 | Red S (Shift / 2nd function)                  | ![S](images/keys/standard/s-shift.png) |
+| **Space**                   | Space                                         | ![SPC](images/keys/standard/spc.png) |
+| **+ - * /**                 | Arithmetic operators                          | ![+](images/keys/standard/plus.png) ![-](images/keys/standard/minus.png) ![*](images/keys/standard/multiply.png) ![/](images/keys/standard/divide.png) |
+| **( ) ^ . , =**             | Punctuation keys                              | ![(](images/keys/standard/open-paren.png) ![)](images/keys/standard/close-paren.png) ![^](images/keys/standard/power.png) ![.](images/keys/standard/dot.png) ![,](images/keys/standard/comma.png) ![=](images/keys/standard/equals.png) |
 
 #### Shifted Symbols
 
 Many symbols are entered using the calculator's red **S** (Shift) key. When you type these characters on your PC keyboard, the emulator automatically sends the correct Shift + key combination:
 
-| PC Key  | Calculator Entry |
-|---------|------------------|
-| **!**   | S + Q            |
-| **"**   | S + W            |
-| **#**   | S + E            |
-| **$**   | S + R            |
-| **%**   | S + T            |
-| **&**   | S + Y            |
-| **'**   | S + U            |
-| **@**   | S + A            |
-| **~**   | S + S            |
-| **?**   | S + D            |
-| **{ }** | S + F / S + G    |
-| **[ ]** | S + H / S + J    |
-| **< >** | S + K / S + L    |
-| **; :** | S + , / S + =    |
-| **_**   | S + Space        |
+| PC Key  | Calculator Entry | Keys |
+|---------|------------------|------|
+| **!**   | S + Q            | ![S](images/keys/standard/s-shift.png) + ![Q](images/keys/standard/q.png) |
+| **"**   | S + W            | ![S](images/keys/standard/s-shift.png) + ![W](images/keys/standard/w.png) |
+| **#**   | S + E            | ![S](images/keys/standard/s-shift.png) + ![E](images/keys/standard/e.png) |
+| **$**   | S + R            | ![S](images/keys/standard/s-shift.png) + ![R](images/keys/standard/r.png) |
+| **%**   | S + T            | ![S](images/keys/standard/s-shift.png) + ![T](images/keys/standard/t.png) |
+| **&**   | S + Y            | ![S](images/keys/standard/s-shift.png) + ![Y](images/keys/standard/y.png) |
+| **'**   | S + U            | ![S](images/keys/standard/s-shift.png) + ![U](images/keys/standard/u.png) |
+| **@**   | S + A            | ![S](images/keys/standard/s-shift.png) + ![A](images/keys/standard/a.png) |
+| **~**   | S + S            | ![S](images/keys/standard/s-shift.png) + ![S](images/keys/standard/s.png) |
+| **?**   | S + D            | ![S](images/keys/standard/s-shift.png) + ![D](images/keys/standard/d.png) |
+| **{ }** | S + F / S + G    | ![S](images/keys/standard/s-shift.png) + ![F](images/keys/standard/f.png) / ![G](images/keys/standard/g.png) |
+| **[ ]** | S + H / S + J    | ![S](images/keys/standard/s-shift.png) + ![H](images/keys/standard/h.png) / ![J](images/keys/standard/j.png) |
+| **< >** | S + K / S + L    | ![S](images/keys/standard/s-shift.png) + ![K](images/keys/standard/k.png) / ![L](images/keys/standard/l.png) |
+| **; :** | S + , / S + =    | ![S](images/keys/standard/s-shift.png) + ![,](images/keys/standard/comma.png) / ![=](images/keys/standard/equals.png) |
+| **_**   | S + Space        | ![S](images/keys/standard/s-shift.png) + ![SPC](images/keys/standard/spc.png) |
 
 #### Function Keys
 
