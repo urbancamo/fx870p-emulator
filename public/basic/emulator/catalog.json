@@ -18,5 +18,10 @@
     "file": "YAHTZEE.FX",
     "name": "Yahtzee",
     "description": "Classic dice game — roll, keep, and score across 13 categories for the highest total"
+  },
+  {
+    "file": "WUMPUS.FX",
+    "name": "Hunt the Wumpus",
+    "description": "Classic cave adventure — navigate 20 caves, avoid pits and bats, slay the Wumpus"
   }
 ]
