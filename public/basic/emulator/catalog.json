@@ -23,5 +23,20 @@
     "file": "WUMPUS.FX",
     "name": "Hunt the Wumpus",
     "description": "Classic cave adventure — navigate 20 caves, avoid pits and bats, slay the Wumpus"
+  },
+  {
+    "file": "FLIPFLOP.FX",
+    "name": "Flip Flop",
+    "description": "Puzzle from '101 BASIC Computer Games' — flip all X to O, but some positions are linked"
+  },
+  {
+    "file": "POKER.FX",
+    "name": "Draw Poker",
+    "description": "Five-card draw poker from '101 BASIC Computer Games' — bet, draw, and bluff against the AI"
+  },
+  {
+    "file": "BSEARCH.FX",
+    "name": "Binary Search",
+    "description": "Sort and search demo — bubble sorts 10 numbers then finds values with binary search"
   }
 ]
