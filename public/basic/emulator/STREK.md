@@ -8,13 +8,13 @@ Destroy all Klingon warships in the galaxy before time runs out. You command the
 
 ## Display
 
-The Short Range Scan (SRS) is the main display, showing 4 of 8 sector rows at a time, auto-centered on the Enterprise:
+The Short Range Scan (SRS) is the main display, showing 4 of 8 sector rows at a time. Auto-centers on the Enterprise, or press 1-5 to scroll manually:
 
 ```
-1..K..*.. E:2450
-2..E..... S: 200
-3......*. T:8 K:3
-NSLPTHDCQ+
+1..K..*.. ENERGY:2450        ↑
+2..E..... SHIELD: 200
+3......*. TORP:8 KLING:3
+4.....*.. DOCK NSLPTHDCQ1→5+
 ```
 
 ### Map Symbols
@@ -31,11 +31,11 @@ NSLPTHDCQ+
 
 | Label | Meaning |
 |-------|---------|
-| E: | Energy remaining |
-| S: | Shield energy |
-| T: | Photon torpedoes |
-| K: | Klingons remaining (galaxy-wide) |
-| GRN/YEL/RED/DOC | Condition |
+| ENERGY: | Energy remaining |
+| SHIELD: | Shield energy |
+| TORP: | Photon torpedoes |
+| KLING: | Klingons remaining (galaxy-wide) |
+| GRN/YEL/RED/DOCK | Condition |
 
 ## Commands
 
@@ -52,7 +52,8 @@ Press a single key at the command prompt:
 | ![D](../../../images/keys/standard/d.png)                   | DAM | Damage — show status of all 8 ship systems |
 | ![C](../../../images/keys/standard/c.png)                   | COM | Computer — access galactic record, status, navigation data |
 | ![Q](../../../images/keys/standard/q.png)                   | QUIT | Resign your command |
-| ![+](../../../images/keys/standard/plus.png)                | HELP | Show command key reference |
+| ![+](../../../images/keys/standard/plus.png)                | HELP | Show command reference — press any command key directly from help |
+| ![1](../../../images/keys/standard/1.png)–![5](../../../images/keys/standard/5.png) | SCROLL | Set top row of SRS display (1=rows 1-4, 5=rows 5-8) |
 
 ## Course Directions
 
@@ -128,12 +129,12 @@ The LRS shows a 3×3 grid of surrounding quadrants:
 
 ```
 ANTARES II  Q:3,4
- 113 207 003
- 010[045]105
- *** 100 012
+ 113 207 003  COL1=KLINGONS
+ 010[045]105  COL2=BASES
+ *** 100 012  COL3=STARS
 ```
 
-Each 3-digit number encodes: Klingons × 100 + Bases × 10 + Stars. `[045]` marks your current quadrant. `***` = edge of galaxy.
+Each 3-digit number encodes: Klingons × 100 + Bases × 10 + Stars. `[045]` marks your current quadrant. `***` = edge of galaxy. The legend on the right shows what each digit position means.
 
 ## Victory & Defeat
 
