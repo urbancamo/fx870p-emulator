@@ -6,7 +6,7 @@ A classic card game for the FX-870P / VX-4, written by Claude (Anthropic).
 
 1. You and the dealer are each dealt two cards
 2. The dealer's first card is hidden (`??`)
-3. Press **H** to Hit (take another card) or **S** to Stand (keep your hand)
+3. Press ![H](../../../images/keys/standard/h.png) to Hit (take another card) or ![S](../../../images/keys/standard/s.png) to Stand (keep your hand)
 4. Try to get as close to 21 as possible without going over
 5. After you stand, the dealer reveals and hits until reaching 17 or higher
 6. Closest to 21 wins — going over 21 is a bust
@@ -46,7 +46,7 @@ After standing, the dealer's hidden card is revealed and the dealer draws until 
 1. Load the program into the emulator via **LOAD** or **LIB**
 2. On the calculator type `LOAD "COM0:6,N,8,1,N,N,N,N,N"` and press **EXE**
 3. Switch to BASIC mode (`MODE` then select BASIC) and type `RUN`, press **EXE**
-4. Press any key to start, then **H** to hit or **S** to stand
+4. Press any key to start, then ![H](../../../images/keys/standard/h.png) to hit or ![S](../../../images/keys/standard/s.png) to stand
 5. After each hand, press any key to play again
 
 ## Program Structure

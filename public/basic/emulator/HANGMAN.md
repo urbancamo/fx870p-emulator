@@ -5,7 +5,7 @@ A word-guessing game for the FX-870P / VX-4 with 100 hidden words, written by Cl
 ## How to Play
 
 1. The program picks a random word and shows it as underscores: `_ _ _ _ _ _`
-2. Press a letter key (A-Z) to guess
+2. Press a letter key (![A](../../../images/keys/standard/a.png)-![Z](../../../images/keys/standard/z.png)) to guess
 3. Correct letters are revealed in the word; wrong guesses cost a life
 4. You have **7 lives** — shown as filled blocks on line 2
 5. Guess the whole word to win, or run out of lives and the answer is revealed
@@ -37,7 +37,7 @@ Since ROT13 is its own inverse (shifting by 13 twice returns to the original), t
 1. Load the program into the emulator via **LOAD** or **LIB**
 2. On the calculator type `LOAD "COM0:6,N,8,1,N,N,N,N,N"` and press **EXE**
 3. Switch to BASIC mode (`MODE` then select BASIC) and type `RUN`, press **EXE**
-4. Guess letters by pressing keys A-Z
+4. Guess letters by pressing keys ![A](../../../images/keys/standard/a.png)-![Z](../../../images/keys/standard/z.png)
 5. After a round ends, press any key to play again
 
 ## Program Structure

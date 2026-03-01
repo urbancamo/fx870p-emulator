@@ -21,18 +21,21 @@ Cards are shown as rank + suit symbol (e.g. `A♠` = Ace of Spades).
 
 1. **Ante** — $5 from each player goes into the pot
 2. **Computer bets first** — it may check (bet $0) or open with a bet
-3. **You respond** — match the bet (Y/N) or place your own bet if CPU checked
+3. **You respond** — match the bet (![Y](../../../images/keys/standard/y.png)/![N](../../../images/keys/standard/n.png)) or place your own bet if CPU checked
 4. **Draw phase** — discard up to 3 cards to improve your hand
 5. **You bet after draw** — place a final bet
 6. **Showdown** — both hands revealed, best hand wins the pot
 
 ### Controls
 
-- **Y/N** — Yes/No when asked to match a bet
-- **0–9** — Bet amount (multiplied by $5, so 3 = $15)
-- **F** — Fold (forfeit the pot)
-- **1–5** — Select card position to discard during draw phase
-- **D** — Done discarding
+| Key                                       | Action                                            |
+|-------------------------------------------|---------------------------------------------------|
+| ![Y](../../../images/keys/standard/y.png) | Yes — match a bet                                 |
+| ![N](../../../images/keys/standard/n.png) | No — decline a bet                                |
+| ![0](../../../images/keys/standard/0.png)-![9](../../../images/keys/standard/9.png) | Bet amount (multiplied by $5, so 3 = $15) |
+| ![F](../../../images/keys/standard/f.png) | Fold (forfeit the pot)                            |
+| ![1](../../../images/keys/standard/1.png)-![5](../../../images/keys/standard/5.png) | Select card position to discard during draw phase |
+| ![D](../../../images/keys/standard/d.png) | Done discarding                                   |
 
 ### Hand Rankings (lowest to highest)
 

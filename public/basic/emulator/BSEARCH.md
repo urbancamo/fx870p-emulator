@@ -17,8 +17,8 @@ FOUND AT ORIG POS 5               Result
 
 ### Controls
 
-- **Enter a number** and press **EXE** to search
-- **Enter 0** to quit
+- Enter a number and press ![EXE](../../../images/keys/standard/exe.png) to search
+- Enter ![0](../../../images/keys/standard/0.png) to quit
 - Press **any key** after seeing the result to search again
 
 ### What It Demonstrates

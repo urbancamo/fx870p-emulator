@@ -15,9 +15,11 @@ MOVES: 3                Move counter
 
 ### Controls
 
-- **1**–**9**: Flip position 1 through 9
-- **0**: Flip position 10
-- **R**: Reset and start a new puzzle
+| Key                                       | Action                   |
+|-------------------------------------------|--------------------------|
+| ![1](../../../images/keys/standard/1.png)-![9](../../../images/keys/standard/9.png) | Flip position 1 through 9 |
+| ![0](../../../images/keys/standard/0.png) | Flip position 10          |
+| ![R](../../../images/keys/standard/r.png) | Reset and start a new puzzle |
 
 ### The Twist
 

@@ -29,7 +29,7 @@ Multiple warnings can appear at once (e.g. `WUMPUS! DRAFT!`).
 
 ### Moving
 
-Press **M** to move, then press **1**, **2**, or **3** to choose which exit to take.
+Press ![M](../../../images/keys/standard/m.png) to move, then press ![1](../../../images/keys/standard/1.png), ![2](../../../images/keys/standard/2.png), or ![3](../../../images/keys/standard/3.png) to choose which exit to take.
 
 ```
 MOVE TO WHICH EXIT?
@@ -38,7 +38,7 @@ MOVE TO WHICH EXIT?
 
 ### Shooting
 
-Press **S** to shoot an arrow into one of the three exits. The arrow enters that room and then bounces randomly through 2 more connected rooms. If it hits the Wumpus at any point, you win!
+Press ![S](../../../images/keys/standard/s.png) to shoot an arrow into one of the three exits. The arrow enters that room and then bounces randomly through 2 more connected rooms. If it hits the Wumpus at any point, you win!
 
 ```
 SHOOT WHICH EXIT?

@@ -41,18 +41,18 @@ NSLPTHDCQ+
 
 Press a single key at the command prompt:
 
-| Key | Command | Description |
-|-----|---------|-------------|
-| **N** | NAV | Navigate — set course (1-8) and warp factor (0-8) |
-| **S** | SRS | Short Range Scan — refresh the sector display |
-| **L** | LRS | Long Range Scan — show 3×3 surrounding quadrants |
-| **P** | PHA | Phasers — fire energy weapons at all Klingons in sector |
-| **T** | TOR | Torpedo — fire a photon torpedo along a course |
-| **H** | SHE | Shields — transfer energy to/from shields |
-| **D** | DAM | Damage — show status of all 8 ship systems |
-| **C** | COM | Computer — access galactic record, status, navigation data |
-| **Q** | QUIT | Resign your command |
-| **+** | HELP | Show command key reference |
+| Key                                                         | Command | Description |
+|-------------------------------------------------------------|---------|-------------|
+| ![N](../../../images/keys/standard/n.png)                   | NAV | Navigate — set course (1-8) and warp factor (0-8) |
+| ![S](../../../images/keys/standard/s.png)                   | SRS | Short Range Scan — refresh the sector display |
+| ![L](../../../images/keys/standard/l.png)                   | LRS | Long Range Scan — show 3×3 surrounding quadrants |
+| ![P](../../../images/keys/standard/p.png)                   | PHA | Phasers — fire energy weapons at all Klingons in sector |
+| ![T](../../../images/keys/standard/t.png)                   | TOR | Torpedo — fire a photon torpedo along a course |
+| ![H](../../../images/keys/standard/h.png)                   | SHE | Shields — transfer energy to/from shields |
+| ![D](../../../images/keys/standard/d.png)                   | DAM | Damage — show status of all 8 ship systems |
+| ![C](../../../images/keys/standard/c.png)                   | COM | Computer — access galactic record, status, navigation data |
+| ![Q](../../../images/keys/standard/q.png)                   | QUIT | Resign your command |
+| ![+](../../../images/keys/standard/plus.png)                | HELP | Show command key reference |
 
 ## Course Directions
 

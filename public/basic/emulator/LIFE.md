@@ -12,12 +12,12 @@ Two arrays are used: `G(30,3)` holds the current generation and `H(30,3)` holds 
 
 The program offers four starting configurations via a menu:
 
-| Key | Pattern         | Description                                                                                                          |
-|-----|-----------------|----------------------------------------------------------------------------------------------------------------------|
-| 1   | **Glider**      | The classic 5-cell spaceship that travels diagonally across the grid, wrapping around the toroidal edges             |
-| 2   | **Blinkers**    | Three period-2 oscillators spaced across the grid, each alternating between a horizontal and vertical bar of 3 cells |
-| 3   | **R-pentomino** | A 5-cell methuselah pattern placed at the centre of the grid — chaotic growth before eventually stabilising          |
-| 4   | **Random**      | Each cell has a 25% chance of starting alive, using `RAN#`                                                           |
+| Key                                       | Pattern         | Description                                                                                                          |
+|-------------------------------------------|-----------------|----------------------------------------------------------------------------------------------------------------------|
+| ![1](../../../images/keys/standard/1.png) | **Glider**      | The classic 5-cell spaceship that travels diagonally across the grid, wrapping around the toroidal edges             |
+| ![2](../../../images/keys/standard/2.png) | **Blinkers**    | Three period-2 oscillators spaced across the grid, each alternating between a horizontal and vertical bar of 3 cells |
+| ![3](../../../images/keys/standard/3.png) | **R-pentomino** | A 5-cell methuselah pattern placed at the centre of the grid — chaotic growth before eventually stabilising          |
+| ![4](../../../images/keys/standard/4.png) | **Random**      | Each cell has a 25% chance of starting alive, using `RAN#`                                                           |
 
 ## How It Works
 

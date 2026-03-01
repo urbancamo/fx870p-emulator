@@ -17,9 +17,9 @@ ROLL 2/3  RND 1/13      Roll and round count
 1-5)KEEP R)OLL S)CORE   Commands
 ```
 
-- **1-5**: Toggle keep/release for that die position
-- **R**: Re-roll all non-kept dice (up to 3 rolls total)
-- **S**: Stop rolling and choose a scoring category
+- ![1](../../../images/keys/standard/1.png)-![5](../../../images/keys/standard/5.png): Toggle keep/release for that die position
+- ![R](../../../images/keys/standard/r.png): Re-roll all non-kept dice (up to 3 rolls total)
+- ![S](../../../images/keys/standard/s.png): Stop rolling and choose a scoring category
 
 After the 3rd roll, you must score.
 
@@ -34,8 +34,8 @@ N)EXT  S)ELECT
 ROUND 1/13
 ```
 
-- **N**: Cycle to the next available (unscored) category
-- **S**: Lock in the displayed score
+- ![N](../../../images/keys/standard/n.png): Cycle to the next available (unscored) category
+- ![S](../../../images/keys/standard/s.png): Lock in the displayed score
 
 You can score 0 in any category — sometimes it's strategic to "burn" a bad category.
 
