@@ -82,6 +82,21 @@ async function onLoad(entry: CatalogEntry): Promise<void> {
   }
 }
 
+async function onDownload(entry: CatalogEntry): Promise<void> {
+  try {
+    const res = await fetch(`${base}basic/emulator/${entry.file}`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = entry.file;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch {
+    // noop — file fetch failed
+  }
+}
+
 function onBackdrop(e: MouseEvent): void {
   if (e.target === e.currentTarget) emit('close');
 }
@@ -111,6 +126,7 @@ function onBackdrop(e: MouseEvent): void {
                   {{ expandedDoc === entry.file ? 'HIDE' : 'INFO' }}
                 </button>
                 <button class="lib-btn lib-btn-load" @click="onLoad(entry)">LOAD</button>
+                <button class="lib-btn lib-btn-dl" @click="onDownload(entry)" title="Download"><i class="fa-solid fa-download"></i></button>
               </div>
             </div>
             <div v-if="expandedDoc === entry.file" :class="['lib-doc', `lib-entry-doc-${entry.file}`]">
@@ -140,7 +156,7 @@ function onBackdrop(e: MouseEvent): void {
 }
 
 .lib-popup {
-  width: 560px;
+  width: 50vw;
   max-width: 95vw;
   max-height: 85vh;
   display: flex;
@@ -150,7 +166,7 @@ function onBackdrop(e: MouseEvent): void {
   border-radius: 8px;
   overflow: hidden;
   font-family: monospace;
-  font-size: 0.85rem;
+  font-size: 0.97rem;
   color: #ccc;
 }
 
@@ -164,7 +180,7 @@ function onBackdrop(e: MouseEvent): void {
 }
 
 .lib-title {
-  font-size: 1rem;
+  font-size: 1.12rem;
   color: #fff;
 }
 
@@ -172,7 +188,7 @@ function onBackdrop(e: MouseEvent): void {
   background: none;
   border: none;
   color: #888;
-  font-size: 1.4rem;
+  font-size: 1.52rem;
   cursor: pointer;
   padding: 0 4px;
   line-height: 1;
@@ -225,29 +241,30 @@ function onBackdrop(e: MouseEvent): void {
 
 .lib-name {
   color: #fff;
-  font-size: 0.9rem;
+  font-size: 1.02rem;
 }
 
 .lib-desc {
   color: #999;
-  font-size: 0.78rem;
+  font-size: 0.9rem;
 }
 
 .lib-file {
   color: #555;
-  font-size: 0.7rem;
+  font-size: 0.82rem;
 }
 
 .lib-actions {
   display: flex;
-  gap: 6px;
+  flex-direction: column;
+  gap: 4px;
   flex-shrink: 0;
 }
 
 .lib-btn {
   padding: 4px 12px;
   font-family: monospace;
-  font-size: 0.75rem;
+  font-size: 0.87rem;
   background: #2a2a2a;
   color: #ccc;
   border: 1px solid #444;
@@ -266,6 +283,15 @@ function onBackdrop(e: MouseEvent): void {
 .lib-btn-load:hover {
   background: #1a2a10;
   color: #aed581;
+}
+
+.lib-btn-dl {
+  color: #e0a050;
+  border-color: #504020;
+}
+.lib-btn-dl:hover {
+  background: #2a2010;
+  color: #f0c070;
 }
 
 .lib-btn-info {
@@ -295,7 +321,7 @@ function onBackdrop(e: MouseEvent): void {
 }
 
 .lib-doc-content :deep(h1) {
-  font-size: 1.2rem;
+  font-size: 1.32rem;
   color: #fff;
   border-bottom: 1px solid #333;
   padding-bottom: 6px;
@@ -303,13 +329,13 @@ function onBackdrop(e: MouseEvent): void {
 }
 
 .lib-doc-content :deep(h2) {
-  font-size: 1rem;
+  font-size: 1.12rem;
   color: #ddd;
   margin: 16px 0 8px;
 }
 
 .lib-doc-content :deep(h3) {
-  font-size: 0.9rem;
+  font-size: 1.02rem;
   color: #bbb;
   margin: 12px 0 6px;
 }
@@ -330,7 +356,7 @@ function onBackdrop(e: MouseEvent): void {
   background: #2a2a2a;
   padding: 1px 5px;
   border-radius: 3px;
-  font-size: 0.85em;
+  font-size: 0.97em;
   color: #e0e0e0;
 }
 
@@ -387,7 +413,7 @@ function onBackdrop(e: MouseEvent): void {
 
 .lib-hint {
   color: #555;
-  font-size: 0.72rem;
+  font-size: 0.84rem;
 }
 
 .lib-hint code {
