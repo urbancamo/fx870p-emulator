@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import { marked } from 'marked';
 import { loadFileBytes, clearOutput } from '../emulator/comm.js';
 
@@ -60,6 +60,12 @@ async function toggleInfo(entry: CatalogEntry): Promise<void> {
     docHtml.value = '<p>Failed to load documentation.</p>';
   } finally {
     docLoading.value = false;
+    await nextTick();
+    const el = document.querySelector(`.lib-entry-doc-${CSS.escape(key)}`);
+    if (el) {
+      const row = el.previousElementSibling;
+      (row || el).scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }
 }
 
@@ -107,7 +113,7 @@ function onBackdrop(e: MouseEvent): void {
                 <button class="lib-btn lib-btn-load" @click="onLoad(entry)">LOAD</button>
               </div>
             </div>
-            <div v-if="expandedDoc === entry.file" class="lib-doc">
+            <div v-if="expandedDoc === entry.file" :class="['lib-doc', `lib-entry-doc-${entry.file}`]">
               <div v-if="docLoading" class="lib-doc-loading">Loading...</div>
               <div v-else class="lib-doc-content" v-html="docHtml" />
             </div>

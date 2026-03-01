@@ -1,0 +1,229 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+	<title>Retrochallenge 2010 Summer Challenge</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta name="Keywords" content="retrochallenge, vax, z88, lunar lander">
+	<meta name="Description" content="My Retrochallenge Entry, Summer 2010">
+	<meta name="GENERATOR" content="John A. Fotheringham's AscToHTM">
+</head>
+<body bgcolor="white">
+<!-- base href=".lander28g.bas" --></head><body><div style="margin: -1px -1px 0pt; padding: 0pt; border: 1px solid rgb(153, 153, 153); background: none repeat scroll 0% 0% rgb(255, 255, 255);"><div style="margin: 12px; padding: 8px; border: 1px solid rgb(153, 153, 153); background: none repeat scroll 0% 0% rgb(221, 221, 221); font: 13px arial,sans-serif; color: rgb(0, 0, 0); text-align: left;">This is Google's cache of <a href="./lander28g.bas" style="text-decoration: underline; color: rgb(0, 0, 204);">.lander28g.bas</a>. It is a snapshot of the page as it appeared on 27 Aug 2010 18:55:52 GMT. The <a href="./lander28g.bas" style="text-decoration: underline; color: rgb(0, 0, 204);">current page</a> could have changed in the meantime. <a href="http://www.google.com/intl/en/help/features_list.html#cached" style="text-decoration: underline; color: rgb(0, 0, 204);">Learn more</a><br><br><div style="float: right;"><a href="http://webcache.googleusercontent.com/search?q=cache:5uqLRPESEVQJ:hecnet.eu/rc2010sc/lander28g.bas+hecnet.eu&amp;hl=en&amp;strip=1" style="text-decoration: underline; color: rgb(0, 0, 204);">Text-only version</a></div>
+<div>These search terms are highlighted: <span style="background: none repeat scroll 0% 0% rgb(255, 255, 102); color: black; font-weight: bold;">hecnet</span>&nbsp;<span style="background: none repeat scroll 0% 0% rgb(255, 255, 102); color: black; font-weight: bold;">eu</span>&nbsp;&nbsp;</div></div></div><div style="position: relative;">
+<pre>  100 REM LUNAR LANDER, by Mark Wickens
+  110 REM developed for Summer 2010 Retrochallenge
+  120 REM V28D, 28-JUL-2010
+  130 REM http://www.wickensonline.co.uk/rc2010sc
+  140 LANDED=0: REM 1 when down
+  150 RESET=0
+  160 ST%=0: REM Step count
+  170 TS=100: REM length of loop x 10ms
+  180 PROC_SPLASH
+  190 PROC_INITIAL
+  200 PROC_SIMLOOP
+  210 END
+  220 DEF PROC_SIMLOOP: REM --- Main loop
+  230 CLS
+  240 REPEAT
+  250   PROC_DISPLAY
+  260   PROC_GETKEY
+  270   PROC_UPDSIM
+  280   PROC_INPUT
+  290   PROC_TESTLAND
+  300   PROC_DELAY
+  310   IF RESET=1 THEN PROC_RESET
+  320   ST%=ST%+1
+  330 UNTIL LANDED=1
+  340 ENDPROC
+  350 DEF PROC_INITIAL: REM --- set initial simulation conditions
+  360 VSI=0: REM Vertical Speed Indicator Position
+  370 PVSI=0: REM Previous VSI Indicator position
+  380 ALT=0: REM Altitude indicator
+  390 PALT=0: REM Previous altitude indicator
+  400 HPI=0: REM Horizontal position indicator
+  410 LA=60: REM Lander angle (0=vertical)
+  420 BR=0: REM Burn rate/%
+  430 F=25000: REM Total fuel/kg
+  440 X=-30000: REM Range to landing site
+  450 Y=10000: REM Initial height/metres
+  460 DX=500: REM Initial horizontal velocity/ms
+  470 DY=0: REM Initial vertical velocity/ms
+  480 G=10/3: REM Gravity, metres/second
+  490 VT=0: REM Vertical thrust component
+  500 HT=0: REM Horizontal thrust component
+  510 ENDPROC
+  520 DEF PROC_DISPLAY: REM --- Update display
+  530 PROC_NAVDISPLAY
+  540 PROC_TENW2DP
+  550 PRINT TAB(1,0) "F=" F
+  560 PRINT TAB(15,0) "X=" X
+  570 PRINT TAB(29,0) "Y=" Y
+  580 PRINT TAB(0,1) "DX=" DX
+  590 PRINT TAB(14,1) "DY=" DY
+  600 PRINT TAB(28,1) "BR=" BR
+  610 PRINT TAB(0,2) "LA=" LA
+  620 PRINT TAB(14,2) "VT=" VT
+  630 PRINT TAB(28,2) "HT=" HT
+  640 IF F&lt;3000 AND ST% MOD 2=0 THEN PRINT TAB(0,3) "FUEL" ELSE PRINT TAB(0,3) "    "
+  650 IF DY&gt;0 THEN PRINT TAB(5,3) "ASC" ELSE PRINT TAB(5,3) "   "
+  660 IF Y&lt;1000 THEN PRINT TAB(9,3) "RADAR"
+  670 IF Y&lt;3 THEN PRINT TAB(9,3) "CONTACT" ELSE IF Y&gt;1000 PRINT TAB(9,3) "       "
+  680 IF BR=0 AND F=0 THEN PRINT TAB(17,3) "ENGINE"
+  690 IF X&gt;=-500 AND X&lt;=500 THEN PRINT TAB(24,3) "RANGE" ELSE PRINT TAB(24,3) "     "
+  700 PROC_VSI: REM Update the vertical speed indicator
+  710 PROC_ALT: REM Update the altitude indicator
+  720 ENDPROC
+  730 DEF PROC_VSI: REM --- Update the vertical speed indicator
+  740 VSI=(0-DY)*6/15
+  750 PROC_UPDTAPE(59,VSI,PVSI)
+  760 PVSI=VSI
+  770 IF PVSI&lt;0 THEN PVSI=0
+  780 IF PVSI&gt;6 THEN PVSI=6
+  790 ENDPROC
+  800 DEF PROC_ALT: REM --- Update the altitude indicator
+  810 IF Y&gt;75 THEN ALT=-1 ELSE ALT=6-(Y/75*6)
+  820 PROC_UPDTAPE(50,ALT,PALT)
+  830 PALT=ALT
+  840 IF PALT&lt;0 THEN PALT=0
+  850 IF PALT&gt;6 THEN PALT=6
+  860 ENDPROC
+  870 DEF PROC_UPDTAPE(COL,CURR,PREV): REM -- Update tape display
+  880 PRINT TAB(COL,PREV) " ": REM clear previous indicator position
+  890 IF CURR&lt;0 THEN PRINT TAB(COL,0) "^"
+  900 IF CURR&gt;6 THEN PRINT TAB(COL,6) "V"
+  910 IF CURR&gt;=0 AND CURR&lt;=6 THEN PRINT TAB(COL,CURR) "&gt;"
+  920 ENDPROC
+  930 DEF PROC_UPDSIM: REM --- Update simulation parameters
+  940 HT=LA/90*BR/10: REM horizontal component of lander angle multiplied by burn rate
+  950 VT=(1-(ABS(LA)/90))*BR/10
+  960 DY=DY-G+VT: REM Update vertical speed with effects of gravity and vertical thrust
+  970 Y=Y+DY
+  980 DX=DX-HT
+  990 X = X + DX
+ 1000 IF F-BR&lt;0 THEN BR=F
+ 1010 IF F&gt;0 THEN F=F-BR
+ 1020 IF Y&lt;0 THEN Y=0
+ 1030 ENDPROC
+ 1040 DEF PROC_INPUT: REM --- Process keyboard input
+ 1050 IF C$="]" AND BR&lt;100 THEN BR=BR+10
+ 1060 IF C$="[" AND BR&gt;0 THEN BR=BR-10
+ 1070 IF C$="-" AND LA&gt;-60 THEN LA=LA-5
+ 1080 IF C$="=" AND LA&lt;60 THEN LA=LA+5
+ 1090 IF C$="R" THEN RESET=1
+ 1100 IF C$="I" THEN PROC_INSTRUCTIONS
+ 1110 IF C$="'" AND BR&gt;=2 THEN BR=BR-2
+ 1120 IF C$="~" AND BR&lt;=98 THEN BR=BR+2
+ 1130 IF C$="V" THEN LA=0
+ 1140 IF C$="C" THEN LA=-60
+ 1150 IF C$="B" THEN LA=60
+ 1160 IF C$="1" THEN BR=20
+ 1170 IF C$="2" THEN BR=40
+ 1180 IF C$="3" THEN BR=60
+ 1190 IF C$="4" THEN BR=80
+ 1200 IF C$="5" THEN BR=100
+ 1210 IF C$="0" THEN BR=0
+ 1220 IF C$="P" THEN PROC_PAUSE
+ 1230 IF C$="I" THEN PROC_INSTR
+ 1240 IF C$="K" THEN PROC_KEYS
+ 1250 ENDPROC
+ 1260 DEF PROC_TESTLAND: REM --- Test for landed and engine off
+ 1270 IF Y&lt;=0 AND BR=0 THEN LANDED=1: PROC_LANDED
+ 1280 ENDPROC
+ 1290 DEF PROC_LANDED: REM --- Determine state of landing and score
+ 1300 IF DX&lt;0 THEN DX=-DX
+ 1310 IF X&lt;0 THEN X=-X
+ 1320 PROC_DISPLAY: REM Update display for final position
+ 1330 IF DX&lt;=6 AND DY&gt;=-6 THEN PRINT TAB(0,4) "You have landed successfully!"
+ 1340 IF DX&lt;6 AND DY&lt;-3 AND DY&gt;-6 THEN PRINT TAB(0,4) "You have landed with a bounce!"
+ 1350 IF DY&lt;-6 OR DX&gt;6 THEN PRINT TAB(0,4) "You have CRASHED!"
+ 1360 @%=&amp;00000000
+ 1370 IF X&gt;500 THEN PRINT X " metres from the landing site"
+ 1380 IF DY&lt;-6.0 THEN PRINT "You left a crater " (ABS(DY)*2.5) " metres deep"
+ 1390 SCORE%=100/(ABS(DX)*ABS(DY))
+ 1400 IF ABS(X)&lt;500 AND ABS(DX)&lt;6.0 AND ABS(DY)&lt;6.0 THEN PRINT "YOUR SCORE IS: " SCORE%
+ 1410 ENDPROC
+ 1420 DEF PROC_DELAY: REM --- loop delay
+ 1430 REPEAT T=TIME
+ 1440 UNTIL T&gt;TS
+ 1450 ENDPROC
+ 1460 DEF PROC_PAUSE
+ 1470 PRINT TAB(0,4) "PAUSED - Press 'P' to continue..."
+ 1480 REPEAT
+ 1490   C$=INKEY$(1000)
+ 1500 UNTIL C$="P"
+ 1510 PRINT TAB(0,4) "                                 "
+ 1520 ENDPROC
+ 1530 DEF PROC_NAVDISPLAY: REM --- Static elements
+ 1540 PRINT TAB(46,0) "ALT"
+ 1550 PROC_TAPE(51,75,-25)
+ 1560 PRINT TAB(55,0) "VSI"
+ 1570 PROC_TAPE(60,0,5)
+ 1580 ENDPROC
+ 1590 DEF PROC_TAPE(COL,MIN,TICK)
+ 1600 PROC_MINW0DP
+ 1610 PRINT TAB(COL,0) "-" MIN
+ 1620 PRINT TAB(COL,1) "."
+ 1630 PRINT TAB(COL,2) "-" (MIN+TICK)
+ 1640 PRINT TAB(COL,3) "."
+ 1650 PRINT TAB(COL,4) "-" (MIN+(TICK*2))
+ 1660 PRINT TAB(COL,5) "."
+ 1670 PRINT TAB(COL,6) "-" (MIN+(TICK*3))
+ 1680 ENDPROC
+ 1690 DEF PROC_GETKEY: REM --- keyboard input
+ 1700 C$=INKEY$(TS*0.9)
+ 1710 ENDPROC
+ 1720 DEF PROC_SPLASH
+ 1730 REPEAT
+ 1740   CLS
+ 1750   PRINT "Lunar Lander, by Mark Wickens"
+ 1760   PRINT ""
+ 1770   PRINT "Press 'I' for instructions, 'S' to start"
+ 1780   PRINT "      'K' for keys"
+ 1790   C$=INKEY$(5000)
+ 1800   IF C$="I" THEN PROC_INSTR
+ 1810   IF C$="K" THEN PROC_KEYS
+ 1820 UNTIL C$="S"
+ 1830 ENDPROC
+ 1840 DEF PROC_INSTR
+ 1850 CLS
+ 1860 PRINT "You are the commander of the Lunar Excursion Module, your mission is to"
+ 1870 PRINT "successfully land the LEM on the moon"
+ 1880 PRINT ""
+ 1890 PRINT "Your panel displays the following information:"
+ 1900 PRINT "F: Fuel Remaining, X: Horiz. Distance down range, Y: Height"
+ 1910 PRINT "DX: Horiz. Speed, DY: Vert. Speed, BR: Engine Burn Rate/%"
+ 1920 PRINT "LA: LEM Attitude (0=vertical), VT/HT: Vert./Horiz. Thrust Component"
+ 1930 PROC_ANYKEY
+ 1940 PRINT "Slow your horiz. speed first, then land +/- 500 metres of the landing site"
+ 1950 PRINT "with horiz. and vert. speed less than 3.0 metres/sec"
+ 1960 PRINT ""
+ 1970 PRINT "See the accompanying Pipedream/txt file for more information"
+ 1980 PROC_ANYKEY
+ 1990 ENDPROC
+ 2000 DEF PROC_ANYKEY
+ 2010 REPEAT
+ 2020   C$=INKEY$(100)
+ 2030 UNTIL C$&lt;&gt;""
+ 2040 CLS
+ 2050 ENDPROC
+ 2060 DEF PROC_RESET: REM --- Reset the simulation
+ 2070 RESET=0
+ 2080 PROC_INITIAL
+ 2090 ENDPROC
+ 2100 DEF PROC_TENW2DP: REM --- Set number format, 10 wide, 2 decimal places
+ 2110 @%=&amp;0102020A
+ 2120 ENDPROC
+ 2130 DEF PROC_MINW0DP: REM --- Set number format, min width, no decimal places
+ 2140 @%=&amp;01020000
+ 2150 ENDPROC
+ 2160 DEF PROC_KEYS: REM -- Display valid keyboard commands
+ 2170 CLS
+ 2180 PRINT "Keys:"
+ 2190 PRINT "Thrust: 1:20%, 2:40%, 3:60%, 4:80%, 5:100%, 0:Engine Cut"
+ 2200 PRINT "        [:-10%, ]:+10%, ':-2%, ~:+2%"
+ 2210 PRINT "Attitude: C:-60 degrees, V:vertical, B:+60 degrees"
+ 2220 PRINT "          -:-5 degrees, +:+5 degrees"
+ 2230 PRINT "Simulation: P:Pause, R:Restart, I:Instructions, K:Keys"
+ 2240 PROC_ANYKEY
+ 2250 ENDPROC
+</pre></div></body></html>

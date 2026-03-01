@@ -38,5 +38,20 @@
     "file": "BSEARCH.FX",
     "name": "Binary Search",
     "description": "Sort and search demo — bubble sorts 10 numbers then finds values with binary search"
+  },
+  {
+    "file": "G2048.FX",
+    "name": "2048",
+    "description": "Slide and merge tiles on a 4x4 grid to reach 2048 — classic puzzle game"
+  },
+  {
+    "file": "STREK.FX",
+    "name": "Super Star Trek",
+    "description": "Command the USS Enterprise — destroy Klingons, navigate an 8x8 galaxy, manage energy and shields"
+  },
+  {
+    "file": "LANDER.FX",
+    "name": "Lunar Lander",
+    "description": "Real-time lunar landing sim — tilt, burn, and land the LEM on the moon's surface"
   }
 ]
