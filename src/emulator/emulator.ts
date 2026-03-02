@@ -24,7 +24,7 @@ import {
   setIfl,
   setRamWriteMonitor,
   setPcMonitor,
-  sx, sy, sz, ix, iz, pc, ua, flag, mr,
+  sx, sy, sz, ix, iz, pc, ua, ss, flag, mr,
   addr18, ib,
   Option2, setOption2,
   turbo,
@@ -367,19 +367,20 @@ function openDb(): Promise<IDBDatabase> {
 }
 
 export async function saveState(): Promise<void> {
+  // Capture all values before opening the transaction — any await inside an
+  // IDB transaction yields to the event loop, auto-committing it and making
+  // subsequent requests throw "transaction is not active".
+  const ram0 = memdef[RAM0_IDX];
+  const ramSnapshot = ram0?.data?.slice();
+  const regBuf = new Uint8Array(36);
+  regBuf.set(mr.subarray(0, 32));
+  regBuf[32] = pc & 0xFF; regBuf[33] = (pc >> 8) & 0xFF;
+  regBuf[34] = ua & 0xFF; regBuf[35] = ss & 0xFF;
+
   const db = await openDb();
   const tx = db.transaction(STORE_NAME, 'readwrite');
   const store = tx.objectStore(STORE_NAME);
-  // Save RAM
-  const ram0 = memdef[RAM0_IDX];
-  if (ram0?.data) store.put(ram0.data.slice(), 'ram0');
-  // Save register snapshot (mr[0..31] + pc/ua/ss) via def exports
-  const { mr, pc, ua, ss } = await import('./def.js');
-  const regBuf = new Uint8Array(36);
-  regBuf.set(mr.subarray(0, 32));
-  // Store a few key 16-bit regs at offsets 32–35
-  regBuf[32] = pc & 0xFF; regBuf[33] = (pc >> 8) & 0xFF;
-  regBuf[34] = ua & 0xFF; regBuf[35] = ss & 0xFF;
+  if (ramSnapshot) store.put(ramSnapshot, 'ram0');
   store.put(regBuf, 'registers');
   return new Promise((resolve, reject) => {
     tx.oncomplete = () => resolve();
