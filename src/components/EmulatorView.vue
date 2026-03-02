@@ -8,6 +8,7 @@ import {
   emulatorReset,
   emulatorStart,
   emulatorStop,
+  importSnapshot,
   loadCharset,
   loadConfig,
   loadRoms,
@@ -146,8 +147,16 @@ async function init(): Promise<void> {
   loadConfig();
   try {
     await Promise.all([loadRoms(), loadCharset()]);
-    await restoreState();
-    emulatorReset();
+    const snapParam = new URLSearchParams(window.location.search).get('snapshot');
+    if (snapParam) {
+      const name = snapParam.replace(/\.fxsnap$/, '');
+      const res = await fetch(`${base}snapshots/${name}.fxsnap`);
+      if (!res.ok) throw new Error(`Snapshot not found: ${name}.fxsnap`);
+      await importSnapshot(await res.text());
+    } else {
+      await restoreState();
+      emulatorReset();
+    }
     emulatorStart();
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
