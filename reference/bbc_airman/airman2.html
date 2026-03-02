@@ -1,0 +1,68 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">
+  <title>Retrochallenge 2013 Winter Warmup Entry</title>
+  <link title="Wickens House Style" rel="stylesheet" 
+	href="../css/wickens_style.css" type="text/css">
+  <meta content="Mark Wickens" name="author">
+  <meta content="Retrochallenge 2013 Winter Warmup Entry" name="description">
+  <meta name="keywords" 
+	content="DIGITAL,DEC,VAX,VAX 4000/90,retrochallenge,2013,entry,blog,vax macro, macro-32">
+</head>
+<body>
+
+  <table style="background-color: rgb(255, 255, 102); width: 100%;" class="navbar">
+    <tbody>
+      <tr>
+        <td> <small> <a href="/" title="WickensOnline Home Page"><strong><span class="useem">wickensonline</span>.co.uk</strong></a>
+        <img style="width: 13px; height: 9px;" src="../images/arrow_yellow.gif" alt="-&gt;"> 
+	<a href="/rc2013ww" title="Retrochallenge 2013 Winter Warmup">Retrochallenge 2013 Winter Warmup Entry</a>
+        <img style="width: 13px; height: 9px;" src="../images/arrow_yellow.gif" alt="-&gt;"> 
+	Airman2
+	</small></td>
+      </tr>
+    </tbody>
+  </table>
+
+<div class="rcbody">
+<br/><br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b><u>Airline Manager</u></b><b> - Part 2</b>
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Last night I spent my time unsuccessfully getting anywhere porting Airline
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Manager to VAX BASIC. It was a complete fail - I couldn't even get two line
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;programs to do anything but throw errors. Clearly I'm missing something which
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;didn't pop out at me whilst reading the documentation.
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Given the incomplete nature of the program, and the fact that several of the
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GOTO target line numbers were clearly broken, I decided to go back to BeebEm and
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;see how far I could get in correcting these issues without the added
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;complication of moving BASIC dialects.
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Firstly I'm patching up the line numbers and program flow so that it makes some
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;kind of sense. I've managed to get the general flow working. This takes you
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;through a number of screens for buying/selling property, aircraft, fuel and
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cargo as well as allowing you to move money around your bank accounts. Then you
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;are presented with a list of orders from airports who request a cargo type and
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;price. If you accept an order which you have the capability to fulfill then a
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;list of communications from the aircraft is presented, along with costs
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;associated with any damage incurred. All this seems to work, for the most part,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;apart from being paid! Fulfilling an order results in you being dumped back to
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the summary without any increase in your bank balances!
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;In order to figure out what the missing pieces are I'm slowly determining what
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;each of the variables stores. I can picture <b>what</b> I was thinking at the time - I
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;now need to translate that into BASIC code to complete the program.
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Here are some screenshots of a typical flow through the application:
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="airman1.png"/>
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="airman2.png"/>
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="airman3.png"/>
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="airman4.png"/>
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="airman5.png"/>
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="airman6.png"/>
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="airman7.png"/>
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="airman8.png"/>
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="airman9.png"/>
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="airman10.png"/>
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="airman11.png"/>
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="airman12.png"/>
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="airman13.png"/>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">
+  <title>Retrochallenge 2013 Winter Warmup Entry</title>
+  <link title="Wickens House Style" rel="stylesheet" 
+	href="../css/wickens_style.css" type="text/css">
+  <meta content="Mark Wickens" name="author">
+  <meta content="Retrochallenge 2013 Winter Warmup Entry" name="description">
+  <meta name="keywords" 
+	content="DIGITAL,DEC,VAX,VAX 4000/90,retrochallenge,2013,entry,blog,vax macro, macro-32">
+</head>
+<body>
+
+  <table style="background-color: rgb(255, 255, 102); width: 100%;" class="navbar">
+    <tbody>
+      <tr>
+        <td> <small> <a href="/" title="WickensOnline Home Page"><strong><span class="useem">wickensonline</span>.co.uk</strong></a>
+        <img style="width: 13px; height: 9px;" src="../images/arrow_yellow.gif" alt="-&gt;"> 
+	<a href="/rc2013ww" title="Retrochallenge 2013 Winter Warmup">Retrochallenge 2013 Winter Warmup Entry</a>
+        <img style="width: 13px; height: 9px;" src="../images/arrow_yellow.gif" alt="-&gt;"> 
+	Airman3
+	</small></td>
+      </tr>
+    </tbody>
+  </table>
+
+<div class="rcbody">
+<br/><br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b><u>Airline Manager - Part 3</u></b>
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Right, so where are we? Well, over the past few days I've had a chance to spend
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a bit of time on my Basic program 'Airline Manager'. As I mentioned before the
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;original version would never have worked due to missing functionality. I managed
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to get X11 Basic<b>[</b>1<b>]</b> to compile on the Sun Ultra 5 running Solaris 9 only with a
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;few modifications to both the build scripts and source code. This is not unusual
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for software that hasn't been built for a platform in a while. I've contacted
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the author and he's keen to get fixes patched in to the source so I'll be
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;helping out where I can. He was a fan of DEC Alphas (as can be seen from a
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;comment in the makefile!) so I will endevour to port to Digital Unix as well
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;when I get a chance.
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;I used a utility supplied with X11basic to convert my program into a more
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;X11basic friendly dialect. It worked pretty well.
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;After that it was a case of:
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1. Structuring the program using PROCEDURE and FUNCTION - the high-level
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;structural elements of X11 basic.
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2. Reduce code by replacing menu text and options using simple PRINT
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;statements with parameterized procedure calls.
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3. Patch up problems with the existing functionality and enhance.
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;4. I eventually relented and replaced the one-character variable names
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;with more meaningful ones.
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Probably the most productive change was introducing multi-character variable
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;names. To a certain extent that felt like cheating, but I remember
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;back-in-the-day that any program over a certain level of complexity (probably
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;one with more than seven global variables) would result in a sharp dip in
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;productivity.
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The enhancements have centred around providing the actual mechanics of the
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;simulation. Turns are now processed and profit and loss calculated. The original
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;starting variables will clearly need tweaking - the cost of fuel means making a
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;profit is almost impossible.
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;I'm in enough of a position to provide a general description of the program
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;which might provide some context:
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Airman is an airline management simulation. It was originally written
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;by me around 1985 in BBC Basic as an unfinished Computer Science 'O'
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;level course assignment. It only came to light in 2013 when my friend
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(then and now) Retrocosm<b>[</b>2<b>]</b> unearthed it on a 5.25" floppy disc.
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The purpose of the simulation was not specified in the original code
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;but almost undoubtedly it was to make money.
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The manager starts with an initial balance in the company current and
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;deposit accounts together with some fuel and stocks. The company must
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bid to obtain orders from other airports. Three types of stock can be
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;delivered: FOODSTUFFS, MEDICINE and MACHINERY. Before starting a
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;property (hanger) and aircraft must
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;be purchased.
+<br/><br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The simulation is turn based allowing stocks to be traded, fuel
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bought/sold, money shuffled between accounts and property/aircraft
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;traded before a turn takes place. Taking a turn involves either
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bidding for an order or declining all offered orders.
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;At the end of each turn a summary of the profit and loss for that
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;turn is displayed. Profit is made from selling stocks delivered
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;successfully and interest made on money contained in the deposit
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;account. Losses are made due to the use of fuel, original cost of
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;stock and damage to the aircraft.
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;I'll release the source code to the community as soon as I've played it enough
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to be sure most bugs have been fixed and also tweaked the game parameters to
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ensure it's not impossible to play. Currently not enough information is
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;presented about the parameters of an order for a good decision to be made
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(airport distance etc). There should also be more information presented
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;about the capabilities of aircraft (currently only the price and cargo capacity
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;is shown).
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Final enhancements on the cards are a Load and Save facility (there was a menu
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;option in the original code but it was unimplemented) and to provide some kind
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;of end goal or at least some kind of scoring system.
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Given that X11 Basic will run on a variety of Unix, Linux and Windows systems I
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;would hope that a few @retrochallenge members will take up the gauntlet and see
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;how far they can get (before the menu system becomes painful!)
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>The main trading page:</b>
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        <b>OPTIONS</b>
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        <b>=======</b>
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Turn: 1
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  1. Accounts
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  2. Stock Exchange
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  3. Property Market
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  4. Fuel Market
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  5. Plane Market
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  6. Continue to Work Schedule
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  7. Back to Main Menu
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  SELECT CHOICE NOW
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;?
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>Buying a plane:</b>
+<br/><br/><br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        <b>BUY PLANE</b>
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        <b>=========</b>
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  1. Cessna Caravan Cost: $10000, Space Required: 1
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  2. Twin Prop Cost: $30000, Space Required: 2
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  3. Single Jet Cost: $60000, Space Required: 4
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  4. Boeing 737 Cost: $100000, Space Required: 5
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  5. Jumbo Cost: $200000, Space Required: 8
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  6. Back
+<br/><br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  SELECT CHOICE NOW
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;?
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Oh... and I wrote this blog post on the Sun Ultra 5 using WordPerfect 6, then
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printed to an ASCII file, ftp'd that to the Alpha, imported it into ALLIN1,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printed it to a VT terminal printer, ran a script to convert that to HTML then
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ftp'd that HTML to the server. It doesn't look quite right, but there can't be
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;much surprise there!!!
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>Update: </b>I relented and reformatted the document in ALLIN1!
+<br/><br/><br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<u>ENDNOTES</u>
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1. <a href="http://x11-basic.sourceforge.net/">X11 Basic</a>
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2. <a href="http://retrocosm.net/">Retrocosm's Blog</a>
+
+</div>
+</body>
+</html>

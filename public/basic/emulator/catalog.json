@@ -53,5 +53,10 @@
     "file": "LANDER.FX",
     "name": "Lunar Lander",
     "description": "Real-time lunar landing sim — tilt, burn, and land the LEM on the moon's surface"
+  },
+  {
+    "file": "AIRMAN.FX",
+    "name": "Airline Manager",
+    "description": "Run a Chicago-based airline — buy planes, trade cargo, fly courier contracts, and survive inflight mishaps"
   }
 ]

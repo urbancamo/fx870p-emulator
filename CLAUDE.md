@@ -34,12 +34,12 @@ All CPU state lives as **module-level `let` variables** in `def.ts`. Other modul
 
 ### Memory map (18-bit physical address space)
 
-| Region  | Physical range      | Access  | File         |
-|---------|---------------------|---------|--------------|
-| ROM0    | 0x00000–0x00BFF     | 16-bit word | `rom0.bin` |
-| ROM1    | 0x00C00–0x0FFFF     | byte    | `rom1.bin`   |
-| RAM0    | 0x10000–0x1FFFF     | byte    | (volatile)   |
-| ROM1b   | 0x20000–0x2FFFF     | byte    | `rom1.bin` (offset 0x10000) |
+| Region | Physical range  | Access      | File                        |
+|--------|-----------------|-------------|-----------------------------|
+| ROM0   | 0x00000–0x00BFF | 16-bit word | `rom0.bin`                  |
+| ROM1   | 0x00C00–0x0FFFF | byte        | `rom1.bin`                  |
+| RAM0   | 0x10000–0x1FFFF | byte        | (volatile)                  |
+| ROM1b  | 0x20000–0x2FFFF | byte        | `rom1.bin` (offset 0x10000) |
 
 **Critical**: `mr[]` in `def.ts` is only 36 bytes — the CPU register file, **not** the 64 KB address space. RAM is `memdef[2].data`.
 
@@ -98,11 +98,11 @@ For the stack to be in RAM, bits 3:2 of UA must be `01` (e.g. UA=0x14, 0x44, 0x5
 
 ## Known CPU emulation bugs fixed
 
-| Instruction | Opcode range | Bug | Fix |
-|-------------|-------------|-----|-----|
-| `adwSbw` (`sbcw`/`adcw` to memory) | 0xB8–0xBF (`adwSbw_B8`) | Subtraction carry used `y > 0xFF` — always false for negative JS numbers | `(y >>> 0) > 0xFF` (matches byte-wide `adSb_38`) |
-| `cpuReset` | — | Did not zero `mr[]`, `sx`/`sy`/`sz`, `flag` | `mr.fill(0)` + zero all size/index registers |
-| `subBcd` | — (BCD helper) | Used arithmetic `r - 6 - 0x10` for borrow propagation instead of bitwise OR | `((r - 6) \| ((-0x10) >>> 0)) >>> 0` (matches Delphi `(r - $06) or cardinal(-$10)`) |
+| Instruction                        | Opcode range            | Bug                                                                         | Fix                                                                                 |
+|------------------------------------|-------------------------|-----------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| `adwSbw` (`sbcw`/`adcw` to memory) | 0xB8–0xBF (`adwSbw_B8`) | Subtraction carry used `y > 0xFF` — always false for negative JS numbers    | `(y >>> 0) > 0xFF` (matches byte-wide `adSb_38`)                                    |
+| `cpuReset`                         | —                       | Did not zero `mr[]`, `sx`/`sy`/`sz`, `flag`                                 | `mr.fill(0)` + zero all size/index registers                                        |
+| `subBcd`                           | — (BCD helper)          | Used arithmetic `r - 6 - 0x10` for borrow propagation instead of bitwise OR | `((r - 6) \| ((-0x10) >>> 0)) >>> 0` (matches Delphi `(r - $06) or cardinal(-$10)`) |
 
 The `adwSbw` carry bug caused `sbcw (iz+$sy),$6` to leave C_bit=0 even when borrow occurred, making conditional-return instructions (`rtn nc`) fire incorrectly. Symptom: `LIST` returned after CR/LF header without displaying any lines.
 

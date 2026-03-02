@@ -327,6 +327,7 @@ function onPixelUp(): void {
       <div class="charset-title">FX-870P Character Set</div>
       <div class="charset-scroll">
         <table class="charset-table">
+          <tbody>
           <tr>
             <th></th>
             <th v-for="c in 16" :key="c">_{{ hex[c - 1] }}</th>
@@ -355,6 +356,7 @@ function onPixelUp(): void {
               <div class="cell-chr">{{ cell(r - 1, c - 1).chrStr }}</div>
             </td>
           </tr>
+          </tbody>
         </table>
       </div>
 

@@ -1,0 +1,62 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">
+  <title>Retrochallenge 2013 Winter Warmup Entry</title>
+  <link title="Wickens House Style" rel="stylesheet" 
+	href="../css/wickens_style.css" type="text/css">
+  <meta content="Mark Wickens" name="author">
+  <meta content="Retrochallenge 2013 Winter Warmup Entry" name="description">
+  <meta name="keywords" 
+	content="DIGITAL,DEC,VAX,VAX 4000/90,retrochallenge,2013,entry,blog,vax macro, macro-32">
+</head>
+<body>
+
+  <table style="background-color: rgb(255, 255, 102); width: 100%;" class="navbar">
+    <tbody>
+      <tr>
+        <td> <small> <a href="/" title="WickensOnline Home Page"><strong><span class="useem">wickensonline</span>.co.uk</strong></a>
+        <img style="width: 13px; height: 9px;" src="../images/arrow_yellow.gif" alt="-&gt;"> 
+	<a href="/rc2013ww" title="Retrochallenge 2013 Winter Warmup">Retrochallenge 2013 Winter Warmup Entry</a>
+        <img style="width: 13px; height: 9px;" src="../images/arrow_yellow.gif" alt="-&gt;"> 
+	Airman
+	</small></td>
+      </tr>
+    </tbody>
+  </table>
+
+<div class="rcbody">
+<br/><br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b><u>Airline Manager</u></b>
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;So, my first retrochallenge entry. Woot! Finally. I've not spent any time on
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this so far and I've already been derailed. Friend and fellow contestant
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Retrocosm managed to pull two BASIC program we wrote some time around the age of
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;15 (which is around 28 years ago, ouch!) for a class project, possibly for our
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'O' levels. You can read about his process for extracting the BASIC programs
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;from a 5.25" BBC Micro formatted floppy disk on his blog website<b>[</b>1<b>]</b>. 
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;My recovered program is called 'Airline Manager'. It looks quite an impressive
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;piece of BASIC<b>[</b>2<b>]</b> for me, at 15, to have written, but on closer inspection it
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;becomes obvious that it is an unfinished project. Obviously this challenge comes
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;at a pertinent time this year!
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                           <img src="airman.jpg"/>
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;So the current plan is to enhance the program to get it working. I'd like to get
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;it running on SLAVE<b>[</b>3<b>]</b> my Alphaserver 1000A which runs OpenVMS. I'm going to do
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this via ALEPH which is a VAXstation 4000/VLC running as a remote clustered
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;satellite. This enables me to use the VAX version of DEC BASIC which is
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;interactive - when it was ported to the Alpha architecture the interactive mode
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;was removed making it a straight compiler.
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;I'm also in the process of testing that modem access to SLAVE still works
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;correctly. The NEWUSER application (which allows online self-registration of
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OpenVMS accounts on SLAVE) has been updated. The long term goal would be to
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;create a captive account on SLAVE to run Airline Manager.
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Wish me luck!
+<br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>
+<br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>
+<br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>
+<br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1. <a href="http://retrocosm.net">Retrocosm's blog</a>
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2. <a href="airman4.bas">airman4.bas</a>
+<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3. <a href="telnet://slave.hecnet.eu">SLAVE via telnet</a>
+
+</div>
+</body>
+</html>
