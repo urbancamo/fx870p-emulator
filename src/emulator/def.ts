@@ -373,6 +373,36 @@ export function setIfl(int_bit: number): void {
   }
 }
 
+// ─── full CPU state snapshot ──────────────────────────────────────────────────
+
+export function exportCpuState(): object {
+  return {
+    mr: Array.from(mr),
+    sx, sy, sz, ib, ua, ia, ie, tm, flag,
+    ix, iy, iz, us, ss, pc, ky,
+    iserv, delayed_ua, delayed_ky,
+    opcode: Array.from(opcode), opindex, opforg, speed,
+    CpuStop, CpuSleep,
+  };
+}
+
+export function importCpuState(s: Record<string, unknown>): void {
+  if (Array.isArray(s.mr)) mr.set(s.mr as number[]);
+  if (Array.isArray(s.opcode)) opcode.set(s.opcode as number[]);
+  setSx(s.sx as number);   setSy(s.sy as number);   setSz(s.sz as number);
+  setIb(s.ib as number);   setUa(s.ua as number);   setIa(s.ia as number);
+  setIe(s.ie as number);   setTm(s.tm as number);   setFlag(s.flag as number);
+  setIx(s.ix as number);   setIy(s.iy as number);   setIz(s.iz as number);
+  setUs(s.us as number);   setSs(s.ss as number);   setPc(s.pc as number);
+  setKy(s.ky as number);
+  setIserv(s.iserv as number);
+  setDelayedUa(s.delayed_ua as number);
+  setDelayedKy(s.delayed_ky as number);
+  setOpindex(s.opindex as number);   setOpforg(s.opforg as number);
+  setSpeed(s.speed as number);
+  setCpuStop(s.CpuStop as boolean);  setCpuSleep(s.CpuSleep as boolean);
+}
+
 // ─── memory area query helpers (used by debugger) ────────────────────────────
 
 export function findMem(address: number): number {

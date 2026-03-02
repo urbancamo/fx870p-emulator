@@ -6,15 +6,17 @@ import {
   getStream, clearStream, setOnReceiveComplete,
 } from '../emulator/comm.js';
 import { getUartRegs, pd, pe, pdi } from '../emulator/port.js';
-import { importRamState, exportRamState, emulatorReset, emulatorStart, readRamByte, getOption2, saveConfig } from '../emulator/emulator.js';
+import { exportSnapshot, importSnapshot, emulatorReset, emulatorStart, readRamByte, getOption2, saveConfig } from '../emulator/emulator.js';
 import { setOption2, turbo as turboFlag, setTurbo } from '../emulator/def.js';
 import AboutPopup from './AboutPopup.vue';
 import CharsetPopup from './CharsetPopup.vue';
 import LibraryPopup from './LibraryPopup.vue';
+import SnapshotPopup from './SnapshotPopup.vue';
 
 const showAbout = ref(false);
 const showCharset = ref(false);
 const showLibrary = ref(false);
+const showSnapshots = ref(false);
 const turboOn = ref(turboFlag);
 
 function onLibLoad(payload: { name: string; bytes: number }): void {
@@ -275,32 +277,31 @@ onUnmounted(() => {
   setOnReceiveComplete(null);
 });
 
-// ─── RAM state import ─────────────────────────────────────────────────────────
-const ramInput = ref<HTMLInputElement | null>(null);
+// ─── snapshot import/export ───────────────────────────────────────────────────
+const snapInput = ref<HTMLInputElement | null>(null);
 
-function openRamPicker(): void {
-  ramInput.value?.click();
+function openSnapPicker(): void {
+  snapInput.value?.click();
 }
 
-async function onRamSelected(e: Event): Promise<void> {
+async function onSnapshotSelected(e: Event): Promise<void> {
   const input = e.target as HTMLInputElement;
   const file = input.files?.[0];
   if (!file) return;
   input.value = '';
-  const data = new Uint8Array(await file.arrayBuffer());
-  await importRamState(data);
-  // Reset CPU so the ROM warm-starts with the imported device table
-  emulatorReset();
+  const text = await file.text();
+  await importSnapshot(text);
+  // Do NOT call emulatorReset() — restore resumes exactly where snapshot was taken
   emulatorStart();
 }
 
-function downloadRam(): void {
-  const data = exportRamState();
-  const blob = new Blob([data.buffer as ArrayBuffer], { type: 'application/octet-stream' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'ram0.bin';
+function downloadSnapshot(): void {
+  const json = exportSnapshot();
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'snapshot.fxsnap';
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -339,9 +340,9 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
       <button class="btn btn-turbo" :class="{ active: turboOn }" @click="toggleTurbo">TURBO</button>
 
       <span class="ram-group">
-        <span class="ram-label">RAM</span>
-        <button class="btn btn-ram" @click="openRamPicker" title="Import RAM snapshot">&#x2191;</button>
-        <button class="btn btn-ram" @click="downloadRam" title="Download RAM snapshot">&#x2193;</button>
+        <button class="btn btn-snap-lib" @click="showSnapshots = true" title="Snapshot library">SNAP</button>
+        <button class="btn btn-ram" @click="openSnapPicker" title="Import snapshot file">&#x2191;</button>
+        <button class="btn btn-ram" @click="downloadSnapshot" title="Save snapshot file">&#x2193;</button>
       </span>
       <button class="btn btn-diag" @click="showDiag = !showDiag">
         COMMS {{ showDiag ? '\u25B4' : '\u25BE' }}
@@ -439,16 +440,17 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
       @change="onFileSelected"
     />
     <input
-      ref="ramInput"
+      ref="snapInput"
       type="file"
-      accept=".bin"
+      accept=".fxsnap"
       style="display: none"
-      @change="onRamSelected"
+      @change="onSnapshotSelected"
     />
     <Teleport to="body">
       <AboutPopup v-if="showAbout" @close="showAbout = false" />
       <CharsetPopup v-if="showCharset" @close="showCharset = false" />
       <LibraryPopup v-if="showLibrary" @close="showLibrary = false" @load="onLibLoad" />
+      <SnapshotPopup v-if="showSnapshots" @close="showSnapshots = false" />
 
       <!-- Save dialog (triggered when calculator finishes a SAVE) -->
       <div v-if="showSaveDialog" class="save-backdrop" @click.self="cancelSave">
@@ -511,7 +513,8 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
 .btn:hover:not(:disabled) { background: #3a3a3a; color: #fff; }
 .btn:disabled { opacity: 0.4; cursor: default; }
 .ram-group { display: flex; align-items: center; gap: 3px; }
-.ram-label { color: #555; font-size: 0.7rem; }
+.btn-snap-lib { color: #7eb8f7; border-color: #204050; }
+.btn-snap-lib:hover { background: #102030; color: #aad4ff; }
 .btn-ram  { color: #7eb8f7; border-color: #204050; padding: 2px 6px; }
 .btn-ram:hover  { background: #102030; color: #aad4ff; }
 .btn-sm { padding: 1px 5px; font-size: 0.7rem; }

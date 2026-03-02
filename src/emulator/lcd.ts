@@ -255,6 +255,44 @@ export function lcdRender(): void {
   }
 }
 
+// ─── full LCD state snapshot ──────────────────────────────────────────────────
+
+export function exportLcdState(): object {
+  return {
+    mem: Array.from(lcdmem),
+    ctrl: lcdctrl, onrate,
+    state, index, CharWidth, Visible, DataByte, curmode,
+    param: Array.from(param),
+    cursors: cursor.map(c => ({
+      mem: Array.from(c.mem),
+      offset: c.offset, page: c.page, col: c.col, row: c.row,
+    })),
+  };
+}
+
+export function importLcdState(s: Record<string, unknown>): void {
+  if (Array.isArray(s.mem)) lcdmem.set(s.mem as number[]);
+  if (Array.isArray(s.param)) param.set(s.param as number[]);
+  setLcdctrl(s.ctrl as number);
+  onrate    = s.onrate    as number;
+  state     = s.state     as number;
+  index     = s.index     as number;
+  CharWidth = s.CharWidth as number;
+  Visible   = s.Visible   as boolean;
+  DataByte  = s.DataByte  as number;
+  curmode   = s.curmode   as number;
+  if (Array.isArray(s.cursors)) {
+    (s.cursors as Array<Record<string, unknown>>).forEach((sc, i) => {
+      if (!cursor[i]) return;
+      if (Array.isArray(sc.mem)) cursor[i].mem.set(sc.mem as number[]);
+      cursor[i].offset = sc.offset as number;
+      cursor[i].page   = sc.page   as number;
+      cursor[i].col    = sc.col    as number;
+      cursor[i].row    = sc.row    as number;
+    });
+  }
+}
+
 // ─── charset init (called from emulator.ts after charset.bin is fetched) ─────
 // charset.bin contains 128 chars × 16 bytes packed (upper nibble first per column)
 // We expand to lcdchr[256][16] (one nibble per byte)

@@ -333,6 +333,32 @@ export function onSerialTick(): void {
   }
 }
 
+// ─── full port state snapshot ─────────────────────────────────────────────────
+
+export function exportPortState(): object {
+  return {
+    ga_rd: Array.from(ga_rd),
+    ga_wr2, ga_wr3, latched5,
+    pd, pe, pdi, SerialRate,
+    SerialLength, TxCounter, RxCounter, RxData,
+  };
+}
+
+export function importPortState(s: Record<string, unknown>): void {
+  if (Array.isArray(s.ga_rd)) ga_rd.set(s.ga_rd as number[]);
+  ga_wr2       = s.ga_wr2       as number;
+  ga_wr3       = s.ga_wr3       as number;
+  latched5     = s.latched5     as number;
+  SerialRate   = s.SerialRate   as number;
+  SerialLength = s.SerialLength as number;
+  TxCounter    = s.TxCounter    as number;
+  RxCounter    = s.RxCounter    as number;
+  RxData       = s.RxData       as number;
+  setPe(s.pe as number);
+  setPd(s.pd as number);
+  pdi = s.pdi as number;
+}
+
 // ─── register I/O handlers with def.ts ────────────────────────────────────────
 registerIoRdPtr((index) => ioRdPtr(index));
 registerIoWrPtr((index) => ioWrPtr(index));

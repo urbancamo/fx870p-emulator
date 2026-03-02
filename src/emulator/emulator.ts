@@ -28,10 +28,11 @@ import {
   addr18, ib,
   Option2, setOption2,
   turbo,
+  exportCpuState, importCpuState,
 } from './def.js';
 import { cpuReset, cpuRun, cpuWakeUp } from './cpu.js';
-import { ioInit, SerialRate, onSerialTick, pd, pe, pdi, getUartRegs } from './port.js';
-import { lcdInit, lcdRender, onrate, lcdctrl } from './lcd.js';
+import { ioInit, SerialRate, onSerialTick, pd, pe, pdi, getUartRegs, exportPortState, importPortState } from './port.js';
+import { lcdInit, lcdRender, onrate, lcdctrl, exportLcdState, importLcdState } from './lcd.js';
 import { commDecTimer } from './comm.js';
 import { remoteLog, flushLog, enableRemoteLog } from './remote-log.js';
 import { traceInit, traceClose } from './trace.js';
@@ -312,20 +313,32 @@ export function readRamByte(physAddr: number): number {
 // ─── Option2 (firmware mode) ─────────────────────────────────────────────────
 export function getOption2(): number { return Option2; }
 
-// ─── RAM state import (load a ram0.bin saved by the Delphi emulator) ──────────
+// ─── full machine snapshot export/import ─────────────────────────────────────
 
-export async function importRamState(data: Uint8Array): Promise<void> {
+export function exportSnapshot(): string {
   const ram0 = memdef[RAM0_IDX];
-  if (!ram0?.data) return;
-  const len = Math.min(data.length, ram0.data.length);
-  ram0.data.set(data.subarray(0, len));
-  await saveState(); // persist to IndexedDB so it survives reloads
+  return JSON.stringify({
+    magic:   'FX870P-SNAP',
+    version: 1,
+    cpu:     exportCpuState(),
+    ram:     Array.from(ram0?.data ?? []),
+    lcd:     exportLcdState(),
+    ports:   exportPortState(),
+  });
 }
 
-export function exportRamState(): Uint8Array {
+export async function importSnapshot(json: string): Promise<void> {
+  const s = JSON.parse(json) as Record<string, unknown>;
+  if (s.magic !== 'FX870P-SNAP') throw new Error('Not a valid snapshot file');
+
   const ram0 = memdef[RAM0_IDX];
-  if (!ram0?.data) return new Uint8Array(0);
-  return new Uint8Array(ram0.data);
+  if (ram0?.data && Array.isArray(s.ram)) {
+    ram0.data.set((s.ram as number[]).slice(0, ram0.data.length));
+  }
+  importCpuState(s.cpu as Record<string, unknown>);
+  importLcdState(s.lcd as Record<string, unknown>);
+  importPortState(s.ports as Record<string, unknown>);
+  await saveState();
 }
 
 // ─── charset loading ──────────────────────────────────────────────────────────
