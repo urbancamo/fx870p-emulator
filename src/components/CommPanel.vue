@@ -245,18 +245,22 @@ const showSaveDialog = ref(false);
 const saveFileName   = ref('program.bas');
 let   pendingSaveData: Uint8Array | null = null;
 
-function onReceiveComplete(data: Uint8Array): void {
+function onReceiveComplete(data: Uint8Array, eof: boolean): void {
   pendingSaveData = data;
+  saveFileName.value = eof ? 'program.bas' : 'data.csv';
   showSaveDialog.value = true;
 }
 
 function confirmSave(): void {
   if (!pendingSaveData) return;
-  const blob = new Blob([pendingSaveData.buffer as ArrayBuffer], { type: 'application/octet-stream' });
+  const name = saveFileName.value || 'data.csv';
+  const isText = name.endsWith('.csv') || name.endsWith('.txt') || name.endsWith('.log');
+  const type = isText ? 'text/plain' : 'application/octet-stream';
+  const blob = new Blob([pendingSaveData.buffer as ArrayBuffer], { type });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = saveFileName.value || 'program.bas';
+  a.download = name;
   a.click();
   URL.revokeObjectURL(url);
   showSaveDialog.value = false;
@@ -455,7 +459,7 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
       <!-- Save dialog (triggered when calculator finishes a SAVE) -->
       <div v-if="showSaveDialog" class="save-backdrop" @click.self="cancelSave">
         <div class="save-dialog">
-          <div class="save-title">Save received program</div>
+          <div class="save-title">Save received data</div>
           <div class="save-body">
             <label class="save-label">
               Filename:
