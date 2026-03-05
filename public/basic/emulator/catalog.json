@@ -58,5 +58,10 @@
     "file": "AIRMAN.FX",
     "name": "Airline Manager",
     "description": "Run a Chicago-based airline — buy planes, trade cargo, fly courier contracts, and survive inflight mishaps"
+  },
+  {
+    "file": "FLE.FX",
+    "name": "FLE Logger",
+    "description": "Fast Log Entry logger for amateur radio — record QSOs to memo, view log, download via COM0"
   }
 ]
