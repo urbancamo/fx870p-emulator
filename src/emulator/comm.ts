@@ -19,9 +19,10 @@ let bytesSent      = 0;     // total bytes delivered from our queue to the UART
 
 const outputBuffer = new Array<number>(); // bytes received FROM the calculator
 
-// Receive-complete callback: fired when calculator finishes a SAVE (EOF received)
-let _onReceiveComplete: ((data: Uint8Array) => void) | null = null;
-export function setOnReceiveComplete(fn: ((data: Uint8Array) => void) | null): void {
+// Receive-complete callback: fired when calculator finishes sending data.
+// eof=true when terminated by 0x1A (SAVE), eof=false on timeout (PRINT #1 output).
+let _onReceiveComplete: ((data: Uint8Array, eof: boolean) => void) | null = null;
+export function setOnReceiveComplete(fn: ((data: Uint8Array, eof: boolean) => void) | null): void {
   _onReceiveComplete = fn;
 }
 
@@ -72,16 +73,22 @@ export function rxBytesRemaining(): number {
 
 let receiving      = false; // true while calculator is sending us data (SAVE)
 let bytesReceived  = 0;    // bytes received in current SAVE operation
+let receiveStartIdx = 0;   // outputBuffer index where current receive began
 let receiveTimer: ReturnType<typeof setTimeout> | null = null;
 const RECEIVE_TIMEOUT_MS = 2000; // discard partial data if no byte arrives within 2s
 
 function resetReceiveTimeout(): void {
   if (receiveTimer !== null) clearTimeout(receiveTimer);
   receiveTimer = setTimeout(() => {
-    if (receiving) {
+    if (receiving && outputBuffer.length > receiveStartIdx) {
+      receiving = false;
+      if (_onReceiveComplete) {
+        _onReceiveComplete(new Uint8Array(outputBuffer.slice(receiveStartIdx)), false);
+      }
+      bytesReceived = 0;
+    } else if (receiving) {
       receiving = false;
       bytesReceived = 0;
-      outputBuffer.length = 0;
     }
     receiveTimer = null;
   }, RECEIVE_TIMEOUT_MS);
@@ -157,6 +164,7 @@ function commWriteFn(b: number): void {
     if (!receiving) {
       receiving = true;
       bytesReceived = 0;
+      receiveStartIdx = outputBuffer.length - 1; // current byte is already pushed
     }
     bytesReceived++;
     resetReceiveTimeout();
@@ -164,7 +172,7 @@ function commWriteFn(b: number): void {
       clearReceiveTimeout();
       receiving = false;
       if (_onReceiveComplete) {
-        _onReceiveComplete(new Uint8Array(outputBuffer));
+        _onReceiveComplete(new Uint8Array(outputBuffer.slice(receiveStartIdx)), true);
       }
     }
   }
