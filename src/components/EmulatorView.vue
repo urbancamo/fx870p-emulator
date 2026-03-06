@@ -96,30 +96,13 @@ const faceImage = computed(() => {
 
 const showDebug = ref(false);
 const showToolbar = ref(true);
-const emulatorRoot = ref<HTMLElement | null>(null);
 
 function toggleToolbar(): void {
   showToolbar.value = !showToolbar.value;
-  if (!showToolbar.value) {
-    // Enter fullscreen when hiding toolbar
-    const el = emulatorRoot.value;
-    if (el && !document.fullscreenElement) {
-      el.requestFullscreen?.().catch(() => {});
-    }
-  } else {
-    // Exit fullscreen when showing toolbar
-    if (document.fullscreenElement) {
-      document.exitFullscreen?.().catch(() => {});
-    }
-  }
 }
 
 function onFullscreenChange(): void {
   isFullscreen.value = !!document.fullscreenElement;
-  // If user exits fullscreen via browser controls / Escape, restore toolbar
-  if (!document.fullscreenElement && !showToolbar.value) {
-    showToolbar.value = true;
-  }
 }
 
 // Panel layout: bottom (default), right, or left of calculator
@@ -200,7 +183,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="emulatorRoot" class="emulator-root" :class="{ compact: !showToolbar }">
+  <div class="emulator-root" :class="{ compact: !showToolbar }">
     <div v-if="loading" class="overlay-msg">Loading ROMs…</div>
     <div v-else-if="error" class="overlay-msg error">{{ error }}</div>
 
@@ -302,7 +285,6 @@ onUnmounted(() => {
 .emulator-root.compact {
   padding: 0;
   min-height: 100vh;
-  justify-content: center;
 }
 
 /* ── outer layout container ── */
