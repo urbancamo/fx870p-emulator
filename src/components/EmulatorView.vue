@@ -283,7 +283,7 @@ onUnmounted(() => {
 }
 
 .emulator-root.compact {
-  padding: 0;
+  padding: 4px 0 0;
   min-height: 100vh;
 }
 
