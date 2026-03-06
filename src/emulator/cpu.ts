@@ -16,6 +16,7 @@ import {
 } from './def.js';
 import { execInstr } from './exec.js';
 import { traceInstr, traceAddCycles, isTraceEnabled } from './trace.js';
+import { checkBeep } from './beep.js';
 
 export { cpuWakeUp, setIfl };
 
@@ -79,15 +80,19 @@ export function cpuRun(): number {
     } else {
       // Execute an instruction
       firePcMonitor(pc);
-      if (isTraceEnabled()) traceInstr(pc);
-      setProcindex(0);
-      execInstr();
-      // Complete any deferred I/O device writes
-      let i = 0;
-      while (i < procindex) {
-        const fn = procptr[i];
-        if (fn) fn();
-        i++;
+      if (checkBeep(pc)) {
+        setCycles(6); // nominal cost for the skipped routine
+      } else {
+        if (isTraceEnabled()) traceInstr(pc);
+        setProcindex(0);
+        execInstr();
+        // Complete any deferred I/O device writes
+        let i = 0;
+        while (i < procindex) {
+          const fn = procptr[i];
+          if (fn) fn();
+          i++;
+        }
       }
     }
   }
