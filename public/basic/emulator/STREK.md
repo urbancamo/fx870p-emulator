@@ -43,7 +43,7 @@ Press a single key at the command prompt:
 
 | Key                                                         | Command | Description |
 |-------------------------------------------------------------|---------|-------------|
-| ![N](../../../images/keys/standard/n.png)                   | NAV | Navigate — set course (1-8) and warp factor (0-8) |
+| ![N](../../../images/keys/standard/n.png)                   | NAV | Navigate — set course (keypad direction) and warp factor (0-8) |
 | ![S](../../../images/keys/standard/s.png)                   | SRS | Short Range Scan — refresh the sector display |
 | ![L](../../../images/keys/standard/l.png)                   | LRS | Long Range Scan — show 3×3 surrounding quadrants |
 | ![P](../../../images/keys/standard/p.png)                   | PHA | Phasers — fire energy weapons at all Klingons in sector |
@@ -57,15 +57,15 @@ Press a single key at the command prompt:
 
 ## Course Directions
 
-Used for both navigation and torpedoes:
+Used for both navigation and torpedoes. Directions match the calculator's numeric keypad layout:
 
 ```
-  4 3 2
-  5 * 1
-  6 7 8
+  7 8 9
+  4 * 6
+  1 2 3
 ```
 
-Direction 1 = right, 3 = up, 5 = left, 7 = down. Intermediate values (2, 4, 6, 8) are diagonals.
+Press the key corresponding to the direction you want to move or fire. 8 = up, 2 = down, 4 = left, 6 = right. Corner keys (7, 9, 1, 3) are diagonals. Key 5 (centre) is not used.
 
 ## Ship Systems
 
@@ -145,7 +145,7 @@ Each 3-digit number encodes: Klingons × 100 + Bases × 10 + Stars. `[045]` mark
 ## Running It
 
 1. Load the program into the emulator via **LOAD** or **LIB**
-2. On the calculator type `LOAD "COM0:6,N,8,1,N,N,N,N,N"` and press **EXE**
+2. On the calculator type `LOAD "COM0:6,E,8,1,N,N,N,B,N"` and press **EXE**
 3. Switch to BASIC mode (`MODE` then select BASIC) and type `RUN`, press **EXE**
 
 ## About

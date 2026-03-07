@@ -33,7 +33,7 @@ Press a single key at the command prompt:
 
 | Key | Command | Description |
 |-----|---------|-------------|
-| N | NAV | Navigate — set course (1–8) and warp factor (0–8) |
+| N | NAV | Navigate — set course (keypad direction) and warp factor (0–8) |
 | S | SRS | Short Range Scan — refresh the sector display |
 | L | LRS | Long Range Scan — show 3×3 surrounding quadrants |
 | P | PHA | Phasers — fire energy weapons at all Klingons in sector |
@@ -47,13 +47,15 @@ Press a single key at the command prompt:
 
 ## Course Directions
 
+Directions match the calculator's numeric keypad layout:
+
 ```
-  4 3 2
-  5 * 1
-  6 7 8
+  7 8 9
+  4 * 6
+  1 2 3
 ```
 
-Direction 1 = right, 3 = up, 5 = left, 7 = down. Intermediate values are diagonals.
+8 = up, 2 = down, 4 = left, 6 = right. Corner keys (7, 9, 1, 3) are diagonals.
 
 ## Game Mechanics
 
