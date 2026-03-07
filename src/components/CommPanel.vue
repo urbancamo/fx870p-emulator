@@ -377,7 +377,7 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
         />
         <span class="progress-label" :class="statusClass">{{ status }}</span>
       </div>
-      <span class="hint-text">then on calc: <code>LOAD "COM0:6,N,8,1,N,N,N,N,N"</code></span>
+      <span class="hint-text">then on calc: <code>LOAD "COM0:6,E,8,1,N,N,N,B,N"</code></span>
     </div>
 
     <!-- ── diagnostics ── -->
