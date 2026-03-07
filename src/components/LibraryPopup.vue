@@ -138,7 +138,7 @@ function onBackdrop(e: MouseEvent): void {
       </div>
 
       <div class="lib-footer">
-        <span class="lib-hint">Click LOAD, then on calc type: <code>LOAD "COM0:6,N,8,1,N,N,N,N,N"</code></span>
+        <span class="lib-hint">Click LOAD, then on calc type: <code>LOAD "COM0:6,E,8,1,N,N,N,B,N"</code></span>
       </div>
     </div>
   </div>

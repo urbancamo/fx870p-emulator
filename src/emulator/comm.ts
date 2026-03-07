@@ -1,6 +1,6 @@
 // RS-232C (COM0:) communication layer.
 // Translated from Delphi comm.pas.
-// The calculator loads via: LOAD "COM0:6,N,8,1,N,N,N,N,N"
+// The calculator loads via: LOAD "COM0:6,E,8,1,N,N,N,B,N"
 // COM0 params: speed=6(4800 baud), parity=N, data=8, stop=1, CS=N, DS=N, CD=N, busy=N, code=N
 
 import { XTAL } from './def.js';
