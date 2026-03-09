@@ -1,0 +1,101 @@
+﻿   Program Listing:
+
+   10 REM 3-PILE CARD TRICK,SHARP PC-1600
+   17 REM PORTED & FIXED BY ALVIN BANDERAS
+   15 WAIT 0:CLS:CLEAR:REM (C)10th MARCH 2026 
+   20 DIM A$(2)*40,B$(4)*12,K$(36)
+   25 GOTO 200
+   30 FOR I=1 TO X
+   32 S=VAL MID$(S$,I,1):L=VAL MID$(L$,I,1)
+   35 LINE((I-1)*30,0)-((I-1)*30+28,31),,,B
+   37 RESTORE "S"
+   40 FOR J=1 TO S: READ A$(0): READ A$(1):NEXT J
+   45 GCURSOR(I-1)*30+9,13:GPRINT A$(0)
+   50 GCURSOR(I-1)*30+9,21:GPRINT A$(1)
+   55 RESTORE "L"
+   60 FOR J=1 TO L:READ A$:NEXT J
+   65 CURSOR(I-1)*5+2,1: PRINT A$
+   70 NEXT I: RETURN 
+  100 "S" DATA "0000000070F87000000000","020787C7E2FFE2C7870702"
+  110 DATA "000080C0F0F8F0C0800000","000E1F9FCFFFCF9F1F0E00"
+  120 DATA "E0F0F8F8F0C0F0F8F8F0E0","0001030F3FFF3F0F030100"
+  130 DATA "00000080E0F8E080000000","0202070F3FFF3F0F070202",""
+  140 "L" DATA "6 ","7 ","8 ","9 ","10","J ","Q ","K ","A "
+  200 CLS:PRINT ">>>>>  Card Trick  <<<<<"
+  205 PRINT "Remember a card"
+  206 PRINT "then indicate the column"
+  210 PRINT "     (Press a key)"
+  220 IF INKEY$(1)="" THEN 220
+  230 RANDOM:A$(2)="":CLS 
+  240 FOR I=1 TO 36
+  250 K=RND (36):IF K$(K)="*" THEN 250
+  260 K$(K)="*"
+  270 A$(2)=A$(2)+CHR$(K+64)
+  280 NEXT I:X=3
+  290 FOR Z=1 TO 3
+  300 FOR F=1 TO 36 STEP 3
+  310 A$=MID$(A$(2),F,3):S$="":L$=""
+  320 FOR G=1 TO 3:B$(G)=B$(G)+MID$(A$,G,1)
+  330 K=ASC(MID$ (A$,G,1))-64
+  340 S=INT((K-1)/9):L=K-(S*9):S=S+1:L$=L$+STR$ L:S$=S$+STR$ S
+  350 NEXT G:GOSUB 30
+  352 CURSOR 18,1:PRINT "SPACE":CURSOR 18,2:PRINT "press"
+  355 IF INKEY$ (1)="" THEN 355
+  360 NEXT F
+  370 CLS:CURSOR 0,1
+  380 INPUT "Column (1-3):";W
+  390 B$(4)=B$(W):B$(W)=B$(2):B$(2)=B$(4)
+  400 A$(2)=B$(1)+B$(2)+B$(3)
+  405 B$(1)="":B$(2)="":B$(3)=""
+  410 CLS:NEXT Z
+  420 X=1
+  430 K=ASC MID$(A$(2),18,1)-64:S=INT((K-1)/9):L$=STR$ (K-S*9):S$=STR$ (S+1)
+  440 GOSUB 30
+  450 CURSOR 8,1:PRINT "This is the card": CURSOR 8,2:PRINT "you thought of!"
+  460 XBUFF$ =""
+  470 IF INKEY$(1)="" GOTO 470
+  480 CLS:END
+
+GAME INSTRUCTIONS:
+
+How to Play the 3-Pile Card Trick Game:
+
+This is a SHARP PC-1600 computer version of a classic three‑pile card trick. 
+You (the user) think of a card, and after three rounds of dealing and asking 
+which pile it’s in, the computer reveals your card.
+
+**Setup**  
+- The deck contains 36 cards: 4 suits (hearts, diamonds, clubs, spades) each 
+with ranks 6, 7, 8, 9, 10, Jack (J), Queen (D), King (K), Ace (A).  
+- The computer shuffles them randomly at the start.  
+
+**Gameplay**  
+1. You are asked to **remember one card** from the deck.  
+2. The computer deals the cards into **three columns** (piles) on the screen.  
+   - It takes three cards at a time and places one in each column from left to right.  
+   - For each card, it displays a graphical suit symbol and the 
+rank (e.g., a heart symbol with "7" below it).  
+   - After each set of three cards, the program waits for you to press the **SPACE bar** to continue.  
+3. When all 36 cards have been shown (12 groups of three), the screen clears and asks:  
+   **"Column (1-3):"**  
+   You must type the number of the column (1, 2, or 3) that contained your chosen card.  
+4. The computer then rearranges the deck so that the column you chose becomes the **middle** pile, and then repeats the entire dealing process two more times (three rounds total).  
+5. After the third round, the computer displays a single card – the one at position 18 in the deck – and announces:  
+   **"This is the card you thought of!"**  
+
+**Why it works**  
+Each time you identify the pile, your card moves toward the centre of the deck. After three such moves, it ends up exactly at the 18th position, which the computer then reveals.
+
+
+
+Try It Yourself and support Handheld BASIC Computing From Japan
+
+1. Run the program.  
+2. When the first screen appears, think of any card (e.g., "7 of Clubs").  
+3. Press any key to start the dealing.  
+4. Watch the cards appear in three columns. When you see your card, remember which column it’s in (left = 1, middle = 2, right = 3).  
+5. After all cards are shown, type that column number.  
+6. The process repeats two more times. Each time, note the column where your card appears.  
+7. After the third input, the computer will display your card – and it will be the one you thought of!
+
+**Note:** The program originally in German had a small bug .In the corrected English version above, it works flawlessly,brought to you by Alvin Banderas.
