@@ -1,7 +1,7 @@
 // HD61700 disassembler — browser-side, reads from live emulator memdef
 // Adapted from tools/dis.ts (which reads from files for CLI use).
 
-import { memdef } from './def.js';
+import {memdef} from './def.js';
 
 // ─── memory helpers ──────────────────────────────────────────────────────────
 
@@ -433,8 +433,7 @@ export function findLineStart(targetAddr: number, linesAbove: number): number {
   let best = candidates[candidates.length - 1]!;
   for (let n = 1; n < linesAbove && best > startScan; n++) {
     // find the instruction that ends at `best`
-    const prev = (best - 4 + 0x10000) & 0xFFFF;
-    let a2 = prev;
+    let a2 = (best - 4 + 0x10000) & 0xFFFF;
     for (let iter = 0; iter < 8; iter++) {
       const d = disOneLine(a2);
       if (d.nextAddr === best) { best = a2; break; }

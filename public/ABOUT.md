@@ -91,13 +91,15 @@ The toolbar below the calculator provides the following controls:
 | **LIB**       | Open the program library — browse and load curated sample BASIC programs                               |
 | **STOP**      | Abort the current file transfer                                                                        |
 | **TURBO**     | Toggle turbo mode — runs the CPU at ~50x normal speed for compute-heavy BASIC programs                 |
-| **RAM ↑**     | Import a raw RAM image (e.g. from the Delphi emulator) to restore calculator state                     |
-| **RAM ↓**     | Download the current RAM contents as a binary file                                                     |
-| **COMMS ▾/▴** | Show or hide the communications diagnostics panel                                                      |
-| **DEBUG ▾/▴** | Show or hide the CPU debugger panel                                                                    |
+| **SNAP**      | Open the snapshot library — browse and load saved calculator state snapshots                            |
+| **↑**         | Import a snapshot file (.fxsnap) to restore calculator state                                           |
+| **↓**         | Download the current calculator state as a snapshot file                                               |
+| **COM ▾/▴**   | Show or hide the communications diagnostics panel                                                      |
+| **DBG ▾/▴**   | Show or hide the CPU debugger panel                                                                    |
+| **BAS ▾/▴**   | Show or hide the BASIC program listing panel                                                           |
 | **870P/VX-4** | Toggle firmware mode between FX-870P (Japanese) and VX-4 (English) — resets the emulator               |
-| **CHR$**      | Open the character set table and pixel editor                                                          |
-| **ABOUT**     | Display this information popup                                                                         |
+| **CHR**       | Open the character set table and pixel editor                                                          |
+| **?**         | Display this information popup                                                                         |
 | **Arrow**     | Cycle the panel layout: bottom, right, or left of the calculator                                       |
 
 The progress bar below the toolbar shows transfer progress, turning green when actively sending and amber when paused by flow control. During a SAVE operation (receiving data from the calculator), the bar shows an animated striped pattern with a byte count.
@@ -139,7 +141,7 @@ If the transfer is interrupted (e.g. by pressing BRK on the calculator), the par
 
 ## Comms Panel
 
-Click **COMMS** to reveal the communications diagnostics panel. This shows the real-time state of the emulated RS-232C serial port and UART hardware.
+Click **COM** to reveal the communications diagnostics panel. This shows the real-time state of the emulated RS-232C serial port and UART hardware.
 
 ### Diagnostics
 
@@ -163,7 +165,7 @@ The **SAVE** button downloads the raw received bytes as a binary file. **CLEAR**
 
 ## Character Set Table (CHR$)
 
-Click **CHR$** in the toolbar to open the full 256-character set table. The table is laid out as a classic 16x16 hex grid with row and column headers, showing the bitmap of every character code from 0x00 to 0xFF.
+Click **CHR** in the toolbar to open the full 256-character set table. The table is laid out as a classic 16x16 hex grid with row and column headers, showing the bitmap of every character code from 0x00 to 0xFF.
 
 Each cell displays:
 
@@ -183,7 +185,7 @@ Click any character cell to open the interactive pixel editor. The editor provid
 - A **live preview** showing the character at actual size alongside column hex and binary values.
 - **Clear** and **Invert** buttons to reset or flip all pixels.
 - A **DEFCHR$ command string** that updates interactively as you edit pixels, showing the exact BASIC command needed to define the character (e.g. `DEFCHR$(252)="7C12127C00"`).
-- A **COPY** button that copies the DEFCHR$ command to your clipboard.
+- A **COPY** button that copies the DEFCHR$ command to your clipboard. If the BASIC panel is open, the copied command also appears as a badge in the panel header for easy reference.
 
 As you edit, the character bitmap updates live in the table behind the editor so you can see how it looks alongside the other characters. Edits are preserved in the table for the duration of the session.
 
@@ -191,7 +193,7 @@ As you edit, the character bitmap updates live in the table behind the editor so
 
 ## Debugger Panel
 
-Click **DEBUG** to reveal the CPU debugger. This shows the live internal state of the HD61700 processor:
+Click **DBG** to reveal the CPU debugger. This shows the live internal state of the HD61700 processor:
 
 - **PC** — Program counter (current instruction address)
 - **SP** — Stack pointer
@@ -200,6 +202,34 @@ Click **DEBUG** to reveal the CPU debugger. This shows the live internal state o
 - **Disassembly** — A live disassembly of instructions around the current PC
 
 This panel is primarily useful for developers debugging the emulator itself or for understanding the low-level behaviour of the calculator's ROM.
+
+---
+
+## BASIC Program Listing Panel
+
+Click **BAS** to reveal the BASIC program listing panel. This reads the tokenized BASIC programs stored in the calculator's RAM and displays them as human-readable source code.
+
+### Program Tabs
+
+The panel shows a tab for each non-empty program slot (P0–P9). Click a tab to view that program's listing. Only slots that contain at least one BASIC line are shown.
+
+### Live / Frozen Mode
+
+- **LIVE** (default) — the listing refreshes automatically every second, so you can watch the program change as you edit it on the calculator.
+- Click **LIVE** to switch to **FROZEN** mode, which stops polling and keeps the current listing static. This is useful when you want to study the listing without it updating.
+- Click **REFRESH** to manually update the listing at any time (works in both modes).
+
+### Hex Dump (HEX)
+
+Click **HEX** to toggle a diagnostic hex dump above the listing. This shows the raw file address table pointers and the first 64 bytes of each program slot in hexadecimal — useful for debugging the detokenizer or understanding the memory layout.
+
+### DEFCHR$ Clipboard
+
+When you copy a `DEFCHR$` command from the Character Set Editor (CHR), the command string appears as a badge in the BASIC panel header. This provides a convenient reference while you are typing the command into the calculator.
+
+### How It Works
+
+The FX-870P stores BASIC programs as tokenized byte sequences in RAM. Each keyword (PRINT, GOTO, IF, etc.) is stored as a compact 2-byte token rather than as individual ASCII characters. The detokenizer reads the file address table at RAM offset 0x18A7 to locate each program slot, then walks through the tokenized lines, expanding keyword tokens back into their text equivalents using tables extracted from the ROM.
 
 ---
 

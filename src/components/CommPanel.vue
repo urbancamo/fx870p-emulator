@@ -42,6 +42,7 @@ const emit = defineEmits<{
   (e: 'update:showDebug', v: boolean): void;
   (e: 'update:showBasic', v: boolean): void;
   (e: 'cycleLayout'): void;
+  (e: 'defchrCopy', value: string): void;
 }>();
 
 // ─── state ────────────────────────────────────────────────────────────────────
@@ -351,13 +352,13 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
         <button class="btn btn-ram" @click="downloadSnapshot" title="Save snapshot file">&#x2193;</button>
       </span>
       <button class="btn btn-diag" @click="showDiag = !showDiag">
-        COMMS {{ showDiag ? '\u25B4' : '\u25BE' }}
+        COM {{ showDiag ? '\u25B4' : '\u25BE' }}
       </button>
       <button class="btn" @click="emit('update:showDebug', !props.showDebug)">
-        DEBUG {{ props.showDebug ? '\u25B4' : '\u25BE' }}
+        DBG {{ props.showDebug ? '\u25B4' : '\u25BE' }}
       </button>
       <button class="btn" @click="emit('update:showBasic', !props.showBasic)">
-        BASIC {{ props.showBasic ? '\u25B4' : '\u25BE' }}
+        BAS {{ props.showBasic ? '\u25B4' : '\u25BE' }}
       </button>
       <button
         class="btn btn-fw"
@@ -367,8 +368,8 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
           ? 'VX-4 (English, RS-232C) — click to switch to FX-870P'
           : 'FX-870P (Japanese, MT) — click to switch to VX-4'"
       >{{ fwMode === 0 ? 'VX-4' : '870P' }}</button>
-      <button class="btn" @click="showCharset = true">CHR$</button>
-      <button class="btn" @click="showAbout = true">ABOUT</button>
+      <button class="btn" @click="showCharset = true">CHR</button>
+      <button class="btn" @click="showAbout = true">?</button>
       <button class="btn" @click="emit('cycleLayout')" title="Cycle panel layout">{{ props.panelLayout === 'bottom' ? '\u2192' : props.panelLayout === 'right' ? '\u2190' : '\u2193' }}</button>
     </div>
 
@@ -457,7 +458,7 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
     />
     <Teleport to="body">
       <AboutPopup v-if="showAbout" @close="showAbout = false" />
-      <CharsetPopup v-if="showCharset" @close="showCharset = false" />
+      <CharsetPopup v-if="showCharset" @close="showCharset = false" @copy="v => emit('defchrCopy', v)" />
       <LibraryPopup v-if="showLibrary" @close="showLibrary = false" @load="onLibLoad" />
       <SnapshotPopup v-if="showSnapshots" @close="showSnapshots = false" />
 
@@ -506,6 +507,7 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
   align-items: center;
   gap: 8px;
   padding: 5px 10px;
+  flex-wrap: wrap;
 }
 
 .btn {

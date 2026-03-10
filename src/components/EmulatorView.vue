@@ -98,6 +98,7 @@ const faceImage = computed(() => {
 const showDebug = ref(false);
 const showBasic = ref(false);
 const showToolbar = ref(true);
+const defchrText = ref('');
 
 function toggleToolbar(): void {
   showToolbar.value = !showToolbar.value;
@@ -199,9 +200,9 @@ onUnmounted(() => {
     >
       <!-- Side panel (left) -->
       <div v-if="panelLayout === 'left' && showToolbar" class="side-panels">
-        <CommPanel class="side-comm" v-model:showDebug="showDebug" v-model:showBasic="showBasic" :panelLayout="panelLayout" @cycleLayout="cycleLayout" />
+        <CommPanel class="side-comm" v-model:showDebug="showDebug" v-model:showBasic="showBasic" :panelLayout="panelLayout" @cycleLayout="cycleLayout" @defchrCopy="v => defchrText = v" />
         <DebugPanel v-if="showDebug" class="side-debug" />
-        <BasicListPanel v-if="showBasic" />
+        <BasicListPanel v-if="showBasic" :defchr="defchrText" />
       </div>
 
       <!-- Divider (left layout) -->
@@ -251,9 +252,9 @@ onUnmounted(() => {
           <LcdCanvas class="lcd-overlay" />
           <KeyboardOverlay @iconize="toggleToolbar" />
         </div>
-        <CommPanel v-if="showToolbar" v-model:showDebug="showDebug" v-model:showBasic="showBasic" :panelLayout="panelLayout" @cycleLayout="cycleLayout" />
+        <CommPanel v-if="showToolbar" v-model:showDebug="showDebug" v-model:showBasic="showBasic" :panelLayout="panelLayout" @cycleLayout="cycleLayout" @defchrCopy="v => defchrText = v" />
         <DebugPanel v-if="showToolbar && showDebug" />
-        <BasicListPanel v-if="showToolbar && showBasic" />
+        <BasicListPanel v-if="showToolbar && showBasic" :defchr="defchrText" />
       </div>
 
       <!-- Divider (right layout) -->
@@ -268,9 +269,9 @@ onUnmounted(() => {
 
       <!-- Side panel (right) -->
       <div v-if="panelLayout === 'right' && showToolbar" class="side-panels">
-        <CommPanel class="side-comm" v-model:showDebug="showDebug" v-model:showBasic="showBasic" :panelLayout="panelLayout" @cycleLayout="cycleLayout" />
+        <CommPanel class="side-comm" v-model:showDebug="showDebug" v-model:showBasic="showBasic" :panelLayout="panelLayout" @cycleLayout="cycleLayout" @defchrCopy="v => defchrText = v" />
         <DebugPanel v-if="showDebug" class="side-debug" />
-        <BasicListPanel v-if="showBasic" />
+        <BasicListPanel v-if="showBasic" :defchr="defchrText" />
       </div>
     </div>
   </div>
@@ -402,6 +403,10 @@ onUnmounted(() => {
 }
 
 .side-panels :deep(.dbg-panel) {
+  width: auto;
+}
+
+.side-panels :deep(.basic-panel) {
   width: auto;
 }
 

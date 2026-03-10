@@ -7,7 +7,10 @@ import { ref, computed, reactive } from 'vue';
 import { memdef } from '../emulator/def.js';
 import { getOption2 } from '../emulator/emulator.js';
 
-const emit = defineEmits<{ (e: 'close'): void }>();
+const emit = defineEmits<{
+  (e: 'close'): void;
+  (e: 'copy', value: string): void;
+}>();
 
 // Font table offsets within rom1.bin (memdef[3] = full rom1.bin)
 const JP_FONT = 0x10000;
@@ -312,6 +315,7 @@ const copyFeedback = ref(false);
 function copyDefchr(): void {
   navigator.clipboard.writeText(defchrString.value).then(() => {
     copyFeedback.value = true;
+    emit('copy', defchrString.value);
     setTimeout(() => { copyFeedback.value = false; }, 1500);
   });
 }

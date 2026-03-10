@@ -42,6 +42,7 @@ on GitHub [here](https://github.com/urbancamo/fx870p-emulator/) and it is
 - **Fullscreen mode** — hide toolbar and panels to use the calculator full-screen (useful on mobile)
 - **Firmware toggle** — switch between FX-870P (Japanese) and VX-4 (English) ROM modes
 - **CPU debugger** — live registers, flags, and disassembly view
+- **BASIC listing panel** — live detokenized listing of all BASIC programs (P0–P9) stored in RAM, with tabbed navigation and live/frozen toggle
 - **Communications panel** — UART register state, serial byte stream, and diagnostics
 
 ## Running
@@ -88,6 +89,7 @@ src/
     keyboard.ts       83-key matrix — keydown + mouse events
     port.ts           I/O ports and UART state machine
     comm.ts           RS-232C TX/RX queue, XON/XOFF, SAVE receive
+    detokenize.ts     BASIC program detokenizer — reads tokenized programs from RAM
     emulator.ts       Main rAF loop, ROM loading, state persistence
     remote-log.ts     Debug logging (dev only)
     trace.ts          Per-instruction JSONL trace recorder
@@ -97,6 +99,7 @@ src/
     KeyboardOverlay.vue Clickable key hit regions over face images
     CommPanel.vue       Serial comms panel + toolbar buttons
     DebugPanel.vue      CPU debugger (registers, flags, disassembly)
+    BasicListPanel.vue  BASIC program listing panel (detokenized view with tabs)
     CharsetPopup.vue    Character set table + DEFCHR$ pixel editor
     LibraryPopup.vue    Program library popup (browse + load sample programs)
     AboutPopup.vue      About dialog (renders ABOUT.md)
@@ -131,6 +134,7 @@ docs/                 Implementation notes
 | [`reference/FX-870P_VX-4 Manual.html`](docs/FX-870P_VX-4 Manual.html)                | Original user manual (HTML)                        |
 | [`docs/CasioVX-4-Manual-Peter-Rost.pdf`](docs/CasioVX-4-Manual-Peter-Rost.pdf) | VX-4 manual by Peter Rost (PDF)                    |
 | [`docs/FX-870P emulator.pdf`](docs/FX-870P%20emulator.pdf)                  | Delphi emulator documentation (PDF)                |
+| [`docs/basic-detokenizer.md`](docs/basic-detokenizer.md)                    | BASIC detokenizer reference — token tables, memory layout, line format |
 | [`docs/plan.md`](docs/plan.md)                                              | Web port implementation plan and component mapping |
 | [`reference/fx870_es/`](reference/fx870_es/)                                | Original Delphi 5 source (reference only)          |
 

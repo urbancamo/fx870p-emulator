@@ -238,24 +238,55 @@ export function readBasicPrograms(): BasicProgram[] {
   return programs;
 }
 
+/** Debug: dump the file address table and first N bytes of each slot. */
+export function debugFileTable(): string {
+  const lines: string[] = [];
+  lines.push('File Address Table at 0x18A7:');
+  for (let i = 0; i <= NUM_SLOTS; i++) {
+    const ptr = readWord(FILE_TABLE + i * 2);
+    lines.push(`  [${i}] = 0x${ptr.toString(16).padStart(4, '0')}`);
+  }
+  for (let slot = 0; slot < NUM_SLOTS; slot++) {
+    const start = readWord(FILE_TABLE + slot * 2);
+    const end   = readWord(FILE_TABLE + (slot + 1) * 2);
+    if (start === 0 || end === 0 || end <= start) continue;
+    const physStart = RAM_BASE + start;
+    const len = Math.min(end - start, 64);
+    const bytes: string[] = [];
+    for (let j = 0; j < len; j++) {
+      bytes.push(readRamByte(physStart + j).toString(16).padStart(2, '0'));
+    }
+    lines.push(`P${slot} [0x${start.toString(16)}-0x${end.toString(16)}] first ${len} bytes:`);
+    lines.push('  ' + bytes.join(' '));
+  }
+  return lines.join('\n');
+}
+
 // ── Line reader ────────────────────────────────────────────────────────────
 
 function readProgramLines(physStart: number, physEnd: number): BasicLine[] {
+  // Line format (verified from RAM hex dump):
+  //   Byte 0   : record length (total bytes including this byte)
+  //   Byte 1-2 : line number (16-bit LE)
+  //   Byte 3.. : tokenized body
+  //   Last byte: 0x00 terminator (included in record length)
+  //
+  // End of program: record length byte = 0x00 (or 0xFF for empty RAM).
   const lines: BasicLine[] = [];
   let addr = physStart;
   const limit = 2000; // safety limit on lines per program
   while (addr < physEnd && lines.length < limit) {
-    const b0 = readRamByte(addr);
-    if (b0 === 0x00 || b0 === 0x1A) break; // end of program
-    // Line number: 16-bit LE at addr
-    const lineNum = readRamByte(addr) | (readRamByte(addr + 1) << 8);
-    // Body length at addr+2
-    const bodyLen = readRamByte(addr + 2);
-    if (bodyLen === 0) { addr += 3; continue; }
-    // Detokenize the body bytes
-    const text = detokenizeBody(addr + 3, bodyLen);
-    lines.push({ num: lineNum, text });
-    addr += 3 + bodyLen;
+    const recLen = readRamByte(addr);
+    if (recLen === 0x00 || recLen === 0xFF) break; // end of program
+    if (recLen < 3) break; // minimum: linenum(2) + terminator(1)
+    const lineNum = readRamByte(addr + 1) | (readRamByte(addr + 2) << 8);
+    // recLen counts bytes AFTER the length byte: linenum(2) + body + terminator(1)
+    const bodyLen = recLen - 3; // exclude: 2 linenum bytes and terminator
+    if (bodyLen > 0) {
+      const text = detokenizeBody(addr + 3, bodyLen);
+      lines.push({ num: lineNum, text });
+    }
+    addr += 1 + recLen; // skip length byte + recLen data bytes
   }
   return lines;
 }
