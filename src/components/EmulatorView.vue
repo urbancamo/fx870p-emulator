@@ -20,6 +20,7 @@ import LcdCanvas from './LcdCanvas.vue';
 import KeyboardOverlay from './KeyboardOverlay.vue';
 import CommPanel from './CommPanel.vue';
 import DebugPanel from './DebugPanel.vue';
+import BasicListPanel from './BasicListPanel.vue';
 import {commInit} from '../emulator/comm.js';
 import {isIoDebug, setIoDebug} from '../emulator/port.js';
 
@@ -95,6 +96,7 @@ const faceImage = computed(() => {
 });
 
 const showDebug = ref(false);
+const showBasic = ref(false);
 const showToolbar = ref(true);
 
 function toggleToolbar(): void {
@@ -197,8 +199,9 @@ onUnmounted(() => {
     >
       <!-- Side panel (left) -->
       <div v-if="panelLayout === 'left' && showToolbar" class="side-panels">
-        <CommPanel class="side-comm" v-model:showDebug="showDebug" :panelLayout="panelLayout" @cycleLayout="cycleLayout" />
+        <CommPanel class="side-comm" v-model:showDebug="showDebug" v-model:showBasic="showBasic" :panelLayout="panelLayout" @cycleLayout="cycleLayout" />
         <DebugPanel v-if="showDebug" class="side-debug" />
+        <BasicListPanel v-if="showBasic" />
       </div>
 
       <!-- Divider (left layout) -->
@@ -248,8 +251,9 @@ onUnmounted(() => {
           <LcdCanvas class="lcd-overlay" />
           <KeyboardOverlay @iconize="toggleToolbar" />
         </div>
-        <CommPanel v-if="showToolbar" v-model:showDebug="showDebug" :panelLayout="panelLayout" @cycleLayout="cycleLayout" />
+        <CommPanel v-if="showToolbar" v-model:showDebug="showDebug" v-model:showBasic="showBasic" :panelLayout="panelLayout" @cycleLayout="cycleLayout" />
         <DebugPanel v-if="showToolbar && showDebug" />
+        <BasicListPanel v-if="showToolbar && showBasic" />
       </div>
 
       <!-- Divider (right layout) -->
@@ -264,8 +268,9 @@ onUnmounted(() => {
 
       <!-- Side panel (right) -->
       <div v-if="panelLayout === 'right' && showToolbar" class="side-panels">
-        <CommPanel class="side-comm" v-model:showDebug="showDebug" :panelLayout="panelLayout" @cycleLayout="cycleLayout" />
+        <CommPanel class="side-comm" v-model:showDebug="showDebug" v-model:showBasic="showBasic" :panelLayout="panelLayout" @cycleLayout="cycleLayout" />
         <DebugPanel v-if="showDebug" class="side-debug" />
+        <BasicListPanel v-if="showBasic" />
       </div>
     </div>
   </div>

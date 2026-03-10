@@ -34,11 +34,13 @@ function toggleTurbo(): void {
 
 const props = defineProps<{
   showDebug: boolean;
+  showBasic: boolean;
   panelLayout: string;
 }>();
 
 const emit = defineEmits<{
   (e: 'update:showDebug', v: boolean): void;
+  (e: 'update:showBasic', v: boolean): void;
   (e: 'cycleLayout'): void;
 }>();
 
@@ -353,6 +355,9 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
       </button>
       <button class="btn" @click="emit('update:showDebug', !props.showDebug)">
         DEBUG {{ props.showDebug ? '\u25B4' : '\u25BE' }}
+      </button>
+      <button class="btn" @click="emit('update:showBasic', !props.showBasic)">
+        BASIC {{ props.showBasic ? '\u25B4' : '\u25BE' }}
       </button>
       <button
         class="btn btn-fw"
