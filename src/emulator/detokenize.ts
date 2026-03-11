@@ -43,6 +43,7 @@
 // (Discovered from ENLST routine at ROM1 0x5108–0x5121.)
 
 import { readRamByte } from './emulator.js';
+import { casioToUnicode } from './casio-ascii.js';
 
 // ── Token tables ───────────────────────────────────────────────────────────
 // Indexed by (code - 0x47). Empty string = unmapped token → rendered as "???".
@@ -328,10 +329,11 @@ function detokenizeBody(physAddr: number, length: number): string {
         i++;
         out += lookupKeyword(b, code);
       }
-    } else if (b >= 0x20 && b <= 0x7F) {
-      out += String.fromCharCode(b);
+    } else if (b >= 0x20) {
+      // Printable byte — convert from Casio ASCII to Unicode
+      out += casioToUnicode(b);
     } else {
-      // Unknown byte — show as hex escape
+      // Control byte outside token range — show as hex escape
       out += `[${b.toString(16).padStart(2, '0').toUpperCase()}]`;
     }
   }

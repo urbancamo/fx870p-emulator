@@ -68,5 +68,10 @@
     "file": "CARDTRK.FX",
     "name": "3-Pile Card Trick",
     "description": "Classic card trick — think of a card, pick its column three times, and the computer reveals it"
+  },
+  {
+    "file": "REMCHR.FX",
+    "name": "Character Set Demo",
+    "description": "Displays the full Casio ASCII character set (0x20-0xFF) — math, Greek, katakana, card suits, CJK"
   }
 ]
