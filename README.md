@@ -42,7 +42,8 @@ on GitHub [here](https://github.com/urbancamo/fx870p-emulator/) and it is
 - **Fullscreen mode** — hide toolbar and panels to use the calculator full-screen (useful on mobile)
 - **Firmware toggle** — switch between FX-870P (Japanese) and VX-4 (English) ROM modes
 - **CPU debugger** — live registers, flags, and disassembly view
-- **BASIC listing panel** — live detokenized listing of all BASIC programs (P0–P9) stored in RAM, with tabbed navigation and live/frozen toggle
+- **BASIC listing panel** — live detokenized listing of all BASIC programs (P0–P9) stored in RAM, with tabbed navigation, syntax highlighting, and live/frozen toggle
+- **BASIC editor** — in-place editing of BASIC programs with syntax highlighting, direct RAM writes, add/delete/edit lines, whole-program import/export with rich-text clipboard support
 - **Communications panel** — UART register state, serial byte stream, and diagnostics
 
 ## Running
@@ -89,7 +90,11 @@ src/
     keyboard.ts       83-key matrix — keydown + mouse events
     port.ts           I/O ports and UART state machine
     comm.ts           RS-232C TX/RX queue, XON/XOFF, SAVE receive
+    basic-tokens.ts   Shared keyword tables (PREFIX4–7) and RAM layout constants
     detokenize.ts     BASIC program detokenizer — reads tokenized programs from RAM
+    tokenize.ts       BASIC tokenizer — converts source text to FX-870P token bytes
+    ram-edit.ts       RAM editor — writes tokenized programs to RAM with file table management
+    casio-ascii.ts    Casio ASCII ↔ Unicode character mapping
     emulator.ts       Main rAF loop, ROM loading, state persistence
     remote-log.ts     Debug logging (dev only)
     trace.ts          Per-instruction JSONL trace recorder
@@ -99,10 +104,15 @@ src/
     KeyboardOverlay.vue Clickable key hit regions over face images
     CommPanel.vue       Serial comms panel + toolbar buttons
     DebugPanel.vue      CPU debugger (registers, flags, disassembly)
-    BasicListPanel.vue  BASIC program listing panel (detokenized view with tabs)
+    BasicListPanel.vue  BASIC program listing/editor panel (detokenized view, in-place editing, import/export)
     CharsetPopup.vue    Character set table + DEFCHR$ pixel editor
     LibraryPopup.vue    Program library popup (browse + load sample programs)
     AboutPopup.vue      About dialog (renders ABOUT.md)
+  editor/
+    BasicEditor.vue     Reusable CodeMirror 6 editor component (single/multi-line modes)
+    cm-basic-lang.ts    CodeMirror StreamLanguage definition for FX-870P BASIC
+    cm-basic-theme.ts   CodeMirror dark theme matching the panel UI
+    basic-highlight.ts  Syntax highlighter for listing display and rich-text clipboard export
 public/
   ABOUT.md            User-facing documentation (rendered in About popup)
   basic/              Sample BASIC programs (.bas, .fx)
@@ -116,6 +126,7 @@ public/
 tests/
   emu-harness.ts      Headless emulator boot + keystroke helpers
   sin90.test.ts       SIN(90) regression test
+  tokenize.test.ts    BASIC tokenizer tests (keywords, round-trip, edge cases)
 tools/
   dis.ts              Standalone disassembler (npm run dis)
   compare-traces.mjs  Delphi vs TypeScript trace comparison
@@ -135,6 +146,7 @@ docs/                 Implementation notes
 | [`docs/CasioVX-4-Manual-Peter-Rost.pdf`](docs/CasioVX-4-Manual-Peter-Rost.pdf) | VX-4 manual by Peter Rost (PDF)                    |
 | [`docs/FX-870P emulator.pdf`](docs/FX-870P%20emulator.pdf)                  | Delphi emulator documentation (PDF)                |
 | [`docs/basic-detokenizer.md`](docs/basic-detokenizer.md)                    | BASIC detokenizer reference — token tables, memory layout, line format |
+| [`docs/basic-editor.md`](docs/basic-editor.md)                              | BASIC editor user guide — editing, import/export, limitations          |
 | [`docs/plan.md`](docs/plan.md)                                              | Web port implementation plan and component mapping |
 | [`reference/fx870_es/`](reference/fx870_es/)                                | Original Delphi 5 source (reference only)          |
 
@@ -184,3 +196,4 @@ window.ioDebug(false)  // disable
 - [Vue 3](https://vuejs.org/) + [`<script setup>`](https://vuejs.org/api/sfc-script-setup.html)
 - [TypeScript](https://www.typescriptlang.org/)
 - [Vite 7](https://vite.dev/)
+- [CodeMirror 6](https://codemirror.net/) — BASIC editor with custom syntax highlighting

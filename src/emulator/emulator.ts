@@ -310,6 +310,16 @@ export function readRamByte(physAddr: number): number {
   return ram0.data[idx] ?? 0xFF;
 }
 
+// ─── RAM byte writer (for BASIC editor) ──────────────────────────────────────
+
+export function writeRamByte(physAddr: number, value: number): void {
+  const ram0 = memdef[RAM0_IDX];
+  if (!ram0?.data) return;
+  const idx = physAddr - ram0.first;
+  if (idx < 0 || idx >= ram0.data.length) return;
+  ram0.data[idx] = value;
+}
+
 // ─── Option2 (firmware mode) ─────────────────────────────────────────────────
 export function getOption2(): number { return Option2; }
 
