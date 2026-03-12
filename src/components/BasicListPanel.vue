@@ -102,7 +102,7 @@ onUnmounted(() => {
   flex-direction: column;
   background: #111;
   border-top: 1px solid #333;
-  font-family: monospace;
+  font-family: "Consolas", "Menlo", "Monaco", "Courier New", monospace;
   font-size: 0.72rem;
   text-align: left;
   width: 709px;
