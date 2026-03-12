@@ -8,16 +8,32 @@ Technical reference for the FX-870P BASIC detokenizer module (`src/emulator/deto
 
 Location: RAM offset `0x18A7` (physical address `0x118A7`)
 
-The table contains 11 consecutive 16-bit little-endian pointers — one boundary per program slot. Program P(n) occupies RAM from `pointer[n]` to `pointer[n+1]`. Add `0x10000` to convert from logical RAM offset to physical address.
+The table contains 21 consecutive 16-bit little-endian pointers covering
+programs (P0–P9), files (F0–F9), and the MEMEN sentinel. Program P(n)
+occupies RAM from `pointer[n]` to `pointer[n+1]`. Add `0x10000` to
+convert from logical RAM offset to physical address.
 
 ```
-Offset  Contents
-0x18A7  P0 start pointer (16-bit LE)
-0x18A9  P0 end / P1 start pointer
-0x18AB  P1 end / P2 start pointer
+Offset  Index  Contents
+0x18A7  [0]    P0 start (P0STT)
+0x18A9  [1]    P1 start / P0 end
+0x18AB  [2]    P2 start / P1 end
   ...
-0x18BB  P9 end pointer
+0x18B9  [9]    P9 start
+0x18BB  [10]   F0 start / P9 end (F0STT)
+0x18BD  [11]   F1 start / F0 end
+  ...
+0x18CD  [19]   F9 start
+0x18CF  [20]   MEMEN — end of all file/program storage
+0x18D1         RAMTOP — top of data RAM (upper bound for free space)
 ```
+
+The free RAM available for programs/files is `word(0x18D1) - word(0x18CF)`,
+i.e. `RAMTOP - MEMEN`. This matches the ROM's bounds check at `0x34B6`.
+
+**Note:** `SBOT` at `0x1899` is a stack-area pointer and is NOT the
+correct upper bound for program data. The ROM uses `RAMTOP` (`0x18D1`)
+for file operations.
 
 The ROM's `GetFileAddresses` routine at `0x33EE` uses the `biu` instruction (bit shift up = multiply by 2) to index into this table, confirming 2-byte entries. It then loads 4 consecutive bytes (`ldm $25,(iz+$sx),4`) to get both the start and end pointers for a file in one operation.
 

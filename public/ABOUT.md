@@ -205,31 +205,47 @@ This panel is primarily useful for developers debugging the emulator itself or f
 
 ---
 
-## BASIC Program Listing Panel
+## BASIC Program Panel
 
-Click **BAS** to reveal the BASIC program listing panel. This reads the tokenized BASIC programs stored in the calculator's RAM and displays them as human-readable source code.
+Click **BAS** to reveal the BASIC program panel. This reads the tokenized BASIC programs stored in the calculator's RAM and displays them as syntax-highlighted source code, with full editing capabilities.
 
-### Program Tabs
+### Viewing Programs
 
-The panel shows a tab for each non-empty program slot (P0–P9). Click a tab to view that program's listing. Only slots that contain at least one BASIC line are shown.
+The panel shows a tab for each non-empty program slot (P0–P9). Click a tab to view that program's listing. The listing is syntax-highlighted: keywords in blue, functions in purple, strings in green, numbers in yellow, and comments in gray.
 
-### Live / Frozen Mode
+- **LIVE** (default) — the listing refreshes automatically every second.
+- Click **LIVE** to switch to **FROZEN** mode, which keeps the current listing static.
+- Click **REFRESH** to manually update at any time.
 
-- **LIVE** (default) — the listing refreshes automatically every second, so you can watch the program change as you edit it on the calculator.
-- Click **LIVE** to switch to **FROZEN** mode, which stops polling and keeps the current listing static. This is useful when you want to study the listing without it updating.
-- Click **REFRESH** to manually update the listing at any time (works in both modes).
+### Exporting Programs
+
+Click **EXPORT** to copy the current program to the clipboard in two formats simultaneously:
+
+- **Plain text** — a numbered listing for pasting into text editors
+- **Rich HTML** — a syntax-highlighted listing with dark background, suitable for pasting into Google Docs, Notion, Word, or any rich-text editor
+
+### Editing Programs
+
+Click **EDIT** to enter edit mode. This freezes live polling and enables in-place editing:
+
+- **Click any line** to edit it inline with syntax highlighting as you type. Press **Enter** to save or **Escape** to cancel. Submit an empty line to delete it.
+- **Add new lines** using the input at the bottom (marked with **+**). Type a line number followed by BASIC text (e.g. `50 PRINT "HELLO"`) and press **Enter**. Lines are automatically inserted at the correct sorted position.
+- **Delete lines** by hovering and clicking the **×** button that appears on the right.
+- **Import a whole program** by clicking **IMPORT**, pasting a full listing (every line must start with a line number), and pressing **Ctrl+Enter**.
+
+All edits are written directly to emulator RAM and persist across page reloads. Editing is blocked while a BASIC program is running — stop it first.
 
 ### Hex Dump (HEX)
 
-Click **HEX** to toggle a diagnostic hex dump above the listing. This shows the raw file address table pointers and the first 64 bytes of each program slot in hexadecimal — useful for debugging the detokenizer or understanding the memory layout.
+Click **HEX** to toggle a diagnostic hex dump showing the raw file address table pointers and the first bytes of each program slot.
 
 ### DEFCHR$ Clipboard
 
-When you copy a `DEFCHR$` command from the Character Set Editor (CHR), the command string appears as a badge in the BASIC panel header. This provides a convenient reference while you are typing the command into the calculator.
+When you copy a `DEFCHR$` command from the Character Set Editor (CHR), the command string appears as a badge in the BASIC panel header for easy reference.
 
 ### How It Works
 
-The FX-870P stores BASIC programs as tokenized byte sequences in RAM. Each keyword (PRINT, GOTO, IF, etc.) is stored as a compact 2-byte token rather than as individual ASCII characters. The detokenizer reads the file address table at RAM offset 0x18A7 to locate each program slot, then walks through the tokenized lines, expanding keyword tokens back into their text equivalents using tables extracted from the ROM.
+The FX-870P stores BASIC programs as tokenized byte sequences in RAM. Each keyword (PRINT, GOTO, IF, etc.) is stored as a compact 2-byte token rather than as individual ASCII characters. The panel uses a detokenizer to read programs and a tokenizer to write them back. The editor manages the file address table at RAM offset 0x18A7 and shifts adjacent program/file slots when a program changes size.
 
 ---
 
