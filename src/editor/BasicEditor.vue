@@ -33,11 +33,21 @@ function setContent(text: string): void {
   });
 }
 
+function insertAtCursor(text: string): void {
+  if (!view) return;
+  const pos = view.state.selection.main.head;
+  view.dispatch({
+    changes: { from: pos, to: pos, insert: text },
+    selection: { anchor: pos + text.length },
+  });
+  view.focus();
+}
+
 function focus(): void {
   view?.focus();
 }
 
-defineExpose({ getContent, setContent, focus });
+defineExpose({ getContent, setContent, insertAtCursor, focus });
 
 onMounted(() => {
   if (!editorRef.value) return;

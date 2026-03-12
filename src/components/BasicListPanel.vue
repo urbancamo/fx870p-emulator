@@ -5,6 +5,7 @@ import { readBasicPrograms, debugFileTable, type BasicProgram } from '../emulato
 import { upsertLine, deleteLine, writeProgram, isBasicRunning } from '../emulator/ram-edit.js';
 import { tokenizeProgram, parseListingText } from '../emulator/tokenize.js';
 import BasicEditor from '../editor/BasicEditor.vue';
+import CharPalette from '../editor/CharPalette.vue';
 import { highlightBasic, exportListingHtml } from '../editor/basic-highlight.js';
 
 const props = defineProps<{
@@ -26,8 +27,23 @@ let pollId: ReturnType<typeof setInterval> | null = null;
 const activeProgram = computed(() => programs.value[activeTab.value] ?? null);
 const activeSlot = computed(() => activeProgram.value?.slot ?? 0);
 
+const showCharPalette = ref(false);
 const addLineEditor = ref<InstanceType<typeof BasicEditor> | null>(null);
 const importEditor = ref<InstanceType<typeof BasicEditor> | null>(null);
+const editLineEditor = ref<InstanceType<typeof BasicEditor> | null>(null);
+let lastFocusedEditor: InstanceType<typeof BasicEditor> | null = null;
+
+function trackEditorFocus(editor: InstanceType<typeof BasicEditor> | null): void {
+  if (editor) lastFocusedEditor = editor;
+}
+
+function insertSpecialChar(char: string): void {
+  if (lastFocusedEditor) {
+    lastFocusedEditor.insertAtCursor(char);
+  } else if (addLineEditor.value) {
+    addLineEditor.value.insertAtCursor(char);
+  }
+}
 
 function refresh(): void {
   const prev = programs.value;
@@ -85,6 +101,7 @@ function exitEditMode(): void {
   editingLine.value = null;
   errorMsg.value = '';
   showImport.value = false;
+  showCharPalette.value = false;
   // Resume live polling
   live.value = true;
   refresh();
@@ -253,6 +270,8 @@ onUnmounted(() => {
       <button v-if="activeProgram" class="btn" @click="doExport">EXPORT</button>
       <template v-if="editMode">
         <button class="btn" :class="{ active: showImport }" @click="toggleImport">IMPORT</button>
+        <button class="btn chr-btn" :class="{ active: showCharPalette }" @click="showCharPalette = !showCharPalette"
+                title="Special characters">&Omega;</button>
       </template>
       <button class="btn" :class="{ active: showDebugDump }" @click="toggleDebug">HEX</button>
       <span v-if="statusMsg" class="status-msg">{{ statusMsg }}</span>
@@ -268,15 +287,20 @@ onUnmounted(() => {
     </div>
     <pre v-if="showDebugDump" class="debug-dump">{{ debugInfo }}</pre>
 
+    <!-- Character palette -->
+    <CharPalette v-if="showCharPalette && editMode" @insert="insertSpecialChar" />
+
     <!-- Import editor -->
     <div v-if="showImport" class="import-area">
       <div class="import-label">Paste BASIC listing (line numbers required). Ctrl+Enter to import.</div>
-      <BasicEditor
-        ref="importEditor"
-        :multiline="true"
-        @submit="submitImport"
-        @cancel="toggleImport"
-      />
+      <div @focusin="trackEditorFocus(importEditor)">
+        <BasicEditor
+          ref="importEditor"
+          :multiline="true"
+          @submit="submitImport"
+          @cancel="toggleImport"
+        />
+      </div>
     </div>
 
     <!-- Error display -->
@@ -292,8 +316,9 @@ onUnmounted(() => {
           <span class="line-num">{{ line.num }}</span>
           <!-- Editing this line -->
           <template v-if="editMode && editingLine === line.num">
-            <div class="line-editor">
+            <div class="line-editor" @focusin="trackEditorFocus(editLineEditor)">
               <BasicEditor
+                ref="editLineEditor"
                 :initial-code="line.text"
                 @submit="(code: string) => submitEditLine(line.num, code)"
                 @cancel="cancelEditLine"
@@ -317,11 +342,13 @@ onUnmounted(() => {
       <div v-if="editMode" class="add-line">
         <span class="add-prefix">+</span>
         <div class="add-editor">
-          <BasicEditor
-            ref="addLineEditor"
-            placeholder="50 PRINT &quot;HELLO&quot;"
-            @submit="submitNewLine"
-          />
+          <div @focusin="trackEditorFocus(addLineEditor)">
+            <BasicEditor
+              ref="addLineEditor"
+              placeholder="50 PRINT &quot;HELLO&quot;"
+              @submit="submitNewLine"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -378,6 +405,8 @@ onUnmounted(() => {
 }
 .btn:hover { background: #3a3a3a; color: #fff; }
 .btn.active { color: #8bc34a; border-color: #3a5a20; background: #1a2a10; }
+.btn.chr-btn { font-family: serif; font-size: 0.8rem; }
+.btn.chr-btn.active { color: #d2a8ff; border-color: #4a2a6a; background: #1a102a; }
 
 .status-msg {
   color: #8bc34a;
