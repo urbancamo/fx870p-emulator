@@ -165,6 +165,29 @@ describe('tokenizeBody', () => {
     expect(lower[1]).toBe(upper[1]); // both PRINT code
   });
 
+  it('tokenizes special Casio characters (surrogate pairs)', () => {
+    // Greek alpha 𝛼 = Casio 0x88 (uses surrogate pair \uD835\uDEFC)
+    const bytes = tokenizeBody('PRINT "\uD835\uDEFC"');
+    // Find the string content: after PRINT(2) + space(1) + quote(1)
+    expect(bytes[4]).toBe(0x88); // 𝛼 → Casio 0x88
+  });
+
+  it('tokenizes multi-codepoint Casio characters', () => {
+    // ⁻¹ = U+207B U+00B9 → Casio 0x9E (two Unicode codepoints, one Casio byte)
+    const bytes = tokenizeBody('PRINT "\u207B\u00B9"');
+    expect(bytes[4]).toBe(0x9E);
+  });
+
+  it('tokenizes special chars in REM comments', () => {
+    // π = U+03C0 → Casio 0xE7
+    const bytes = tokenizeBody('REM \u03C0');
+    // REM = 0x04 0xA9, space = 0x20, π = 0xE7
+    expect(bytes[0]).toBe(0x04);
+    expect(bytes[1]).toBe(0xA9);
+    expect(bytes[2]).toBe(0x20);
+    expect(bytes[3]).toBe(0xE7);
+  });
+
   it('tokenizes operators from prefix 7', () => {
     const bytes = tokenizeBody('A AND B');
     expect(bytes[0]).toBe(0x41); // A

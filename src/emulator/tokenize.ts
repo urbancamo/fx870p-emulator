@@ -89,12 +89,12 @@ export function tokenizeBody(text: string): number[] {
   while (i < upper.length) {
     // After REM or apostrophe, rest is raw ASCII
     if (inRem) {
-      const casio = unicodeToCasio(text[i]);
-      if (casio === null) {
-        throw new Error(`Character '${text[i]}' has no Casio ASCII mapping`);
+      const match = matchCasioChar(text, i);
+      if (match === null) {
+        throw new Error(`Character '${text[i]}' (U+${text.codePointAt(i)!.toString(16).padStart(4, '0')}) has no Casio ASCII mapping`);
       }
-      bytes.push(casio);
-      i++;
+      bytes.push(match[0]);
+      i += match[1];
       continue;
     }
 
@@ -110,12 +110,12 @@ export function tokenizeBody(text: string): number[] {
       bytes.push(0x22); // "
       i++;
       while (i < text.length && text[i] !== '"') {
-        const casio = unicodeToCasio(text[i]);
-        if (casio === null) {
-          throw new Error(`Character '${text[i]}' has no Casio ASCII mapping`);
+        const match = matchCasioChar(text, i);
+        if (match === null) {
+          throw new Error(`Character '${text[i]}' (U+${text.codePointAt(i)!.toString(16).padStart(4, '0')}) has no Casio ASCII mapping`);
         }
-        bytes.push(casio);
-        i++;
+        bytes.push(match[0]);
+        i += match[1];
       }
       if (i < text.length) {
         bytes.push(0x22); // closing "
@@ -205,12 +205,12 @@ export function tokenizeBody(text: string): number[] {
     }
 
     // Default: emit as Casio ASCII byte
-    const casio = unicodeToCasio(text[i]);
-    if (casio === null) {
-      throw new Error(`Character '${text[i]}' (U+${text[i].codePointAt(0)!.toString(16).padStart(4, '0')}) has no Casio ASCII mapping`);
+    const casioMatch = matchCasioChar(text, i);
+    if (casioMatch === null) {
+      throw new Error(`Character '${text[i]}' (U+${text.codePointAt(i)!.toString(16).padStart(4, '0')}) has no Casio ASCII mapping`);
     }
-    bytes.push(casio);
-    i++;
+    bytes.push(casioMatch[0]);
+    i += casioMatch[1];
   }
 
   return bytes;
@@ -291,18 +291,28 @@ export function parseListingText(text: string): { num: number; text: string }[] 
 
 // ── Internal helpers ─────────────────────────────────────────────────────────
 
-function unicodeToCasio(ch: string): number | null {
-  // Fast path for standard ASCII
-  const code = ch.charCodeAt(0);
-  if (code >= 0x20 && code <= 0x7E) {
-    // Most ASCII maps directly, except 0x5C (\ → ¥ in Casio)
-    // Check the reverse map for correctness
-    const mapped = UNICODE_TO_CASIO.get(ch);
-    if (mapped !== undefined) return mapped;
+/**
+ * Try to match a Casio character at position `pos` in `text`.
+ * Returns [casio_byte, chars_consumed] or null.
+ * Handles surrogate pairs (2 UTF-16 code units) and multi-char
+ * mappings like ⁻¹ (2 codepoints).
+ */
+function matchCasioChar(text: string, pos: number): [number, number] | null {
+  // Try 2-char match first (e.g. ⁻¹ = U+207B U+00B9 → 0x9E)
+  if (pos + 1 < text.length) {
+    const two = text.substring(pos, pos + 2);
+    const mapped2 = UNICODE_TO_CASIO.get(two);
+    if (mapped2 !== undefined) return [mapped2, 2];
   }
-  // Multi-char or non-ASCII
+
+  // Single codepoint (may be a surrogate pair = 2 UTF-16 code units)
+  const cp = text.codePointAt(pos);
+  if (cp === undefined) return null;
+  const ch = String.fromCodePoint(cp);
   const mapped = UNICODE_TO_CASIO.get(ch);
-  return mapped ?? null;
+  if (mapped !== undefined) return [mapped, ch.length];
+
+  return null;
 }
 
 function matchKeyword(text: string, pos: number): { entry: KeywordEntry; length: number } | null {
