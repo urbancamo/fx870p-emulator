@@ -1,6 +1,6 @@
 5 ON ERROR GOTO 500
 10 MODE 8:DIM:ERASE a:DIM a(5):a$="x1y1x2y2ab":c$=CHR$(5)
-20 CLS:PRINT "y=ax+b ï¿½- (x1,y1),(x2,y2)";
+20 CLS:PRINT "y=ax+b ä- (x1,y1),(x2,y2)";
 30 FOR i=0 TO 3
 40 LOCATE 0,1:PRINT c$;MID$(a$,1+2*i,2);"=";a(i);"?";:INPUT @42;a(i):LOCATE 0,0
 50 NEXT:LOCATE 0,1:PRINT c$;

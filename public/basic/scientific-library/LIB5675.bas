@@ -1,6 +1,6 @@
 5 ON ERROR GOTO 900
 20 MODE 8:DIM:r=0:s=0:h=0:c$=CHR$(5)
-30 CLS:PRINT "ï¿½(R+r)ï¿½(hï¿½+(R-r)ï¿½)+ï¿½(Rï¿½+rï¿½)";
+30 CLS:PRINT "ç(R+r)‚(h’+(R-r)’)+ç(R’+r’)";
 40 s$="r":z=r:GOSUB 500:r=z
 50 s$="R":z=s:GOSUB 500:s=z
 60 s$="h":z=h:GOSUB 500:h=z

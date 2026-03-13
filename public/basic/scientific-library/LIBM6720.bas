@@ -1,16 +1,16 @@
 5 IF sq<>60 AND sq<>62 THEN sq=226
-10 MODE 8:DIM:GOSUB 900:ERASE b$:DIM b$(1):b$(0)="Reject":b$(1)="Accept":t$="Test     HÔøΩ:ÔøΩ=ÔøΩÔøΩ  HÔøΩ:ÔøΩ"+CHR$(sq)+"ÔøΩÔøΩ":DEF CHR$(254)="A2A49C92A2":c$=CHR$(5):DEF CHR$(252)="123E020000"
+10 MODE 8:DIM:GOSUB 900:ERASE b$:DIM b$(1):b$(0)="Reject":b$(1)="Accept":t$="Test     H˚:ç=ç˚  H¸:ç"+CHR$(sq)+"ç˚":DEF CHR$(254)="A2A49C92A2":c$=CHR$(5):DEF CHR$(252)="123E020000"
 20 CLS:PRINT t$;TAB(0);"input new data (Y/N) ?";:a$=INPUT$(1)
 25 IF a$<>"Y" AND a$<>"y" THEN 40
 30 s$="x":GOSUB "LIB0:S6020":GOSUB 900
 40 r=0:f=5:s=sa:IF s>1 THEN t=sg:u=sk^2 ELSE t=0:u=0
 45 CLS:PRINT t$;
-50 z=r:s$="ÔøΩÔøΩ":GOSUB 500:r=z
+50 z=r:s$="ç˚":GOSUB 500:r=z
 60 z=s:s$="n":GOSUB 500:s=z
-70 z=t:s$="ÔøΩ":GOSUB 500:t=z
+70 z=t:s$="˛":GOSUB 500:t=z
 80 z=u:s$="V":GOSUB 500:u=z
-90 CLS:PRINT "Significance level ÔøΩ[%]";
-95 z=f:s$="ÔøΩ":GOSUB 500:f=z:IF f<0 OR f>100 THEN 95
+90 CLS:PRINT "Significance level à[%]";
+95 z=f:s$="à":GOSUB 500:f=z:IF f<0 OR f>100 THEN 95
 97 CLS:PRINT t$;TAB(0);".....";
 100 n=s-1:p=f/100:IF sq=226 THEN p=p/2
 105 sr=0:GOSUB "LIB0:S6430":GOSUB 900:IF sr THEN*

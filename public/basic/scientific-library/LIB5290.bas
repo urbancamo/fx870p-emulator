@@ -1,6 +1,6 @@
 5 ON ERROR GOTO 500
 10 MODE 8:DIM:c$=CHR$(5)
-20 CLS:PRINT "Kn(x)         (0ï¿½nï¿½9,0<xï¿½10)";
+20 CLS:PRINT "Kn(x)         (0áná9,0<xá10)";
 30 LOCATE 0,1:PRINT c$;"n?   :x?      :K=";
 40 LOCATE 2,1:INPUT @3;n$:LOCATE 0,0:n=VALF(LEFT$(n$,3)):u=ABS n:IF n<0 OR u>=10 OR FRAC u<>0 THEN 450
 60 LOCATE 8,1:INPUT @6;x$:LOCATE 0,0:x=VALF(LEFT$(x$,6)):v=ABS x:IF x=<0 OR v>10 THEN 460

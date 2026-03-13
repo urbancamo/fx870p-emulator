@@ -1,9 +1,9 @@
 5 ON ERROR GOTO 500
 10 MODE 8:DIM:ERASE a:DIM a(1):c$=CHR$(5):x=0:y=0:a=0:m$="XY"
-20 CLS:PRINT "(X,Y) ï¿½- (x,y),angle(ï¿½)";
+20 CLS:PRINT "(X,Y) ä- (x,y),angle(Œ)";
 30 s$="x":z=x:GOSUB 100:x=z
 40 s$="y":z=y:GOSUB 100:y=z
-50 s$="ï¿½":z=a:GOSUB 100:a=z
+50 s$="Œ":z=a:GOSUB 100:a=z
 60 a(0)=x*COS a-y*SIN a:a(1)=x*SIN a+y*COS a:LOCATE 0,1
 70 FOR i=0 TO 1:PRINT c$;MID$(m$,i+1,1);" =";a(i);
 75 w=ASC(INPUT$(1,@)):IF w=13 THEN 90

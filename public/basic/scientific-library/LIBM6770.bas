@@ -1,12 +1,12 @@
 5 IF sq<>60 AND sq<>62 THEN sq=226
-10 MODE 8:DIM:GOSUB 900:ERASE b$:DIM b$(1):b$(0)="Reject":b$(1)="Accept":t$="Test     Hï¿½:pï¿½=pï¿½  Hï¿½:pï¿½"+CHR$(sq)+"pï¿½":f=5:c$=CHR$(5):DEF CHR$(252)="123E020000":DEF CHR$(253)="2E2A3A0000":r=0:s=0:t=0:u=0
+10 MODE 8:DIM:GOSUB 900:ERASE b$:DIM b$(1):b$(0)="Reject":b$(1)="Accept":t$="Test     Hû:pü=pý  Hü:pü"+CHR$(sq)+"pý":f=5:c$=CHR$(5):DEF CHR$(252)="123E020000":DEF CHR$(253)="2E2A3A0000":r=0:s=0:t=0:u=0
 45 CLS:PRINT t$;
-50 z=r:s$="nï¿½":GOSUB 500:r=z
-60 z=s:s$="ï¿½xï¿½":GOSUB 500:s=z
-70 z=t:s$="nï¿½":GOSUB 500:t=z
-80 z=u:s$="ï¿½xï¿½":GOSUB 500:u=z
-90 CLS:PRINT "Significance level ï¿½[%]";
-95 z=f:s$="ï¿½":GOSUB 500:f=z:IF f<0 OR f>100 THEN 95
+50 z=r:s$="nü":GOSUB 500:r=z
+60 z=s:s$="„xü":GOSUB 500:s=z
+70 z=t:s$="ný":GOSUB 500:t=z
+80 z=u:s$="„xý":GOSUB 500:u=z
+90 CLS:PRINT "Significance level ˆ[%]";
+95 z=f:s$="ˆ":GOSUB 500:f=z:IF f<0 OR f>100 THEN 95
 97 CLS:PRINT t$;TAB(0);".....";
 100 p=f/100:IF sq=226 THEN p=p/2
 105 sr=0:GOSUB "LIB0:S6410":GOSUB 900:IF sr THEN*

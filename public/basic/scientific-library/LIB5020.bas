@@ -1,6 +1,6 @@
 5 ON ERROR GOTO 1000
 10 MODE 8:DIM:c$=CHR$(5):a=1:b=1
-20 CLS:PRINT "G.C.M. & L.C.M.  (1ï¿½a,b<10ï¿½ï¿½)";
+20 CLS:PRINT "G.C.M. & L.C.M.  (1áa,b<10‘)";
 30 s$="a":z=a:GOSUB 700:a=z
 40 s$="b":z=b:GOSUB 700:b=z:CLS
 100 IF b>a THEN f=b:g=a ELSE f=a:g=b

@@ -1,6 +1,6 @@
 5 ON ERROR GOTO 100
 20 MODE 8:DIM:r=0:c$=CHR$(5)
-30 CLS:PRINT "ï¿½rï¿½       r:radius";
+30 CLS:PRINT "çr’       r:radius";
 50 LOCATE 0,1:PRINT c$;"r=";r;"?";:INPUT @42;r:LOCATE 0,0:IF r<0 THEN 50
 70 LOCATE 0,1:PRINT c$;"Area =";PI*r*r;:z$=INPUT$(1,@):GOTO 50
 100 IF ERR=1 THEN CLS:ON ERROR GOTO 0

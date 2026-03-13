@@ -1,15 +1,15 @@
 5 ON ERROR GOTO 1000
 10 DEF CHR$(255)="0000FE0000":MODE 8:DIM:PRINT CHR$(15);
 30 f$="":c$=CHR$(5):s=0:t=0:e=1e-7:m=30:ANGLE 1
-50 CLS:PRINT "Method of bisection  f(x)=0     1:f(x),x0,x1    2:ï¿½,loop";
+50 CLS:PRINT "Method of bisection  f(x)=0     1:f(x),x0,x1    2:‹,loop";
 60 k=ASC(INPUT$(1,@)):IF k=13 OR k=49 THEN 90 ELSE IF k=50 THEN 170
 80 GOTO 60
 90 CLS:PRINT "Define function";
 100 LOCATE 0,1:PRINT c$;"f(x) ?";f$;:LOCATE 0,0:LOCATE 6,1:INPUT @100;f$:LOCATE 0,0:z=VALF(f$)
-110 IF LEN(f$)<25 THEN g$=f$ ELSE g$=LEFT$(f$,21)+"ï¿½ï¿½ï¿½"
+110 IF LEN(f$)<25 THEN g$=f$ ELSE g$=LEFT$(f$,21)+"¥¥¥"
 120 m$="f(x) = "+g$:s$="x0":z=s:GOSUB 800:s=z
 130 s$="x1":z=t:GOSUB 800:t=z:GOTO 250
-170 m$="Err  ï¿½Xn+1-Xnï¿½<ï¿½  (ï¿½>0)":s$="ï¿½":z=e:GOSUB 800:e=z:IF e<1e-90 THEN 170
+170 m$="Err  ÿXn+1-Xnÿ<‹  (‹>0)":s$="‹":z=e:GOSUB 800:e=z:IF e<1e-90 THEN 170
 200 m$="Max loop  (n>0)":s$="n":z=m:GOSUB 800:m=z:IF m=<0 OR FRAC m<>0 THEN 200 ELSE 50
 250 CLS:PRINT m$;TAB(0);"x = .....";:u=s:v=t
 270 x=u:g=VALF(f$):IF g=0 THEN 500

@@ -1,8 +1,8 @@
 5 ON ERROR GOTO 900
 20 MODE 8:DIM:r=0:h=0:c$=CHR$(5)
-30 CLS:PRINT "2ï¿½rh+ï¿½ar,a=ï¿½(h(2r-h))  r:radius";
+30 CLS:PRINT "2çrh+çar,a=‚(h(2r-h))  r:radius";
 40 s$="r":z=r:GOSUB 500:r=z
-45 CLS:PRINT "2ï¿½rh+ï¿½ar,a=ï¿½(h(2r-h))  h:height";
+45 CLS:PRINT "2çrh+çar,a=‚(h(2r-h))  h:height";
 50 s$="h":z=h:GOSUB 500:h=z
 60 a=h*(2*r-h):IF a<0 THEN 300 ELSE a=SQR a
 70 LOCATE 0,1:PRINT c$;"Surface =";PI*r*(2*h+a);:z$=INPUT$(1,@):GOTO 30

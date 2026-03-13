@@ -1,5 +1,5 @@
 5 ON ERROR GOTO 900
-10 ANGLE 1:MODE 8:DIM:l=0:r=0:c$=CHR$(5):n$="(lr-rï¿½sin(l/r))/2"
+10 ANGLE 1:MODE 8:DIM:l=0:r=0:c$=CHR$(5):n$="(lr-r’sin(l/r))/2"
 50 m$=n$+"     l:arc":s$="l":z=l:GOSUB 500:l=z
 80 m$=n$+"     r:radius":s$="r":z=r:GOSUB 500:IF z<l/2/PI THEN 80 ELSE r=z
 100 LOCATE 0,1:PRINT c$;"Area =";(l*r-r^2*SIN(l/r))/2;:z$=INPUT$(1,@):GOTO 50

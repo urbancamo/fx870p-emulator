@@ -1,7 +1,7 @@
 5 ON ERROR GOTO 900
 10 MODE 8:DIM:ERASE a,a$:DIM a(2),a$(2):a$(0)="r:inside":a$(1)="R:outside":a$(2)="l:side"
 20 ANGLE 0:n=0:c$=CHR$(5)
-30 CLS:PRINT "Area (polygon)";TAB(0);"1:n,rï¿½A   2:n,Rï¿½A   3:n,lï¿½A";
+30 CLS:PRINT "Area (polygon)";TAB(0);"1:n,ræA   2:n,RæA   3:n,læA";
 31 f=ASC(INPUT$(1,@))-48:IF f<1 OR f>3 THEN 31
 32 m$="Polygon  "
 35 s$="n:number":z=n:GOSUB 500:n=z:IF n<3 OR n>=1e7 OR FRAC n<>0 THEN 35

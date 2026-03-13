@@ -22,7 +22,7 @@
 380 e=a:f=b:a=c:b=d:c=e:d=f:GOTO 30
 400 a=g:b=h:GOTO 30
 420 e=SQR(a*a+b*b):f=ACS(a/e):IF b THEN f=f*SGN(b)
-430 CLS:PRINT "r =";e;TAB(0);"ï¿½ =";f;:a$=INPUT$(1,@):GOSUB 580:GOTO 50
+430 CLS:PRINT "r =";e;TAB(0);"Œ =";f;:a$=INPUT$(1,@):GOSUB 580:GOTO 50
 450 e=a*a-b*b:f=2*a*b:GOTO 20
 480 e=a/(a*a+b*b):f=-b/(a*a+b*b):GOTO 20
 500 IF b=0 THEN IF a<0 THEN f=SQR(-a):e=0:GOTO 20 ELSE e=SQR a:f=0:GOTO 20
@@ -41,17 +41,17 @@
 680 i=i+1:IF i<13 THEN 610
 690 GOSUB 580:GOTO 50
 710 PRINT " A : input A";:RETURN
-715 PRINT " G : Gauss  r=ï¿½Aï¿½:ï¿½=argument(A)";:RETURN
-720 PRINT " I : inverse         1/A ï¿½ A";:RETURN
-730 PRINT " S : square root     ï¿½A ï¿½ A";:RETURN
-740 PRINT " ^ : square          Aï¿½ ï¿½ A";:RETURN
-750 PRINT " + : addition        A+B ï¿½ A";:RETURN
-760 PRINT " - : subtraction     A-B ï¿½ A";:RETURN
-770 PRINT " * : multiplication  A*B ï¿½ A";:RETURN
-780 PRINT " / : division        A/B ï¿½ A";:RETURN
-800 PRINT " M : memory          A ï¿½ M";:RETURN
-810 PRINT " L : load            A ï¿½ M";:RETURN
-820 PRINT " C : change          A ï¿½ï¿½ B";:RETURN
+715 PRINT " G : Gauss  r=ÿAÿ:Œ=argument(A)";:RETURN
+720 PRINT " I : inverse         1/A æ A";:RETURN
+730 PRINT " S : square root     ‚A æ A";:RETURN
+740 PRINT " ^ : square          A’ æ A";:RETURN
+750 PRINT " + : addition        A+B æ A";:RETURN
+760 PRINT " - : subtraction     A-B æ A";:RETURN
+770 PRINT " * : multiplication  A*B æ A";:RETURN
+780 PRINT " / : division        A/B æ A";:RETURN
+800 PRINT " M : memory          A æ M";:RETURN
+810 PRINT " L : load            A ä M";:RETURN
+820 PRINT " C : change          A äæ B";:RETURN
 1000 IF ERR=1 THEN CLS:ON ERROR GOTO 0
 1010 IF ERL=520 THEN RESUME 520
 1030 LOCATE 0,0:PRINT l$;"not found";:a$=INPUT$(1,@):RESUME 690

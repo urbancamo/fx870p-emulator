@@ -34,7 +34,7 @@
 10110 RESTORE(r)
 10120 READ m$,n$,s$,b,c
 10130 l$="["+MID$(STR$(r/10),2)+"]":l=32-LEN(l$)
-10140 CLS:PRINT p$;TAB(l);l$;m$;" -ï¿½ ";n$;
+10140 CLS:PRINT p$;TAB(l);l$;m$;" -æ ";n$;
 10150 z=ASC(INPUT$(1,@))
 10170 IF z=29 AND r<>x THEN r=x:GOTO 10110
 10180 IF z=28 AND r<>y THEN r=y:GOTO 10110

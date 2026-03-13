@@ -1,15 +1,15 @@
 5 ON ERROR GOTO 1000
 10 MODE 8:DIM:ERASE a:DIM a(8):c$=CHR$(5):DEF CHR$(255)="82FE8280C0"
 20 RESTORE 400:FOR i=0 TO 8:READ a(i):NEXT:x=1
-30 CLS:PRINT "Gamma function  (0<xï¿½70)";
+30 CLS:PRINT "Gamma function  (0<xá70)";
 50 LOCATE 0,1:PRINT c$;"x =";x;"?";:INPUT @6;x:LOCATE 0,0:IF x=<0 OR x>70 THEN 50
 70 x$=MID$(STR$(x),2)
-80 LOCATE 0,1:PRINT c$;"ï¿½(";x$;") = .....";
+80 LOCATE 0,1:PRINT c$;"ÿ(";x$;") = .....";
 100 IF x<1 THEN y=x:GOSUB 300:f=f/y:GOTO 200
 110 IF x=<5 THEN y=x-INT x:GOSUB 300:FOR i=1 TO x-1:f=f*(y+i):NEXT:GOTO 200
 150 f=EXP((x-.5)*LN x-x+.5*LN(2*PI)+1/12/x-1/360/x^3+1/1260/x^5-1/1680/x^7)
 200 IF f THEN f=ROUND(f,LOG(ABS f)-7)
-210 PRINT c$;"ï¿½(";x$;") =";f;:z$=INPUT$(1,@):GOTO 50
+210 PRINT c$;"ÿ(";x$;") =";f;:z$=INPUT$(1,@):GOTO 50
 300 f=a(0):FOR i=1 TO 8:f=f*y+a(i):NEXT:RETURN
 400 DATA .035868343,-.193527818,.482199394,-.756704078,.918206857,-.897056937,.988205891,-.577191652,1
 1000 IF ERR=1 THEN CLS:ON ERROR GOTO 0

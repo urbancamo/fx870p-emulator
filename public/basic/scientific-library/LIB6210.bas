@@ -1,5 +1,5 @@
 10 MODE 8:DIM:GOSUB 500:c$=CHR$(5):x=0
-20 CLS:PRINT "Upper probability   N(0,1ï¿½)";
+20 CLS:PRINT "Upper probability   N(0,1’)";
 30 LOCATE 0,1:PRINT c$;"x=";x;"?";:INPUT @10;x:LOCATE 0,0
 60 LOCATE 0,1:PRINT c$;".....";
 70 sr=0:GOSUB "LIB0:S6210":GOSUB 500:IF sr THEN*

@@ -1,15 +1,15 @@
 5 ON ERROR GOTO 1000
 10 DEF CHR$(255)="0000FE0000":MODE 8:DIM:PRINT CHR$(15);
 30 f$="":c$=CHR$(5):s=0:h=1e-5:e=1e-7:m=20:ANGLE 1
-50 CLS:PRINT "Newton's method  f(x)=0";TAB(0);"1:f(x),x0       2:h,ï¿½,loop";
+50 CLS:PRINT "Newton's method  f(x)=0";TAB(0);"1:f(x),x0       2:h,‹,loop";
 60 k=ASC(INPUT$(1,@)):IF k=13 OR k=49 THEN 90 ELSE IF k=50 THEN 150
 80 GOTO 60
 90 CLS:PRINT "Define function";
 100 LOCATE 0,1:PRINT c$;"f(x) ?";f$;:LOCATE 0,0:LOCATE 6,1:INPUT @100;f$:LOCATE 0,0:z=VALF(f$)
-110 IF LEN(f$)<25 THEN g$=f$ ELSE g$=LEFT$(f$,21)+"ï¿½ï¿½ï¿½"
+110 IF LEN(f$)<25 THEN g$=f$ ELSE g$=LEFT$(f$,21)+"¥¥¥"
 120 m$="f(x) = "+g$:s$="x0":z=s:GOSUB 800:s=z:GOTO 250
-150 m$="fï¿½(x)=(f(x+h)-f(x))/h  (h>0)":s$="h":z=h:GOSUB 800:h=z:IF h=<0 THEN 150
-170 m$="Err  ï¿½Xn+1-Xnï¿½<ï¿½  (ï¿½>0)":s$="ï¿½":z=e:GOSUB 800:e=z:IF e<1e-90 THEN 170
+150 m$="fƒ(x)=(f(x+h)-f(x))/h  (h>0)":s$="h":z=h:GOSUB 800:h=z:IF h=<0 THEN 150
+170 m$="Err  ÿXn+1-Xnÿ<‹  (‹>0)":s$="‹":z=e:GOSUB 800:e=z:IF e<1e-90 THEN 170
 200 m$="Max loop  (n>0)":s$="n":z=m:GOSUB 800:m=z:IF m=<0 OR FRAC m<>0 THEN 200 ELSE 50
 250 CLS:PRINT m$;TAB(0);"x = .....";:t=s
 310 FOR i=1 TO m

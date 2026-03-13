@@ -40,14 +40,14 @@
 660 z=b(i,j):GOSUB 1850:IF w=13 THEN b(i,j)=z:GOTO 680
 670 IF j=0 THEN IF i=0 THEN 610 ELSE i=i-1:j=n-1 ELSE j=j-2
 680 NEXT:NEXT:GOTO 40
-700 LOCATE 0,0:PRINT c$;"Change  A";m$;" ï¿½ï¿½ B";n$;:IF m=o AND n=p THEN 750
+700 LOCATE 0,0:PRINT c$;"Change  A";m$;" äæ B";n$;:IF m=o AND n=p THEN 750
 710 ERASE c:DIM c(m,n):FOR i=0 TO m:FOR j=0 TO n:c(i,j)=a(i,j):NEXT:NEXT
 720 ERASE a:DIM a(o,p):FOR i=0 TO o:FOR j=0 TO p:a(i,j)=b(i,j):NEXT:NEXT
 730 ERASE b:DIM b(m,n):FOR i=0 TO m:FOR j=0 TO n:b(i,j)=c(i,j):NEXT:NEXT
 740 x=m:y=n:m=o:n=p:o=x:p=y:z$=m$:m$=n$:n$=z$:GOTO 50
 750 FOR i=0 TO m:FOR j=0 TO n:w=a(i,j):a(i,j)=b(i,j):b(i,j)=w:NEXT:NEXT:GOTO 50
 800 LOCATE 0,0:IF m<>n THEN GOSUB 1830:GOTO 50
-810 IF z=68 THEN PRINT c$;"Determinant A = ....."; ELSE PRINT c$;"Inverse A ï¿½ A";
+810 IF z=68 THEN PRINT c$;"Determinant A = ....."; ELSE PRINT c$;"Inverse A æ A";
 820 t=1E-10:d=1
 830 ERASE c,e:y=2*(m+1)-1:x=m:DIM c(x,y),e(x)
 840 FOR i=0 TO m:FOR j=0 TO n:c(i,j)=a(i,j):NEXT:NEXT
@@ -67,24 +67,24 @@
 1040 w=x+1:FOR j=w TO y:FOR i=0 TO x:w=e(i):c(w,x)=c(i,j):NEXT
 1050 FOR i=0 TO x:c(i,j)=c(i,x):NEXT:NEXT
 1070 FOR i=0 TO x:FOR j=0 TO x:a(i,j)=c(i,j+x+1):NEXT:NEXT:GOTO 300
-1100 m=q:n=r:GOSUB 470:LOCATE 0,0:PRINT c$;"Load  A ï¿½ M";m$;
+1100 m=q:n=r:GOSUB 470:LOCATE 0,0:PRINT c$;"Load  A ä M";m$;
 1110 ERASE a:DIM a(m,n):FOR i=0 TO m:FOR j=0 TO n:a(i,j)=d(i,j):NEXT:NEXT:GOTO 50
-1150 q=m:r=n:GOSUB 470:LOCATE 0,0:PRINT c$;"Memory  A ï¿½ M";m$;
+1150 q=m:r=n:GOSUB 470:LOCATE 0,0:PRINT c$;"Memory  A æ M";m$;
 1160 ERASE d:DIM d(q,r):FOR i=0 TO m:FOR j=0 TO n:d(i,j)=a(i,j):NEXT:NEXT:GOTO 50
-1200 w=m:m=n:n=w:GOSUB 470:LOCATE 0,0:PRINT c$;"Transpose  A ï¿½ A";m$;
+1200 w=m:m=n:n=w:GOSUB 470:LOCATE 0,0:PRINT c$;"Transpose  A æ A";m$;
 1210 ERASE c:DIM c(m,n):FOR i=0 TO n:FOR j=0 TO m:c(j,i)=a(i,j):NEXT:NEXT
 1220 ERASE a:DIM a(m,n):GOSUB 440:GOTO 300
 1250 LOCATE 0,0:IF n<>o THEN GOSUB 1830:GOTO 50
-1260 i=m:j=p:GOSUB 480:PRINT c$;"A*B ï¿½ A";m$;
+1260 i=m:j=p:GOSUB 480:PRINT c$;"A*B æ A";m$;
 1270 ERASE c:DIM c(m,p):FOR i=0 TO m:FOR j=0 TO p:w=0:FOR k=0 TO n:w=w+a(i,k)*b(k,j):NEXT:c(i,j)=w:NEXT:NEXT:IF m<>o OR n<>p THEN n=p:ERASE a:DIM a(m,n)
 1280 GOSUB 440:GOTO 300
 1300 LOCATE 0,0:IF m<>o OR n<>p THEN GOSUB 1830:GOTO 50
-1310 PRINT c$;"A+B ï¿½ A";m$;
+1310 PRINT c$;"A+B æ A";m$;
 1320 ERASE c:DIM c(m,n):FOR i=0 TO m:FOR j=0 TO n:c(i,j)=a(i,j)+b(i,j):NEXT:NEXT:GOSUB 440:GOTO 300
 1350 LOCATE 0,0:IF m<>o OR n<>p THEN GOSUB 1830:GOTO 50
-1360 PRINT c$;"A-B ï¿½ A";m$;
+1360 PRINT c$;"A-B æ A";m$;
 1370 ERASE c:DIM c(m,n):FOR i=0 TO m:FOR j=0 TO n:c(i,j)=a(i,j)-b(i,j):NEXT:NEXT:GOSUB 440:GOTO 300
-1400 p$="k*A"+m$+" ï¿½ A":z=e:GOSUB 1950:GOSUB 420:IF w THEN 50 ELSE e=z
+1400 p$="k*A"+m$+" æ A":z=e:GOSUB 1950:GOSUB 420:IF w THEN 50 ELSE e=z
 1410 LOCATE 0,0:PRINT p$;
 1420 ERASE c:DIM c(m,n):FOR i=0 TO m:FOR j=0 TO n:c(i,j)=e*a(i,j):NEXT:NEXT:GOSUB 440:GOTO 300
 1500 DEF CHR$(254)="0080F08000":CLS:GOSUB 1600:i=2
@@ -98,15 +98,15 @@
 1600 PRINT " A : input A(m,n)";:RETURN
 1610 PRINT " B : input B(m,n)";:RETURN
 1620 PRINT " D : determinant A";:RETURN
-1630 PRINT " I : inverse         Aï¿½ ï¿½ A";:RETURN
-1640 PRINT " T : transposition   Aï¿½ ï¿½ A";:RETURN
-1650 PRINT " K : scalar-cal      k*A ï¿½ A";:RETURN
-1660 PRINT " + : addition        A+B ï¿½ A";:RETURN
-1670 PRINT " - : subtraction     A-B ï¿½ A";:RETURN
-1680 PRINT " * : multiplication  A*B ï¿½ A";:RETURN
-1690 PRINT " M : memory          A ï¿½ M";:RETURN
-1700 PRINT " L : load            A ï¿½ M";:RETURN
-1710 PRINT " C : change          A ï¿½ï¿½ B";:RETURN
+1630 PRINT " I : inverse         Až æ A";:RETURN
+1640 PRINT " T : transposition   Aþ æ A";:RETURN
+1650 PRINT " K : scalar-cal      k*A æ A";:RETURN
+1660 PRINT " + : addition        A+B æ A";:RETURN
+1670 PRINT " - : subtraction     A-B æ A";:RETURN
+1680 PRINT " * : multiplication  A*B æ A";:RETURN
+1690 PRINT " M : memory          A æ M";:RETURN
+1700 PRINT " L : load            A ä M";:RETURN
+1710 PRINT " C : change          A äæ B";:RETURN
 1720 PRINT " P : print A(m,n)";:RETURN
 1830 LOCATE 0,0:PRINT c$;"not found";:z$=INPUT$(1,@):RETURN
 1850 CLS:PRINT p$;" =";z;

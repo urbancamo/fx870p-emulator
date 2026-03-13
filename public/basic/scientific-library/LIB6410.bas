@@ -1,5 +1,5 @@
 10 MODE 8:DIM:GOSUB 500:c$=CHR$(5):p=0
-20 CLS:PRINT "Percentage points   N(0,1ï¿½)";
+20 CLS:PRINT "Percentage points   N(0,1’)";
 30 LOCATE 0,1:PRINT c$;"p=";p;"?";:INPUT @10;p:LOCATE 0,0:IF p=<0 OR p>=1 THEN 30
 60 LOCATE 0,1:PRINT c$;".....";
 70 sr=0:GOSUB "LIB0:S6410":GOSUB 500:IF sr THEN*

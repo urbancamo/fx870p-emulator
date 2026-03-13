@@ -45,7 +45,8 @@ function needsSpaceBefore(ch: string): boolean {
 // ── Line processor ───────────────────────────────────────────────────────────
 
 function processBody(body: string): string {
-  const upper = body.toUpperCase();
+  // Only uppercase ASCII letters — latin1 high bytes must stay untouched
+  const upper = body.replace(/[a-z]/g, c => c.toUpperCase());
   const out: string[] = [];
   let i = 0;
   let inStr = false;
@@ -152,7 +153,8 @@ function processBody(body: string): string {
 // ── File processor ───────────────────────────────────────────────────────────
 
 function processFile(filepath: string): void {
-  const content = readFileSync(filepath, 'utf-8');
+  // Read as latin1 to preserve raw Casio ASCII bytes (0x80–0xFF) intact
+  const content = readFileSync(filepath, 'latin1');
   const lines = content.split('\n');
   const result = lines.map(line => {
     const trimmed = line.trimEnd();
@@ -163,7 +165,7 @@ function processFile(filepath: string): void {
     if (!body) return num;
     return `${num} ${processBody(body)}`;
   });
-  writeFileSync(filepath, result.join('\n'));
+  writeFileSync(filepath, result.join('\n'), 'latin1');
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────

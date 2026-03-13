@@ -1,6 +1,6 @@
 5 ON ERROR GOTO 900
 20 MODE 8:DIM:a=0:b=0:c$=CHR$(5)
-30 CLS:PRINT "ï¿½ab           a:b:radius";
+30 CLS:PRINT "çab           a:b:radius";
 40 s$="a":z=a:GOSUB 500:a=z
 50 s$="b":z=b:GOSUB 500:b=z
 60 LOCATE 0,1:PRINT c$;"Area =";PI*a*b;:z$=INPUT$(1,@):GOTO 40

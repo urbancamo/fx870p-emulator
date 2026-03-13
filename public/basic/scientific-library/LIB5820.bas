@@ -1,42 +1,42 @@
 5 GOTO 10010
 10 DATA C,0,10,20
-20 DATA xï¿½,nxï¿½ï¿½,10,30
+20 DATA xœ,nxœž,10,30
 30 DATA x,1,20,40
-40 DATA 1/x,-1/xï¿½,30,50
-50 DATAï¿½ï¿½,1/(2ï¿½ï¿½),40,60
-60 DATA aï¿½,aï¿½loga,50,70
-70 DATA eï¿½,eï¿½,60,80
-80 DATA eï¿½ï¿½,neï¿½ï¿½,70,90
+40 DATA 1/x,-1/x’,30,50
+50 DATA‚ÿ,1/(2‚ÿ),40,60
+60 DATA a,aloga,50,70
+70 DATA e,e,60,80
+80 DATA eœ,neœ,70,90
 90 DATA logx,1/x,80,100
-100 DATA xï¿½,xï¿½(logx+1),90,110
+100 DATA x,x(logx+1),90,110
 110 DATA sinx,cosx,100,120
 120 DATA cosx,-sinx,110,130
-130 DATA tanx,secï¿½x,120,140
-140 DATA cotx,-cosecï¿½x,130,150
-150 DATA secx,secxï¿½tanx,140,160
-160 DATA cosecx,-cosecxï¿½cotx,150,170
-170 DATA sinax,aï¿½cosax,160,180
-180 DATA cosax,-aï¿½sinax,170,190
-190 DATA tanax,aï¿½secï¿½ax,180,200
-200 DATA cotax,-aï¿½cosecï¿½ax,190,210
-210 DATA sinï¿½x,1/ï¿½(1-xï¿½)          (ï¿½yï¿½<ï¿½/2),200,220
-220 DATA cosï¿½x,-1/ï¿½(1-xï¿½)           (0<y<ï¿½),210,230
-230 DATA tanï¿½x,1/(1+xï¿½)           (ï¿½yï¿½<ï¿½/2),220,240
-240 DATA cotï¿½x,-1/(1+xï¿½)          (ï¿½yï¿½<ï¿½/2),230,250
-250 DATA secï¿½x,"1/(xï¿½(xï¿½-1))    (0<y<ï¿½,xï¿½>1)",240,260
-260 DATA cosecï¿½x,"1/(xï¿½(xï¿½-1))  (ï¿½yï¿½<ï¿½/2,xï¿½>1)",250,270
+130 DATA tanx,sec’x,120,140
+140 DATA cotx,-cosec’x,130,150
+150 DATA secx,secx¥tanx,140,160
+160 DATA cosecx,-cosecx¥cotx,150,170
+170 DATA sinax,a¥cosax,160,180
+180 DATA cosax,-a¥sinax,170,190
+190 DATA tanax,a¥sec’ax,180,200
+200 DATA cotax,-a¥cosec’ax,190,210
+210 DATA sinžx,1/‚(1-x’)          (þyþ<ç/2),200,220
+220 DATA cosžx,-1/‚(1-x’)           (0<y<ç),210,230
+230 DATA tanžx,1/(1+x’)           (þyþ<ç/2),220,240
+240 DATA cotžx,-1/(1+x’)          (þyþ<ç/2),230,250
+250 DATA secžx,"1/(x‚(x’-1))    (0<y<ç,x’>1)",240,260
+260 DATA cosecžx,"1/(x‚(x’-1))  (þyþ<ç/2,x’>1)",250,270
 270 DATA sinhx,coshx,260,280
 280 DATA coshx,sinhx,270,290
-290 DATA tanhx,sechï¿½x,280,300
-300 DATA cothx,-cosechï¿½x,290,310
-310 DATA sechx,-sechxï¿½tanhx,300,320
-320 DATA cosechx,-cosechxï¿½cothx,310,330
-330 DATA sinhï¿½x,1/ï¿½(1+xï¿½),320,340
-340 DATA coshï¿½x,"1/ï¿½(xï¿½-1)         (y>0,xï¿½>1)",330,350
-350 DATA tanhï¿½x,1/(1-xï¿½)              (xï¿½<1),340,360
-360 DATA cothï¿½x,1/(1-xï¿½)              (xï¿½>1),350,370
-370 DATA sechï¿½x,-1/(xï¿½(1-xï¿½))        (0<x<1),360,380
-380 DATA cosechï¿½x,-1/(xï¿½(xï¿½+1)),370,380
+290 DATA tanhx,sech’x,280,300
+300 DATA cothx,-cosech’x,290,310
+310 DATA sechx,-sechx¥tanhx,300,320
+320 DATA cosechx,-cosechx¥cothx,310,330
+330 DATA sinhžx,1/‚(1+x’),320,340
+340 DATA coshžx,"1/‚(x’-1)         (y>0,x’>1)",330,350
+350 DATA tanhžx,1/(1-x’)              (x’<1),340,360
+360 DATA cothžx,1/(1-x’)              (x’>1),350,370
+370 DATA sechžx,-1/(x‚(1-x’))        (0<x<1),360,380
+380 DATA cosechžx,-1/(x‚(x’+1)),370,380
 10010 MODE 8:DIM:x=10:y=380:r=x
 10020 DEF CHR$(255)="A2A49C92A2"
 10030 DEF CHR$(254)="0000FE0000"

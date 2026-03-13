@@ -1,11 +1,11 @@
 5 IF sq<>60 AND sq<>62 THEN sq=226
-10 MODE 8:DIM:GOSUB 900:ERASE b$:DIM b$(1):b$(0)="Reject":b$(1)="Accept":t$="Test     Hï¿½:p=pï¿½  Hï¿½:p"+CHR$(sq)+"pï¿½":f=5:c$=CHR$(5):r=0:s=0:t=0:DEF CHR$(252)="123E020000"
+10 MODE 8:DIM:GOSUB 900:ERASE b$:DIM b$(1):b$(0)="Reject":b$(1)="Accept":t$="Test     Hû:p=pû  Hü:p"+CHR$(sq)+"pû":f=5:c$=CHR$(5):r=0:s=0:t=0:DEF CHR$(252)="123E020000"
 45 CLS:PRINT t$;
-50 z=r:s$="pï¿½":GOSUB 500:r=z:IF r>=1 OR r=<0 THEN 50
+50 z=r:s$="pû":GOSUB 500:r=z:IF r>=1 OR r=<0 THEN 50
 60 z=s:s$="n":GOSUB 500:s=z
-70 z=t:s$="ï¿½x":GOSUB 500:t=z
-90 CLS:PRINT "Significance level ï¿½[%]";
-95 z=f:s$="ï¿½":GOSUB 500:f=z:IF f<0 OR f>100 THEN 95
+70 z=t:s$="„x":GOSUB 500:t=z
+90 CLS:PRINT "Significance level ˆ[%]";
+95 z=f:s$="ˆ":GOSUB 500:f=z:IF f<0 OR f>100 THEN 95
 97 CLS:PRINT t$;TAB(0);".....";
 100 p=f/100:IF sq=226 THEN p=p/2
 105 sr=0:GOSUB "LIB0:S6410":GOSUB 900:IF sr THEN*

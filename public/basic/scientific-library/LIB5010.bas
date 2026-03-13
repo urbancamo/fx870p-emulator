@@ -1,6 +1,6 @@
 5 ON ERROR GOTO 1000
 10 MODE 8:DIM:x=2:c$=CHR$(5)
-20 CLS:PRINT "Prime factors    (2ï¿½Base<10ï¿½ï¿½)";:a$=" *"
+20 CLS:PRINT "Prime factors    (2áBase<10‘)";:a$=" *"
 40 LOCATE 0,1:PRINT c$;"Base ?";:INPUT @11;x:LOCATE 0,0
 45 IF x<2 OR x>=1e10 OR FRAC x<>0 THEN 40
 50 LOCATE 0,1:PRINT c$;x;"= .....";

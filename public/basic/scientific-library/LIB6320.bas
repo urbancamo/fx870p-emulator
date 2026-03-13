@@ -1,6 +1,6 @@
 10 MODE 8:DIM:GOSUB 500:c$=CHR$(5):k=0:x=0:DEF CHR$(254)="424C300806"
-20 CLS:PRINT "Cumulative frequency  P(x,ï¿½)";
-30 z=k:s$="ï¿½":GOSUB 400:k=z:IF k<0 THEN 30
+20 CLS:PRINT "Cumulative frequency  P(x,þ)";
+30 z=k:s$="þ":GOSUB 400:k=z:IF k<0 THEN 30
 40 z=x:s$="x":GOSUB 400:x=z:IF x<0 OR FRAC x<>0 THEN 40
 60 LOCATE 0,1:PRINT c$;".....";
 70 sr=0:GOSUB "LIB0:S6320":GOSUB 500:IF sr THEN*

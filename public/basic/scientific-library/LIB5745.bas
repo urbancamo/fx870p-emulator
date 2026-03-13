@@ -1,6 +1,6 @@
 5 ON ERROR GOTO 900
 20 MODE 8:DIM:a=0:b=0:c=0:c$=CHR$(5)
-30 CLS:PRINT "4ï¿½abc/3       a:b:c:radius";
+30 CLS:PRINT "4çabc/3       a:b:c:radius";
 40 s$="a":z=a:GOSUB 500:a=z
 41 s$="b":z=b:GOSUB 500:b=z
 42 s$="c":z=c:GOSUB 500:c=z

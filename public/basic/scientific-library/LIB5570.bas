@@ -1,6 +1,6 @@
 5 ON ERROR GOTO 500
 10 MODE 8:DIM:ERASE a,b,c$:DIM a(4),b(7),c$(7):a$="a b r x1y1":c$=CHR$(5)
-20 CLS:PRINT "(x-a)ï¿½+(y-b)ï¿½=rï¿½,(x1,y1)";
+20 CLS:PRINT "(x-a)’+(y-b)’=r’,(x1,y1)";
 30 FOR i=0 TO 4
 40 LOCATE 0,1:PRINT c$;MID$(a$,i*2+1,(SGN(i-2.5)+1)/2+1);"=";a(i);"?";:INPUT @42;a(i):LOCATE 0,0
 50 IF i=2 AND a(2)=<0 THEN 40

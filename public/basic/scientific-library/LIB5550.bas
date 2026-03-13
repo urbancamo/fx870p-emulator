@@ -9,7 +9,7 @@
 80 IF a*h-c*f<>0 THEN a(7)=(a*j-e*f)/(a*h-c*f) ELSE 160
 90 IF a<>0 THEN a(6)=(e-a(7)*c)/a ELSE IF f<>0 THEN a(6)=(j-a(7)*h)/f ELSE 160
 100 a(8)=SQR((a(0)-a(6))^2+(a(1)-a(7))^2)
-110 CLS:PRINT "Circle  (x-a)ï¿½+(y-b)ï¿½=rï¿½";:PRINT
+110 CLS:PRINT "Circle  (x-a)’+(y-b)’=r’";:PRINT
 120 FOR k=1 TO 3:PRINT c$;MID$(l$,k,1);" =";a(k+5);
 125 w=ASC(INPUT$(1,@)):IF w=13 THEN 140
 130 IF w=30 AND k>1 THEN k=k-2:GOTO 140

@@ -3,10 +3,10 @@
 30 f$="":c$=CHR$(5):a=0:b=0:h=1:ANGLE 1
 90 CLS:PRINT "Define function  dy/dx";
 100 LOCATE 0,1:PRINT c$;"?";f$;:LOCATE 0,0:LOCATE 1,1:INPUT @100;f$:LOCATE 0,0:z=VALF(f$)
-110 IF LEN(f$)<17 THEN g$=f$ ELSE g$=LEFT$(f$,20)+"ï¿½ï¿½ï¿½"
+110 IF LEN(f$)<17 THEN g$=f$ ELSE g$=LEFT$(f$,20)+"¥¥¥"
 120 m$="dy/dx = "+g$:s$="x0":z=a:GOSUB 800:a=z
 140 s$="y0":z=b:GOSUB 800:b=z
-150 m$="Step-size  ï¿½h     (ï¿½h>0)":s$="ï¿½h":z=h:GOSUB 800:h=z:IF h=<0 THEN 150
+150 m$="Step-size  þh     (þh>0)":s$="þh":z=h:GOSUB 800:h=z:IF h=<0 THEN 150
 250 m$="dy/dx = "+g$:n=50
 270 ERASE a,b:DIM a(n),b(n):k=32:i=0:j=0:f=a:g=b:GOTO 355
 300 IF k>31 THEN CLS:PRINT m$;TAB(0);"....."; ELSE PRINT c$;".....";

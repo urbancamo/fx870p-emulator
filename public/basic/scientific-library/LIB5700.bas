@@ -1,6 +1,6 @@
 5 ON ERROR GOTO 900
 20 MODE 8:DIM:r=0:c$=CHR$(5)
-30 CLS:PRINT "4ï¿½rï¿½/3             r:radius";
+30 CLS:PRINT "4çr“/3             r:radius";
 40 LOCATE 0,1:PRINT c$;"r=";r;"?";:INPUT @42;r:LOCATE 0,0:IF r<0 THEN 40
 50 LOCATE 0,1:PRINT c$;"Volume =";4*PI*r^3/3;:z$=INPUT$(1,@):GOTO 40
 900 IF ERR=1 THEN CLS:ON ERROR GOTO 0

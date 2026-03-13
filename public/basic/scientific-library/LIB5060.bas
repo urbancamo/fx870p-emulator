@@ -1,6 +1,6 @@
 5 ON ERROR GOTO 1000
 10 MODE 8:DIM:c$=CHR$(5):ANGLE 0:a=1:b=0:c=0:d=0
-20 CLS:PRINT "axï¿½+bxï¿½+cx+d=0";
+20 CLS:PRINT "ax“+bx’+cx+d=0";
 30 s$="a":z=a:GOSUB 700:a=z:IF a=0 THEN 30
 40 s$="b":z=b:GOSUB 700:b=z
 50 s$="c":z=c:GOSUB 700:c=z
@@ -14,33 +14,33 @@
 120 v=r+s
 130 ON SGN t+2 GOTO 400,,300
 140 x=-v-u:IF p THEN 200
-175 GOSUB 520:PRINT "a(x-ï¿½)ï¿½=0";:PRINT
-180 PRINT c$;"ï¿½ =";x;
+175 GOSUB 520:PRINT "a(x-ˆ)“=0";:PRINT
+180 PRINT c$;"ˆ =";x;
 190 GOSUB 550:IF w=13 THEN 20 ELSE 190
 200 y=v/2-u
-205 GOSUB 510:PRINT "a(x-ï¿½)(x-ï¿½)ï¿½=0";:PRINT
-210 PRINT c$;"ï¿½ =";x;
+205 GOSUB 510:PRINT "a(x-ˆ)(x-‰)’=0";:PRINT
+210 PRINT c$;"ˆ =";x;
 230 GOSUB 550:IF w<>13 AND w<>31 THEN 230
-240 PRINT c$;"ï¿½ =";y;
+240 PRINT c$;"‰ =";y;
 260 GOSUB 550:IF w=30 THEN 210 ELSE IF w=13 THEN 20 ELSE 260
 300 x=-v-u:y=v/2-u:z=ABS(SQR 3/2*(r-s))
-302 GOSUB 500:PRINT "a(x-ï¿½)(x-ï¿½)(x-ï¿½)=0";:PRINT
+302 GOSUB 500:PRINT "a(x-ˆ)(x-‰)(x-Š)=0";:PRINT
 305 y$=STR$(y)+" ":z$=MID$(STR$(z),2):IF y=0 THEN y$=""
-310 PRINT c$;"ï¿½ =";x;
+310 PRINT c$;"ˆ =";x;
 330 GOSUB 550:IF w<>13 AND w<>31 THEN 330
-340 PRINT c$;"ï¿½ =";y$;:IF y THEN PRINT "+";
+340 PRINT c$;"‰ =";y$;:IF y THEN PRINT "+";
 350 IF z-1 THEN PRINT " ";z$;"i"; ELSE PRINT " i";
 360 GOSUB 550:IF w=30 THEN 310 ELSE IF w<>13 AND w<>31 THEN 360
-370 PRINT c$;"ï¿½ =";y$;"-";:IF y THEN PRINT " ";
+370 PRINT c$;"Š =";y$;"-";:IF y THEN PRINT " ";
 380 IF z-1 THEN PRINT z$;"i"; ELSE PRINT "i";
 390 GOSUB 550:IF w=30 THEN 340 ELSE IF w=13 THEN 20 ELSE 390
 400 h=ACS(q/2/SQR(ABS(-p*p*p)))/3:i=-2*SQR(ABS(-p)):x=i*COS h-u:y=i*COS(h+120)-u:z=i*COS(h+240)-u
-405 GOSUB 500:PRINT "a(x-ï¿½)(x-ï¿½)(x-ï¿½)=0";:PRINT
-410 PRINT c$;"ï¿½ =";x;
+405 GOSUB 500:PRINT "a(x-ˆ)(x-‰)(x-Š)=0";:PRINT
+410 PRINT c$;"ˆ =";x;
 430 GOSUB 550:IF w<>13 AND w<>31 THEN 430
-440 PRINT c$;"ï¿½ =";y;
+440 PRINT c$;"‰ =";y;
 460 GOSUB 550:IF w=30 THEN 410 ELSE IF w<>13 AND w<>31 THEN 460
-470 PRINT c$;"ï¿½ =";z;
+470 PRINT c$;"Š =";z;
 490 GOSUB 550:IF w=30 THEN 440 ELSE IF w=13 THEN 20 ELSE 490
 500 IF z<>0 AND ABS z>=1e-90 THEN z=ROUND(z,LOG(ABS z)-7)
 502 IF z<>0 AND ABS z<1e-90 THEN z=z*1e10:z=ROUND(z,LOG(ABS z)-7):z=z/1e10

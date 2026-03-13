@@ -1,17 +1,17 @@
 5 GOTO 10010
-10 DATA Absolute temperature,T[K]=t[ï¿½C]+273.15,10,20,
+10 DATA Absolute temperature,T[K]=t[ßC]+273.15,10,20,
 20 DATA Heat capacity,Q=CT=mcT,10,30,
 30 DATA Mechanical equivalent of heat,"W=JQ , J=4.19 [J/cal]",20,40,
 40 DATA Boyle's law,PV=Constant  (T=constant),30,50,
-50 DATA Volume & Temperature,V=Vï¿½(1+T/273),40,60,
-60 DATA Charle's law,V/Vï¿½=T/Tï¿½,50,70,
+50 DATA Volume & Temperature,V=Vû(1+T/273),40,60,
+60 DATA Charle's law,V/Vû=T/Tû,50,70,
 70 DATA Equation of state,"PV=nRT , R=8.31 [J/K]",60,80,
-80 DATA Law of partial pressures,P=Pï¿½+Pï¿½+Pï¿½+ï¿½ï¿½ï¿½,70,90,1,2A2A3E0000
-90 DATA Pressure,P=1/3ï¿½nmï¿½ï¿½,80,100,1,B08C828CB0
-100 DATA Internal energy,U=1/2ï¿½mï¿½ï¿½N=3/2ï¿½nRT,90,110,1,B08C828CB0
-110 DATA Specific heat,"Cv=ï¿½U/ï¿½T=3R/2 , Cp=ï¿½U/ï¿½T+R=5R/2",100,120,
-120 DATA Half life,N=Nï¿½(1/2)ï¿½ï¿½    (x=1/T),110,130,1,40F8480000
-130 DATA Mass-energy relation ,E=mcï¿½,120,130,
+80 DATA Law of partial pressures,P=Pü+Pı+Pş+¥¥¥,70,90,1,2A2A3E0000
+90 DATA Pressure,P=1/3¥nmş’,80,100,1,B08C828CB0
+100 DATA Internal energy,U=1/2¥mş’N=3/2¥nRT,90,110,1,B08C828CB0
+110 DATA Specific heat,"Cv=îU/îT=3R/2 , Cp=îU/îT+R=5R/2",100,120,
+120 DATA Half life,N=Nû(1/2)ş    (x=1/T),110,130,1,40F8480000
+130 DATA Mass-energy relation ,E=mc’,120,130,
 10010 MODE 8:DIM:x=10:y=130:r=x
 10040 DEF CHR$(253)="2E2A3A0000"
 10050 DEF CHR$(252)="123E020000"

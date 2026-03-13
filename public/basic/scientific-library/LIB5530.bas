@@ -1,6 +1,6 @@
 5 ON ERROR GOTO 500
 10 MODE 8:DIM:ERASE a:DIM a(3):a$="a b x1y1":c$=CHR$(5)
-20 CLS:PRINT "Distance ï¿½- y=ax+b,(x1,y1)";
+20 CLS:PRINT "Distance ä- y=ax+b,(x1,y1)";
 30 FOR i=0 TO 3
 40 LOCATE 0,1:PRINT c$;MID$(a$,1+i*2,(SGN(i-1.5)+1)/2+1);"=";a(i);"?";:INPUT @42;a(i):LOCATE 0,0
 50 NEXT

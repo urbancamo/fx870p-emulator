@@ -1,20 +1,20 @@
 5 GOTO 10010
-10 DATA Wave,"v=ï¿½/T=fï¿½ , y=aï¿½sin2ï¿½(t/T-x/ï¿½)",10,20,
-20 DATA Wave of string,v=ï¿½(F/ï¿½),10,30,1,3E40484830
-30 DATA Interference,"lï¿½-lï¿½=(2n+1)ï¿½/2 , lï¿½-lï¿½=nï¿½",20,40,
-40 DATA Stationary wave,"l=nï¿½/2 , l=(2n-1)ï¿½/4   (nï¿½0)",30,50,
-50 DATA Refraction,n=sinï¿½/sinï¿½=vï¿½/vï¿½=ï¿½ï¿½/ï¿½ï¿½,40,60,
-60 DATA Natural frequency (wave),f=(1/2l)ï¿½ï¿½(T/ï¿½),50,70,1,3E40484830
+10 DATA Wave,"v=ÿ/T=fÿ , y=a¥sin2ç(t/T-x/ÿ)",10,20,
+20 DATA Wave of string,v=‚(F/þ),10,30,1,3E40484830
+30 DATA Interference,"lý-lü=(2n+1)ÿ/2 , lý-lü=nÿ",20,40,
+40 DATA Stationary wave,"l=nÿ/2 , l=(2n-1)ÿ/4   (nâ0)",30,50,
+50 DATA Refraction,n=sinŒ/sin=vü/vý=ÿü/ÿý,40,60,
+60 DATA Natural frequency (wave),f=(1/2l)¥‚(T/þ),50,70,1,3E40484830
 70 DATA Velocity of sound,v=331.5+0.61T,60,80,
-80 DATA Doppler effect,f=fï¿½ï¿½(v-vï¿½)/(v-vï¿½),70,90,
-90 DATA Beat,f=fï¿½-fï¿½    (fï¿½>fï¿½),80,100,
-100 DATA Reflectivity,Rï¿½=((nï¿½-nï¿½)/(nï¿½+nï¿½))ï¿½,90,110,
-110 DATA Critical angle,sinï¿½=nï¿½/nï¿½,100,120,
-120 DATA de Broglie wave,ï¿½=h/mv,110,130,
-130 DATA Quantum condition,2ï¿½r=nh/mv=nï¿½,120,140,
-140 DATA Photoelectron,1/2ï¿½mvï¿½=hï¿½-W,130,150,1,3E02040830
-150 DATA Frequency condition,hï¿½=Em-En    (m>n),140,160,
-160 DATA Light wave,"ï¿½=c/ï¿½ , c=2.998*10ï¿½ [m/s]",150,160,1,3E02040830
+80 DATA Doppler effect,f=fû¥(v-vü)/(v-vý),70,90,
+90 DATA Beat,f=fü-fý    (fü>fý),80,100,
+100 DATA Reflectivity,Rû=((nü-ný)/(nü+ný))’,90,110,
+110 DATA Critical angle,sinŒ=nü/ný,100,120,
+120 DATA de Broglie wave,ÿ=h/mv,110,130,
+130 DATA Quantum condition,2çr=nh/mv=nÿ,120,140,
+140 DATA Photoelectron,1/2¥mv’=hþ-W,130,150,1,3E02040830
+150 DATA Frequency condition,hþ=Em-En    (m>n),140,160,
+160 DATA Light wave,"ÿ=c/þ , c=2.998*10˜ [m/s]",150,160,1,3E02040830
 10010 MODE 8:DIM:x=10:y=160:r=x
 10020 DEF CHR$(255)="424C300806"
 10030 DEF CHR$(253)="2E2A3A0000"

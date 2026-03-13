@@ -1,11 +1,11 @@
 10 MODE 8:DIM:GOSUB 500:c$=CHR$(5):n=1:p=0:DEF CHR$(254)="3E02040830"
-20 CLS:PRINT "Percentage points  Xï¿½(xï¿½,ï¿½)";
-30 z=n:s$="ï¿½":GOSUB 400:n=z:IF n=<0 OR FRAC n<>0 THEN 30
+20 CLS:PRINT "Percentage points  X’(x’,þ)";
+30 z=n:s$="þ":GOSUB 400:n=z:IF n=<0 OR FRAC n<>0 THEN 30
 40 z=p:s$="p":GOSUB 400:p=z:IF p=<0 OR p>1 THEN 40
 60 LOCATE 0,1:PRINT c$;".....";
 70 sr=0:GOSUB "LIB0:S6420":GOSUB 500:IF sr THEN*
 75 IF x THEN x=ROUND(x,LOG(ABS x)-6)
-80 PRINT c$;"xï¿½=";x;:z$=INPUT$(1,@):GOTO 30
+80 PRINT c$;"x’=";x;:z$=INPUT$(1,@):GOTO 30
 400 LOCATE 0,1:PRINT c$;s$;"=";z;"?";:INPUT @10;z:LOCATE 0,0:RETURN
 500 ON ERROR GOTO 510:RETURN
 510 IF ERR=1 THEN CLS:ON ERROR GOTO 0

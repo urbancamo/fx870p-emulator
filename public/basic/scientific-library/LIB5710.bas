@@ -1,6 +1,6 @@
 5 ON ERROR GOTO 900
 20 MODE 8:DIM:r=0:h=0:c$=CHR$(5)
-30 CLS:PRINT "2ï¿½rï¿½h/3     r:radius  h:height";
+30 CLS:PRINT "2çr’h/3     r:radius  h:height";
 40 s$="r":z=r:GOSUB 500:r=z
 41 s$="h":z=h:GOSUB 500:h=z
 50 LOCATE 0,1:PRINT c$;"Volume =";2*PI*r^2*h/3;:z$=INPUT$(1,@):GOTO 40

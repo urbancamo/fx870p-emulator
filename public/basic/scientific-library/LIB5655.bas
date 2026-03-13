@@ -1,8 +1,8 @@
 5 ON ERROR GOTO 900
 20 MODE 8:DIM:a=0:b=0:r=0:h=0:c$=CHR$(5)
-30 CLS:PRINT "2ï¿½rh+ï¿½(aï¿½+bï¿½)    h:height";
+30 CLS:PRINT "2çrh+ç(a’+b’)    h:height";
 50 s$="h":z=h:GOSUB 500:h=z
-51 CLS:PRINT "2ï¿½rh+ï¿½(aï¿½+bï¿½)    a:b:r:radius";
+51 CLS:PRINT "2çrh+ç(a’+b’)    a:b:r:radius";
 52 s$="a":z=a:GOSUB 500:a=z
 53 s$="b":z=b:GOSUB 500:b=z
 54 s$="r":z=r:GOSUB 500:r=z

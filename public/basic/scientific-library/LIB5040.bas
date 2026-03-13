@@ -1,6 +1,6 @@
 5 ON ERROR GOTO 2000:DEFSEG=0
 10 MODE 8:DIM:ERASE a:c$=CHR$(5):n=2:m$="ax1+bx2+cx3+dx4+ex5+fx6+gx7"
-30 CLS:PRINT "ax1+bx2+cx3+ï¿½ï¿½ï¿½=y     (2ï¿½nï¿½7)";
+30 CLS:PRINT "ax1+bx2+cx3+¥¥¥=y     (2áná7)";
 40 LOCATE 0,1:PRINT c$;"n=";n;"?";:INPUT @2;n:LOCATE 0,0:IF n<2 OR n>7 THEN 40
 60 m=n-1:DIM a(m,n):p$=LEFT$(m$,4*m+3)+"=y":CLS:PRINT p$;
 100 FOR i=0 TO m:FOR j=0 TO n

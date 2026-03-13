@@ -1,6 +1,6 @@
 5 ON ERROR GOTO 500
 10 MODE 8:DIM:ERASE a,a$:DIM a(3),a$(1):DEFSEG=0
-100 CLS:PRINT " MC[ï¿½]   MR[ï¿½]   M-[ï¿½]   M+[ï¿½]";
+100 CLS:PRINT " MC[ã]   MR[å]   M-[ä]   M+[æ]";
 110 LOCATE 0,1:PRINT CHR$(5);a(2);:LOCATE 16,1:PRINT a(3);:LOCATE 0,0:LOCATE 0,1
 120 a$(0)=INPUT$(1,@):a(0)=ASC(a$(0)):IF a(0)=46 OR(a(0)>47 AND a(0)<58) THEN 200
 130 IF a(0)=42 OR a(0)=43 OR a(0)=45 OR a(0)=47 OR a(0)=94 THEN a$(0)=STR$(a(2))+a$(0):GOTO 200

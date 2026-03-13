@@ -1,7 +1,7 @@
 10 MODE 8:DIM:GOSUB 500:c$=CHR$(5):n=1:x=0:DEF CHR$(254)="3E02040830"
-20 CLS:PRINT "Upper probability   Xï¿½(xï¿½,ï¿½)";
-30 z=n:s$="ï¿½":GOSUB 400:n=z:IF n=<0 OR FRAC n<>0 THEN 30
-40 z=x:s$="xï¿½":GOSUB 400:x=z
+20 CLS:PRINT "Upper probability   X’(x’,þ)";
+30 z=n:s$="þ":GOSUB 400:n=z:IF n=<0 OR FRAC n<>0 THEN 30
+40 z=x:s$="x’":GOSUB 400:x=z
 60 LOCATE 0,1:PRINT c$;".....";
 70 sr=0:GOSUB "LIB0:S6220":GOSUB 500:IF sr THEN*
 75 IF p THEN p=ROUND(p,LOG(ABS p)-6)

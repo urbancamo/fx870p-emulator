@@ -1,28 +1,28 @@
 5 ON ERROR GOTO 1000
 10 MODE 8:DIM:c$=CHR$(5):a=1:b=0:c=0
-20 CLS:PRINT "axï¿½+bx+c=0";
+20 CLS:PRINT "ax’+bx+c=0";
 30 s$="a":z=a:GOSUB 700:a=z:IF z=0 THEN 30
 40 s$="b":z=b:GOSUB 700:b=z
 50 s$="c":z=c:GOSUB 700:c=z
 60 LOCATE 0,1:PRINT c$;".....";
 100 d=b*b-4*a*c
 110 CLS:IF d THEN 130
-120 PRINT "a(x-ï¿½)ï¿½=0";:PRINT:GOTO 200
-130 PRINT "a(x-ï¿½)(x-ï¿½)=0";:PRINT
+120 PRINT "a(x-ˆ)’=0";:PRINT:GOTO 200
+130 PRINT "a(x-ˆ)(x-‰)=0";:PRINT
 140 ON SGN d+2 GOTO 400,,300
-200 x=-b/(2*a):GOSUB 510:PRINT c$;"ï¿½ =";x;
+200 x=-b/(2*a):GOSUB 510:PRINT c$;"ˆ =";x;
 210 GOSUB 550:IF w=13 THEN 20 ELSE 210
 300 IF b<0 THEN z=-b+SQR d ELSE z=-b-SQR d
 305 x=z/2/a:y=2*c/z:GOSUB 500
-310 PRINT c$;"ï¿½ =";x;
+310 PRINT c$;"ˆ =";x;
 330 GOSUB 550:IF w<>13 AND w<>31 THEN 330
-340 PRINT c$;"ï¿½ =";y;
+340 PRINT c$;"‰ =";y;
 360 GOSUB 550:IF w=30 THEN 310 ELSE IF w=13 THEN 20 ELSE 360
 400 x=-b/(2*a):y=SQR(-d)/(2*a):GOSUB 500:x$=STR$(x)+" ":y$=MID$(STR$(y),2):IF x=0 THEN x$=""
-410 PRINT c$;"ï¿½ =";x$;:IF x THEN PRINT "+";
+410 PRINT c$;"ˆ =";x$;:IF x THEN PRINT "+";
 420 IF y-1 THEN PRINT " ";y$;"i"; ELSE PRINT " i";
 430 GOSUB 550:IF w<>13 AND w<>31 THEN 430
-440 PRINT c$;"ï¿½ =";x$;"-";:IF x THEN PRINT " ";
+440 PRINT c$;"‰ =";x$;"-";:IF x THEN PRINT " ";
 450 IF y-1 THEN PRINT y$;"i"; ELSE PRINT "i";
 460 GOSUB 550:IF w=30 THEN 410 ELSE IF w=13 THEN 20 ELSE 460
 500 IF y<>0 AND ABS y>=1e-90 THEN y=ROUND(y,LOG(ABS y)-7)
