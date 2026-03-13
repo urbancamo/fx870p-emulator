@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import { marked } from 'marked';
 import { loadFileBytes, clearOutput } from '../emulator/comm.js';
 
@@ -15,22 +15,53 @@ interface CatalogEntry {
   name: string;
   description: string;
   doc?: string;
+  category?: string;
 }
 
-const entries = ref<CatalogEntry[]>([]);
+type LibTab = 'programs' | 'scientific';
+const activeTab = ref<LibTab>('programs');
+
+const programEntries = ref<CatalogEntry[]>([]);
+const sciEntries = ref<CatalogEntry[]>([]);
 const loadError = ref('');
 const expandedDoc = ref<string | null>(null);
 const docHtml = ref('');
 const docLoading = ref(false);
 
+// Group scientific entries by category
+const sciGroups = computed(() => {
+  const groups: { category: string; entries: CatalogEntry[] }[] = [];
+  const seen = new Map<string, CatalogEntry[]>();
+  for (const entry of sciEntries.value) {
+    const cat = entry.category || 'Other';
+    if (!seen.has(cat)) {
+      const arr: CatalogEntry[] = [];
+      seen.set(cat, arr);
+      groups.push({ category: cat, entries: arr });
+    }
+    seen.get(cat)!.push(entry);
+  }
+  return groups;
+});
+
 onMounted(async () => {
   try {
-    const res = await fetch(`${base}basic/emulator/catalog.json`);
-    entries.value = await res.json();
+    const [progRes, sciRes] = await Promise.all([
+      fetch(`${base}basic/emulator/catalog.json`),
+      fetch(`${base}basic/scientific-library/catalog.json`),
+    ]);
+    programEntries.value = await progRes.json();
+    sciEntries.value = await sciRes.json();
   } catch {
     loadError.value = 'Failed to load program catalog.';
   }
 });
+
+function basePath(): string {
+  return activeTab.value === 'scientific'
+    ? `${base}basic/scientific-library/`
+    : `${base}basic/emulator/`;
+}
 
 function docFile(entry: CatalogEntry): string {
   if (entry.doc) return entry.doc;
@@ -49,7 +80,7 @@ async function toggleInfo(entry: CatalogEntry): Promise<void> {
   docHtml.value = '';
   docLoading.value = true;
   try {
-    const res = await fetch(`${base}basic/emulator/${docFile(entry)}`);
+    const res = await fetch(`${basePath()}${docFile(entry)}`);
     if (!res.ok) {
       docHtml.value = '<p>No documentation available.</p>';
       return;
@@ -71,7 +102,7 @@ async function toggleInfo(entry: CatalogEntry): Promise<void> {
 
 async function onLoad(entry: CatalogEntry): Promise<void> {
   try {
-    const res = await fetch(`${base}basic/emulator/${entry.file}`);
+    const res = await fetch(`${basePath()}${entry.file}`);
     const raw = new Uint8Array(await res.arrayBuffer());
     clearOutput();
     loadFileBytes(raw);
@@ -84,7 +115,7 @@ async function onLoad(entry: CatalogEntry): Promise<void> {
 
 async function onDownload(entry: CatalogEntry): Promise<void> {
   try {
-    const res = await fetch(`${base}basic/emulator/${entry.file}`);
+    const res = await fetch(`${basePath()}${entry.file}`);
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -100,21 +131,38 @@ async function onDownload(entry: CatalogEntry): Promise<void> {
 function onBackdrop(e: MouseEvent): void {
   if (e.target === e.currentTarget) emit('close');
 }
+
+function switchTab(tab: LibTab): void {
+  activeTab.value = tab;
+  expandedDoc.value = null;
+  docHtml.value = '';
+}
+
+const currentEntries = computed(() =>
+  activeTab.value === 'scientific' ? sciEntries.value : programEntries.value
+);
 </script>
 
 <template>
   <div class="lib-backdrop" @click="onBackdrop">
     <div class="lib-popup">
       <div class="lib-header">
-        <span class="lib-title">Program Library</span>
+        <div class="lib-tabs">
+          <button class="lib-tab" :class="{ active: activeTab === 'programs' }"
+                  @click="switchTab('programs')">Program Library</button>
+          <button class="lib-tab" :class="{ active: activeTab === 'scientific' }"
+                  @click="switchTab('scientific')">Scientific Library</button>
+        </div>
         <button class="lib-close" @click="emit('close')">&times;</button>
       </div>
 
       <div class="lib-body">
         <div v-if="loadError" class="lib-error">{{ loadError }}</div>
-        <div v-else-if="entries.length === 0" class="lib-empty">Loading...</div>
-        <div v-else class="lib-list">
-          <div v-for="entry in entries" :key="entry.file" class="lib-entry">
+        <div v-else-if="currentEntries.length === 0" class="lib-empty">Loading...</div>
+
+        <!-- Program Library: flat list -->
+        <div v-else-if="activeTab === 'programs'" class="lib-list">
+          <div v-for="entry in programEntries" :key="entry.file" class="lib-entry">
             <div class="lib-row">
               <div class="lib-info">
                 <span class="lib-name">{{ entry.name }}</span>
@@ -132,6 +180,26 @@ function onBackdrop(e: MouseEvent): void {
             <div v-if="expandedDoc === entry.file" :class="['lib-doc', `lib-entry-doc-${entry.file}`]">
               <div v-if="docLoading" class="lib-doc-loading">Loading...</div>
               <div v-else class="lib-doc-content" v-html="docHtml" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Scientific Library: grouped by category -->
+        <div v-else class="lib-list">
+          <div v-for="group in sciGroups" :key="group.category" class="lib-category">
+            <div class="lib-category-header">{{ group.category }}</div>
+            <div v-for="entry in group.entries" :key="entry.file" class="lib-entry">
+              <div class="lib-row">
+                <div class="lib-info">
+                  <span class="lib-name">{{ entry.name }}</span>
+                  <span class="lib-desc">{{ entry.description }}</span>
+                  <span class="lib-file">{{ entry.file }}</span>
+                </div>
+                <div class="lib-actions">
+                  <button class="lib-btn lib-btn-load" @click="onLoad(entry)">LOAD</button>
+                  <button class="lib-btn lib-btn-dl" @click="onDownload(entry)" title="Download"><i class="fa-solid fa-download"></i></button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -174,14 +242,30 @@ function onBackdrop(e: MouseEvent): void {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
+  padding: 0 16px;
   border-bottom: 1px solid #333;
   background: #111;
 }
 
-.lib-title {
-  font-size: 1.12rem;
+.lib-tabs {
+  display: flex;
+  gap: 0;
+}
+
+.lib-tab {
+  padding: 10px 16px;
+  font-family: monospace;
+  font-size: 1rem;
+  background: none;
+  color: #777;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+.lib-tab:hover { color: #bbb; }
+.lib-tab.active {
   color: #fff;
+  border-bottom-color: #7eb8f7;
 }
 
 .lib-close {
@@ -217,6 +301,23 @@ function onBackdrop(e: MouseEvent): void {
   flex-direction: column;
   gap: 8px;
 }
+
+.lib-category {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lib-category-header {
+  font-size: 0.82rem;
+  color: #7eb8f7;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 4px 2px;
+  border-bottom: 1px solid #222;
+  margin-top: 4px;
+}
+.lib-category:first-child .lib-category-header { margin-top: 0; }
 
 .lib-entry {
   border: 1px solid #333;

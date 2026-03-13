@@ -1,0 +1,848 @@
+[
+  {
+    "file": "LIB0400.bas",
+    "name": "Memory And Interface Test Program",
+    "description": "Tests memory and interface hardware",
+    "category": "System"
+  },
+  {
+    "file": "LIB0800.bas",
+    "name": "Download Program",
+    "description": "Data download utility",
+    "category": "System"
+  },
+  {
+    "file": "LIB0900.bas",
+    "name": "Conversion Program",
+    "description": "General-purpose unit conversions",
+    "category": "System"
+  },
+  {
+    "file": "LIB1000.bas",
+    "name": "Memory Calculations",
+    "description": "Memory usage calculation utility",
+    "category": "System"
+  },
+  {
+    "file": "LIBK0630.bas",
+    "name": "Menu and Start Program",
+    "description": "Menu and startup program for the LIB programs",
+    "category": "System"
+  },
+  {
+    "file": "LIB5010.bas",
+    "name": "Prime Factor Analysis",
+    "description": "Factorize integers into prime factors",
+    "category": "Number Theory"
+  },
+  {
+    "file": "LIB5020.bas",
+    "name": "GCM / LCM",
+    "description": "Greatest common measure and least common multiple",
+    "category": "Number Theory"
+  },
+  {
+    "file": "LIB5800.bas",
+    "name": "Factorization",
+    "description": "General factorization of expressions",
+    "category": "Number Theory"
+  },
+  {
+    "file": "LIB5040.bas",
+    "name": "Simultaneous Equations",
+    "description": "Solve systems of linear equations via Gauss-Jordan elimination",
+    "category": "Equations"
+  },
+  {
+    "file": "LIB5050.bas",
+    "name": "Quadratic Equation",
+    "description": "Solve quadratic equations (ax\u00b2+bx+c=0)",
+    "category": "Equations"
+  },
+  {
+    "file": "LIB5060.bas",
+    "name": "Cubic Equation",
+    "description": "Solve cubic equations",
+    "category": "Equations"
+  },
+  {
+    "file": "LIB5080.bas",
+    "name": "Newton's Method",
+    "description": "Numeric solution of an equation using Newton's method",
+    "category": "Equations"
+  },
+  {
+    "file": "LIB5090.bas",
+    "name": "Bisection Method",
+    "description": "Numeric solution of an equation using the bisection method",
+    "category": "Equations"
+  },
+  {
+    "file": "LIB5100.bas",
+    "name": "Matrix Operations",
+    "description": "Matrix arithmetic — add, multiply, transpose, determinant, inverse",
+    "category": "Linear Algebra"
+  },
+  {
+    "file": "LIB5200.bas",
+    "name": "Numeric Integration",
+    "description": "Numerical integration using Romberg's method",
+    "category": "Calculus"
+  },
+  {
+    "file": "LIB5220.bas",
+    "name": "Ordinary Differential Equation",
+    "description": "Solve ODEs using the Runge-Kutta method",
+    "category": "Calculus"
+  },
+  {
+    "file": "LIB5230.bas",
+    "name": "Lagrange's Interpolation",
+    "description": "Polynomial interpolation via Lagrange's formula",
+    "category": "Calculus"
+  },
+  {
+    "file": "LIB5810.bas",
+    "name": "Trigonometric Functions",
+    "description": "Trigonometric function reference and calculations",
+    "category": "Calculus"
+  },
+  {
+    "file": "LIB5820.bas",
+    "name": "Differentials",
+    "description": "Symbolic and numeric differentiation",
+    "category": "Calculus"
+  },
+  {
+    "file": "LIB5830.bas",
+    "name": "Integration",
+    "description": "Symbolic and numeric integration formulas",
+    "category": "Calculus"
+  },
+  {
+    "file": "LIB5840.bas",
+    "name": "Laplace Transformation",
+    "description": "Laplace transform reference and calculations",
+    "category": "Calculus"
+  },
+  {
+    "file": "LIB5250.bas",
+    "name": "Gamma Function",
+    "description": "Compute the gamma function \u0393(x)",
+    "category": "Special Functions"
+  },
+  {
+    "file": "LIB5260.bas",
+    "name": "Bessel Function Jn(x)",
+    "description": "Bessel function of the first kind",
+    "category": "Special Functions"
+  },
+  {
+    "file": "LIB5270.bas",
+    "name": "Bessel Function Yn(x)",
+    "description": "Bessel function of the second kind",
+    "category": "Special Functions"
+  },
+  {
+    "file": "LIB5280.bas",
+    "name": "Modified Bessel Function In(x)",
+    "description": "Modified Bessel function of the first kind",
+    "category": "Special Functions"
+  },
+  {
+    "file": "LIB5290.bas",
+    "name": "Modified Bessel Function Kn(x)",
+    "description": "Modified Bessel function of the second kind",
+    "category": "Special Functions"
+  },
+  {
+    "file": "LIB5300.bas",
+    "name": "Complex Number",
+    "description": "Complex number arithmetic operations",
+    "category": "Special Functions"
+  },
+  {
+    "file": "LIB5350.bas",
+    "name": "Binary-Decimal-Hexadecimal",
+    "description": "Number base conversions between binary, decimal, and hexadecimal",
+    "category": "Special Functions"
+  },
+  {
+    "file": "LIB5510.bas",
+    "name": "Straight Line Through Two Points",
+    "description": "Equation of a straight line passing through two points",
+    "category": "Coordinate Geometry"
+  },
+  {
+    "file": "LIB5520.bas",
+    "name": "Two Straight Lines",
+    "description": "Intersection and angle between two straight lines",
+    "category": "Coordinate Geometry"
+  },
+  {
+    "file": "LIB5530.bas",
+    "name": "Distance: Point to Line",
+    "description": "Distance between a point and a straight line",
+    "category": "Coordinate Geometry"
+  },
+  {
+    "file": "LIB5540.bas",
+    "name": "Rotational Movement",
+    "description": "Coordinate rotation transformations",
+    "category": "Coordinate Geometry"
+  },
+  {
+    "file": "LIB5550.bas",
+    "name": "Circle Through Three Points",
+    "description": "Equation of a circle passing through three points",
+    "category": "Coordinate Geometry"
+  },
+  {
+    "file": "LIB5560.bas",
+    "name": "Tangent Length: Point to Circle",
+    "description": "Length of tangent lines from a point to a circle",
+    "category": "Coordinate Geometry"
+  },
+  {
+    "file": "LIB5570.bas",
+    "name": "Tangent Line Equation",
+    "description": "Equation of a tangent line to a curve",
+    "category": "Coordinate Geometry"
+  },
+  {
+    "file": "LIB5600.bas",
+    "name": "Area of a Triangle",
+    "description": "Calculate triangle area from vertices or sides",
+    "category": "Areas"
+  },
+  {
+    "file": "LIB5605.bas",
+    "name": "Area of a Trapezoid",
+    "description": "Calculate the area of a trapezoid",
+    "category": "Areas"
+  },
+  {
+    "file": "LIB5610.bas",
+    "name": "Area of a Parallelogram",
+    "description": "Calculate the area of a parallelogram",
+    "category": "Areas"
+  },
+  {
+    "file": "LIB5615.bas",
+    "name": "Area of a Circle",
+    "description": "Calculate the area of a circle",
+    "category": "Areas"
+  },
+  {
+    "file": "LIB5620.bas",
+    "name": "Area of a Sector",
+    "description": "Calculate the area of a circular sector",
+    "category": "Areas"
+  },
+  {
+    "file": "LIB5625.bas",
+    "name": "Area of a Segment",
+    "description": "Calculate the area of a circular segment",
+    "category": "Areas"
+  },
+  {
+    "file": "LIB5630.bas",
+    "name": "Area of an Ellipse",
+    "description": "Calculate the area of an ellipse",
+    "category": "Areas"
+  },
+  {
+    "file": "LIB5635.bas",
+    "name": "Area of a Polygon",
+    "description": "Calculate the area of a regular polygon",
+    "category": "Areas"
+  },
+  {
+    "file": "LIB5650.bas",
+    "name": "Surface Area of a Sphere",
+    "description": "Calculate the surface area of a sphere",
+    "category": "Surface Areas"
+  },
+  {
+    "file": "LIB5655.bas",
+    "name": "Surface Area of a Zone of Sphere",
+    "description": "Calculate the surface area of a spherical zone",
+    "category": "Surface Areas"
+  },
+  {
+    "file": "LIB5660.bas",
+    "name": "Surface Area of a Spherical Sector",
+    "description": "Calculate the surface area of a spherical sector",
+    "category": "Surface Areas"
+  },
+  {
+    "file": "LIB5665.bas",
+    "name": "Surface Area of a Circular Cylinder",
+    "description": "Calculate the surface area of a circular cylinder",
+    "category": "Surface Areas"
+  },
+  {
+    "file": "LIB5670.bas",
+    "name": "Surface Area of a Circular Cone",
+    "description": "Calculate the surface area of a circular cone",
+    "category": "Surface Areas"
+  },
+  {
+    "file": "LIB5675.bas",
+    "name": "Surface Area of a Frustum",
+    "description": "Surface area of a frustum of a circular cone",
+    "category": "Surface Areas"
+  },
+  {
+    "file": "LIB5700.bas",
+    "name": "Volume of a Sphere",
+    "description": "Calculate the volume of a sphere",
+    "category": "Volumes"
+  },
+  {
+    "file": "LIB5705.bas",
+    "name": "Volume of a Zone of Sphere",
+    "description": "Calculate the volume of a spherical zone",
+    "category": "Volumes"
+  },
+  {
+    "file": "LIB5710.bas",
+    "name": "Volume of a Spherical Sector",
+    "description": "Calculate the volume of a spherical sector",
+    "category": "Volumes"
+  },
+  {
+    "file": "LIB5715.bas",
+    "name": "Volume of a Circular Cylinder",
+    "description": "Calculate the volume of a circular cylinder",
+    "category": "Volumes"
+  },
+  {
+    "file": "LIB5720.bas",
+    "name": "Volume of a Circular Cone",
+    "description": "Calculate the volume of a circular cone",
+    "category": "Volumes"
+  },
+  {
+    "file": "LIB5725.bas",
+    "name": "Volume of a Frustum",
+    "description": "Volume of a frustum of a circular cone",
+    "category": "Volumes"
+  },
+  {
+    "file": "LIB5730.bas",
+    "name": "Volume of a Wedge",
+    "description": "Calculate the volume of a wedge",
+    "category": "Volumes"
+  },
+  {
+    "file": "LIB5735.bas",
+    "name": "Pyramid",
+    "description": "Calculate the volume of a pyramid",
+    "category": "Volumes"
+  },
+  {
+    "file": "LIB5740.bas",
+    "name": "Frustum of a Pyramid",
+    "description": "Calculate the volume of a frustum of a pyramid",
+    "category": "Volumes"
+  },
+  {
+    "file": "LIB5745.bas",
+    "name": "Volume of an Ellipsoid",
+    "description": "Calculate the volume of an ellipsoid",
+    "category": "Volumes"
+  },
+  {
+    "file": "LIB5750.bas",
+    "name": "Inscribed and Circumscribed Circles",
+    "description": "Inscribed and circumscribed circles of a regular polygon",
+    "category": "Volumes"
+  },
+  {
+    "file": "LIB5760.bas",
+    "name": "Regular Polyhedron",
+    "description": "Properties of regular polyhedra (Platonic solids)",
+    "category": "Volumes"
+  },
+  {
+    "file": "LIB5900.bas",
+    "name": "Periodic Table",
+    "description": "Interactive periodic table of elements",
+    "category": "Physics & Chemistry"
+  },
+  {
+    "file": "LIB5910.bas",
+    "name": "Scientific Constants",
+    "description": "Reference table of physical and mathematical constants",
+    "category": "Physics & Chemistry"
+  },
+  {
+    "file": "LIB5920.bas",
+    "name": "Electrolytic Dissociation Constants",
+    "description": "Reference table of electrolytic dissociation constants",
+    "category": "Physics & Chemistry"
+  },
+  {
+    "file": "LIB5930.bas",
+    "name": "Motion And Energy",
+    "description": "Formulas for motion and energy calculations",
+    "category": "Physics & Chemistry"
+  },
+  {
+    "file": "LIB5932.bas",
+    "name": "Wave Motion",
+    "description": "Wave motion formulas and calculations",
+    "category": "Physics & Chemistry"
+  },
+  {
+    "file": "LIB5934.bas",
+    "name": "AC & DC Circuits",
+    "description": "AC and DC circuit analysis formulas",
+    "category": "Physics & Chemistry"
+  },
+  {
+    "file": "LIB5936.bas",
+    "name": "Electric And Magnetic Fields",
+    "description": "Electric and magnetic field calculations",
+    "category": "Physics & Chemistry"
+  },
+  {
+    "file": "LIB5938.bas",
+    "name": "Thermodynamics And Others",
+    "description": "Thermodynamic formulas and miscellaneous physics",
+    "category": "Physics & Chemistry"
+  },
+  {
+    "file": "LIB5950.bas",
+    "name": "Metric Conversions: Length",
+    "description": "Convert between metric and imperial length units",
+    "category": "Conversions"
+  },
+  {
+    "file": "LIB5960.bas",
+    "name": "Metric Conversions: Area",
+    "description": "Convert between metric and imperial area units",
+    "category": "Conversions"
+  },
+  {
+    "file": "LIB5970.bas",
+    "name": "Metric Conversions: Volume",
+    "description": "Convert between metric and imperial volume units",
+    "category": "Conversions"
+  },
+  {
+    "file": "LIB5980.bas",
+    "name": "Metric Conversions: Weight",
+    "description": "Convert between metric and imperial weight units",
+    "category": "Conversions"
+  },
+  {
+    "file": "LIB6210.bas",
+    "name": "Normal Distribution",
+    "description": "Upper probability integrals for normal distribution",
+    "category": "Probability Distributions"
+  },
+  {
+    "file": "LIB6220.bas",
+    "name": "\u03c7\u00b2 Distribution",
+    "description": "Upper probability integrals for chi-squared distribution",
+    "category": "Probability Distributions"
+  },
+  {
+    "file": "LIB6230.bas",
+    "name": "t Distribution",
+    "description": "Upper probability integrals for Student's t distribution",
+    "category": "Probability Distributions"
+  },
+  {
+    "file": "LIB6240.bas",
+    "name": "F Distribution",
+    "description": "Upper probability integrals for F distribution",
+    "category": "Probability Distributions"
+  },
+  {
+    "file": "LIB6310.bas",
+    "name": "Binomial Distribution",
+    "description": "Upper cumulative frequency for binomial distribution",
+    "category": "Probability Distributions"
+  },
+  {
+    "file": "LIB6320.bas",
+    "name": "Poisson Distribution",
+    "description": "Upper cumulative frequency for Poisson distribution",
+    "category": "Probability Distributions"
+  },
+  {
+    "file": "LIB6330.bas",
+    "name": "Hypergeometric Distribution",
+    "description": "Upper cumulative frequency for hypergeometric distribution",
+    "category": "Probability Distributions"
+  },
+  {
+    "file": "LIB6410.bas",
+    "name": "Percentage Point: Normal",
+    "description": "Percentage points for normal distribution",
+    "category": "Percentage Points"
+  },
+  {
+    "file": "LIB6420.bas",
+    "name": "Percentage Point: \u03c7\u00b2",
+    "description": "Percentage points for chi-squared distribution",
+    "category": "Percentage Points"
+  },
+  {
+    "file": "LIB6430.bas",
+    "name": "Percentage Point: t",
+    "description": "Percentage points for Student's t distribution",
+    "category": "Percentage Points"
+  },
+  {
+    "file": "LIB6440.bas",
+    "name": "Percentage Point: F",
+    "description": "Percentage points for F distribution",
+    "category": "Percentage Points"
+  },
+  {
+    "file": "LIB6450.bas",
+    "name": "Normal Random Numbers",
+    "description": "Generate normally distributed random numbers",
+    "category": "Percentage Points"
+  },
+  {
+    "file": "LIB6460.bas",
+    "name": "Exponential Random Numbers",
+    "description": "Generate exponentially distributed random numbers",
+    "category": "Percentage Points"
+  },
+  {
+    "file": "LIB6500.bas",
+    "name": "Single Variable Statistic",
+    "description": "Descriptive statistics for a single variable",
+    "category": "Statistics"
+  },
+  {
+    "file": "LIB6510.bas",
+    "name": "Linear Regression (y=a+bx)",
+    "description": "Linear regression analysis",
+    "category": "Statistics"
+  },
+  {
+    "file": "LIB6520.bas",
+    "name": "Logarithmic Regression (y=a+b\u00b7ln x)",
+    "description": "Logarithmic regression analysis",
+    "category": "Statistics"
+  },
+  {
+    "file": "LIB6530.bas",
+    "name": "Exponential Regression (y=ab\u02e3)",
+    "description": "Exponential regression analysis",
+    "category": "Statistics"
+  },
+  {
+    "file": "LIB6540.bas",
+    "name": "Power Regression (y=ax\u1d47)",
+    "description": "Power regression analysis",
+    "category": "Statistics"
+  },
+  {
+    "file": "LIB6610.bas",
+    "name": "Mean Interval: Known Variance",
+    "description": "Mean interval estimation for known variance",
+    "category": "Estimation"
+  },
+  {
+    "file": "LIB6620.bas",
+    "name": "Mean Interval: Unknown Variance",
+    "description": "Mean interval estimation for unknown variance",
+    "category": "Estimation"
+  },
+  {
+    "file": "LIB6630.bas",
+    "name": "Variance Interval Estimation",
+    "description": "Confidence interval for population variance",
+    "category": "Estimation"
+  },
+  {
+    "file": "LIB6640.bas",
+    "name": "Std Deviation Interval Estimation",
+    "description": "Confidence interval for population standard deviation",
+    "category": "Estimation"
+  },
+  {
+    "file": "LIB6650.bas",
+    "name": "Variance Ratio Interval Estimation",
+    "description": "Confidence interval for ratio of two variances",
+    "category": "Estimation"
+  },
+  {
+    "file": "LIB6660.bas",
+    "name": "Mean Difference Interval Estimation",
+    "description": "Confidence interval for difference of two means",
+    "category": "Estimation"
+  },
+  {
+    "file": "LIB6670.bas",
+    "name": "Ratio Interval Estimation",
+    "description": "Confidence interval for population ratio",
+    "category": "Estimation"
+  },
+  {
+    "file": "LIB6680.bas",
+    "name": "Ratio Difference Interval Estimation",
+    "description": "Confidence interval for difference of two ratios",
+    "category": "Estimation"
+  },
+  {
+    "file": "LIB6710.bas",
+    "name": "Mean Test: Known Var (two-sided)",
+    "description": "Population mean test (two-sided) for known variance",
+    "category": "Hypothesis Tests"
+  },
+  {
+    "file": "LIB6711.bas",
+    "name": "Mean Test: Known Var (right)",
+    "description": "Population mean test (right-sided) for known variance",
+    "category": "Hypothesis Tests"
+  },
+  {
+    "file": "LIB6712.bas",
+    "name": "Mean Test: Known Var (left)",
+    "description": "Population mean test (left-sided) for known variance",
+    "category": "Hypothesis Tests"
+  },
+  {
+    "file": "LIB6720.bas",
+    "name": "Mean Test: Unknown Var (two-sided)",
+    "description": "Population mean test (two-sided) for unknown variance",
+    "category": "Hypothesis Tests"
+  },
+  {
+    "file": "LIB6721.bas",
+    "name": "Mean Test: Unknown Var (right)",
+    "description": "Population mean test (right-sided) for unknown variance",
+    "category": "Hypothesis Tests"
+  },
+  {
+    "file": "LIB6722.bas",
+    "name": "Mean Test: Unknown Var (left)",
+    "description": "Population mean test (left-sided) for unknown variance",
+    "category": "Hypothesis Tests"
+  },
+  {
+    "file": "LIB6730.bas",
+    "name": "Variance Test (two-sided)",
+    "description": "Population variance test (two-sided)",
+    "category": "Hypothesis Tests"
+  },
+  {
+    "file": "LIB6731.bas",
+    "name": "Variance Test (right)",
+    "description": "Population variance test (right-sided)",
+    "category": "Hypothesis Tests"
+  },
+  {
+    "file": "LIB6732.bas",
+    "name": "Variance Test (left)",
+    "description": "Population variance test (left-sided)",
+    "category": "Hypothesis Tests"
+  },
+  {
+    "file": "LIB6740.bas",
+    "name": "Variance Ratio Test (two-sided)",
+    "description": "F-test for ratio of two variances (two-sided)",
+    "category": "Hypothesis Tests"
+  },
+  {
+    "file": "LIB6741.bas",
+    "name": "Variance Ratio Test (right)",
+    "description": "F-test for ratio of two variances (right-sided)",
+    "category": "Hypothesis Tests"
+  },
+  {
+    "file": "LIB6742.bas",
+    "name": "Variance Ratio Test (left)",
+    "description": "F-test for ratio of two variances (left-sided)",
+    "category": "Hypothesis Tests"
+  },
+  {
+    "file": "LIB6750.bas",
+    "name": "Mean Difference Test (two-sided)",
+    "description": "Test for difference of two population means (two-sided)",
+    "category": "Hypothesis Tests"
+  },
+  {
+    "file": "LIB6751.bas",
+    "name": "Mean Difference Test (right)",
+    "description": "Test for difference of two population means (right-sided)",
+    "category": "Hypothesis Tests"
+  },
+  {
+    "file": "LIB6752.bas",
+    "name": "Mean Difference Test (left)",
+    "description": "Test for difference of two population means (left-sided)",
+    "category": "Hypothesis Tests"
+  },
+  {
+    "file": "LIB6760.bas",
+    "name": "Ratio Test (two-sided)",
+    "description": "Population ratio test (two-sided)",
+    "category": "Hypothesis Tests"
+  },
+  {
+    "file": "LIB6761.bas",
+    "name": "Ratio Test (right)",
+    "description": "Population ratio test (right-sided)",
+    "category": "Hypothesis Tests"
+  },
+  {
+    "file": "LIB6762.bas",
+    "name": "Ratio Test (left)",
+    "description": "Population ratio test (left-sided)",
+    "category": "Hypothesis Tests"
+  },
+  {
+    "file": "LIB6770.bas",
+    "name": "Ratio Difference Test (two-sided)",
+    "description": "Test for difference of two ratios (two-sided)",
+    "category": "Hypothesis Tests"
+  },
+  {
+    "file": "LIB6771.bas",
+    "name": "Ratio Difference Test (right)",
+    "description": "Test for difference of two ratios (right-sided)",
+    "category": "Hypothesis Tests"
+  },
+  {
+    "file": "LIB6772.bas",
+    "name": "Ratio Difference Test (left)",
+    "description": "Test for difference of two ratios (left-sided)",
+    "category": "Hypothesis Tests"
+  },
+  {
+    "file": "LIBM6510.bas",
+    "name": "Statistics Subprogram (6510)",
+    "description": "Shared subprogram for regression analysis",
+    "category": "Subprograms"
+  },
+  {
+    "file": "LIBM6710.bas",
+    "name": "Statistics Subprogram (6710)",
+    "description": "Shared subprogram for mean tests (known variance)",
+    "category": "Subprograms"
+  },
+  {
+    "file": "LIBM6720.bas",
+    "name": "Statistics Subprogram (6720)",
+    "description": "Shared subprogram for mean tests (unknown variance)",
+    "category": "Subprograms"
+  },
+  {
+    "file": "LIBM6730.bas",
+    "name": "Statistics Subprogram (6730)",
+    "description": "Shared subprogram for variance tests",
+    "category": "Subprograms"
+  },
+  {
+    "file": "LIBM6740.bas",
+    "name": "Statistics Subprogram (6740)",
+    "description": "Shared subprogram for variance ratio tests",
+    "category": "Subprograms"
+  },
+  {
+    "file": "LIBM6750.bas",
+    "name": "Statistics Subprogram (6750)",
+    "description": "Shared subprogram for mean difference tests",
+    "category": "Subprograms"
+  },
+  {
+    "file": "LIBM6760.bas",
+    "name": "Statistics Subprogram (6760)",
+    "description": "Shared subprogram for ratio tests",
+    "category": "Subprograms"
+  },
+  {
+    "file": "LIBM6770.bas",
+    "name": "Statistics Subprogram (6770)",
+    "description": "Shared subprogram for ratio difference tests",
+    "category": "Subprograms"
+  },
+  {
+    "file": "LIBS6020.bas",
+    "name": "Statistics Subprogram (S6020)",
+    "description": "Shared subprogram for statistical calculations",
+    "category": "Subprograms"
+  },
+  {
+    "file": "LIBS6030.bas",
+    "name": "Statistics Subprogram (S6030)",
+    "description": "Shared subprogram for statistical calculations",
+    "category": "Subprograms"
+  },
+  {
+    "file": "LIBS6210.bas",
+    "name": "Statistics Subprogram (S6210)",
+    "description": "Shared subprogram for normal distribution",
+    "category": "Subprograms"
+  },
+  {
+    "file": "LIBS6220.bas",
+    "name": "Statistics Subprogram (S6220)",
+    "description": "Shared subprogram for chi-squared distribution",
+    "category": "Subprograms"
+  },
+  {
+    "file": "LIBS6230.bas",
+    "name": "Statistics Subprogram (S6230)",
+    "description": "Shared subprogram for t distribution",
+    "category": "Subprograms"
+  },
+  {
+    "file": "LIBS6240.bas",
+    "name": "Statistics Subprogram (S6240)",
+    "description": "Shared subprogram for F distribution",
+    "category": "Subprograms"
+  },
+  {
+    "file": "LIBS6310.bas",
+    "name": "Statistics Subprogram (S6310)",
+    "description": "Shared subprogram for binomial distribution",
+    "category": "Subprograms"
+  },
+  {
+    "file": "LIBS6320.bas",
+    "name": "Statistics Subprogram (S6320)",
+    "description": "Shared subprogram for Poisson distribution",
+    "category": "Subprograms"
+  },
+  {
+    "file": "LIBS6330.bas",
+    "name": "Statistics Subprogram (S6330)",
+    "description": "Shared subprogram for hypergeometric distribution",
+    "category": "Subprograms"
+  },
+  {
+    "file": "LIBS6410.bas",
+    "name": "Statistics Subprogram (S6410)",
+    "description": "Shared subprogram for normal percentage points",
+    "category": "Subprograms"
+  },
+  {
+    "file": "LIBS6420.bas",
+    "name": "Statistics Subprogram (S6420)",
+    "description": "Shared subprogram for chi-squared percentage points",
+    "category": "Subprograms"
+  },
+  {
+    "file": "LIBS6430.bas",
+    "name": "Statistics Subprogram (S6430)",
+    "description": "Shared subprogram for t percentage points",
+    "category": "Subprograms"
+  },
+  {
+    "file": "LIBS6440.bas",
+    "name": "Statistics Subprogram (S6440)",
+    "description": "Shared subprogram for F percentage points",
+    "category": "Subprograms"
+  }
+]

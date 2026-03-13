@@ -179,8 +179,10 @@ export function highlightBasic(text: string): string {
   ).join('');
 }
 
-// Inline styles for clipboard export (self-contained, no external CSS needed)
-const INLINE_STYLES: Record<string, string> = {
+// Inline style themes for clipboard export (self-contained, no external CSS needed)
+export type ExportTheme = 'dark' | 'light';
+
+const DARK_STYLES: Record<string, string> = {
   'keyword':     'color:#6cb6ff',
   'function':    'color:#d2a8ff',
   'operator-kw': 'color:#f0a030',
@@ -191,14 +193,26 @@ const INLINE_STYLES: Record<string, string> = {
   'operator':    'color:#aaa',
 };
 
+const LIGHT_STYLES: Record<string, string> = {
+  'keyword':     'color:#0550ae',
+  'function':    'color:#6639ba',
+  'operator-kw': 'color:#b35900',
+  'string':      'color:#116329',
+  'number':      'color:#953800',
+  'comment':     'color:#8b949e;font-style:italic',
+  'variable':    'color:#24292f',
+  'operator':    'color:#57606a',
+};
+
 /**
  * Highlight a BASIC line body using inline styles (for clipboard export).
  * Returns self-contained HTML that renders correctly without external CSS.
  */
-function highlightBasicInline(text: string): string {
+function highlightBasicInline(text: string, theme: ExportTheme = 'dark'): string {
+  const styles = theme === 'light' ? LIGHT_STYLES : DARK_STYLES;
   return tokenizeLine(text).map(t => {
-    if (t.type && INLINE_STYLES[t.type]) {
-      return `<span style="${INLINE_STYLES[t.type]}">${esc(t.text)}</span>`;
+    if (t.type && styles[t.type]) {
+      return `<span style="${styles[t.type]}">${esc(t.text)}</span>`;
     }
     return esc(t.text);
   }).join('');
@@ -212,12 +226,22 @@ function highlightBasicInline(text: string): string {
 export function exportListingHtml(
   lines: { num: number; text: string }[],
   slotLabel?: string,
+  theme: ExportTheme = 'dark',
 ): string {
-  const header = slotLabel ? `<div style="color:#9ecbff;font-weight:bold;margin-bottom:4px">${esc(slotLabel)}</div>\n` : '';
+  const isDark = theme === 'dark';
+  const headerColor = isDark ? '#9ecbff' : '#0550ae';
+  const numColor = isDark ? '#777' : '#8b949e';
+  const preStyle = isDark
+    ? 'background:#0a0a0a;color:#ccc'
+    : 'background:transparent;color:#24292f';
+
+  const header = slotLabel
+    ? `<div style="color:${headerColor};font-weight:bold;margin-bottom:4px">${esc(slotLabel)}</div>\n`
+    : '';
   const lineHtml = lines.map(l => {
-    const numStr = String(l.num).padStart(5, '\u00A0'); // non-breaking spaces for alignment
-    return `<span style="color:#777">${esc(numStr)}</span> ${highlightBasicInline(l.text)}`;
+    const numStr = String(l.num).padStart(5, '\u00A0');
+    return `<span style="color:${numColor}">${esc(numStr)}</span> ${highlightBasicInline(l.text, theme)}`;
   }).join('\n');
 
-  return `${header}<pre style="font-family:'Consolas','Menlo','Monaco','Courier New',monospace;font-size:13px;background:#0a0a0a;color:#ccc;padding:8px 12px;border-radius:4px;line-height:1.5">${lineHtml}</pre>`;
+  return `${header}<pre style="font-family:'Consolas','Menlo','Monaco','Courier New',monospace;font-size:13px;${preStyle};padding:8px 12px;border-radius:4px;line-height:1.5">${lineHtml}</pre>`;
 }

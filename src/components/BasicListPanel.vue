@@ -1,12 +1,13 @@
 <!-- src/components/BasicListPanel.vue -->
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { readBasicPrograms, debugFileTable, type BasicProgram } from '../emulator/detokenize.js';
 import { upsertLine, deleteLine, writeProgram, isBasicRunning } from '../emulator/ram-edit.js';
 import { tokenizeProgram, parseListingText } from '../emulator/tokenize.js';
 import BasicEditor from '../editor/BasicEditor.vue';
 import CharPalette from '../editor/CharPalette.vue';
-import { highlightBasic, exportListingHtml } from '../editor/basic-highlight.js';
+import { highlightBasic, exportListingHtml, type ExportTheme } from '../editor/basic-highlight.js';
+
 
 const props = defineProps<{
   defchr?: string;
@@ -28,6 +29,7 @@ const activeProgram = computed(() => programs.value[activeTab.value] ?? null);
 const activeSlot = computed(() => activeProgram.value?.slot ?? 0);
 
 const showCharPalette = ref(false);
+const showExportMenu = ref(false);
 const addLineEditor = ref<InstanceType<typeof BasicEditor> | null>(null);
 const importEditor = ref<InstanceType<typeof BasicEditor> | null>(null);
 const editLineEditor = ref<InstanceType<typeof BasicEditor> | null>(null);
@@ -191,11 +193,22 @@ function submitNewLine(code: string): void {
   }
 }
 
-function doExport(): void {
+function closeExportMenu(e: MouseEvent): void {
+  if (!(e.target as HTMLElement)?.closest('.export-wrap')) {
+    showExportMenu.value = false;
+  }
+}
+watch(showExportMenu, (open) => {
+  if (open) setTimeout(() => document.addEventListener('click', closeExportMenu), 0);
+  else document.removeEventListener('click', closeExportMenu);
+});
+
+function doExport(theme: ExportTheme): void {
+  showExportMenu.value = false;
   if (!activeProgram.value) return;
   const prog = activeProgram.value;
   const plain = prog.lines.map(l => `${l.num} ${l.text}`).join('\n');
-  const html = exportListingHtml(prog.lines, `P${prog.slot}`);
+  const html = exportListingHtml(prog.lines, `P${prog.slot}`, theme);
 
   const clipItem = new ClipboardItem({
     'text/plain': new Blob([plain], { type: 'text/plain' }),
@@ -267,7 +280,13 @@ onUnmounted(() => {
       <button class="btn" :class="{ active: editMode }" @click="editMode ? exitEditMode() : enterEditMode()">
         EDIT
       </button>
-      <button v-if="activeProgram" class="btn" @click="doExport">EXPORT</button>
+      <div v-if="activeProgram" class="export-wrap">
+        <button class="btn" @click="showExportMenu = !showExportMenu">EXPORT</button>
+        <div v-if="showExportMenu" class="export-menu">
+          <button class="export-opt" @click="doExport('dark')">Dark</button>
+          <button class="export-opt" @click="doExport('light')">Light</button>
+        </div>
+      </div>
       <template v-if="editMode">
         <button class="btn" :class="{ active: showImport }" @click="toggleImport">IMPORT</button>
         <button class="btn chr-btn" :class="{ active: showCharPalette }" @click="showCharPalette = !showCharPalette"
@@ -407,6 +426,37 @@ onUnmounted(() => {
 .btn.active { color: #8bc34a; border-color: #3a5a20; background: #1a2a10; }
 .btn.chr-btn { font-family: serif; font-size: 0.8rem; }
 .btn.chr-btn.active { color: #d2a8ff; border-color: #4a2a6a; background: #1a102a; }
+
+.export-wrap {
+  position: relative;
+  display: inline-block;
+}
+.export-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 3px;
+  z-index: 20;
+  overflow: hidden;
+}
+.export-opt {
+  padding: 3px 12px;
+  font-family: monospace;
+  font-size: 0.7rem;
+  background: transparent;
+  color: #ccc;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+.export-opt:hover { background: #333; color: #fff; }
+.export-opt + .export-opt { border-top: 1px solid #333; }
 
 .status-msg {
   color: #8bc34a;
