@@ -571,7 +571,7 @@ git commit -m "Integrate BASIC listing panel into emulator UI"
 
 ### Step 1: Test with a known program
 
-Load one of the existing .FX programs (e.g., FLIPFLOP.FX via LIB) and compare the panel listing against the .FX source file. Check:
+Load one of the existing .BAS programs (e.g., FLIPFLOP.BAS via LIB) and compare the panel listing against the .BAS source file. Check:
 - Line numbers are correct
 - Keywords are properly expanded
 - String literals are preserved

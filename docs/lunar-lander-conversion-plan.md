@@ -42,7 +42,7 @@ The Casio has **32 columns x 4 rows**. Everything must be redesigned.
 
 ### 3. Real-Time Tick Timing
 
-The original uses `TIME` (10ms resolution) and `INKEY$(delay)` with a timeout to create a ~1 second tick. Casio BASIC has `INKEY$` (confirmed working in LIFE.FX) but no timer variable.
+The original uses `TIME` (10ms resolution) and `INKEY$(delay)` with a timeout to create a ~1 second tick. Casio BASIC has `INKEY$` (confirmed working in LIFE.BAS) but no timer variable.
 
 **Approach**: Use a `FOR` delay loop calibrated to approximate 1-second ticks. The loop reads `INKEY$` on each iteration so keypresses aren't missed. With the TURBO button providing ~50x speed, the delay constant may need tuning. A variable `TK` controls tick length, letting the player adjust speed.
 

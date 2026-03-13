@@ -1,50 +1,50 @@
-5 GOTO10010
-10 DATAsin’Œ+cos’Œ,1,10,20
-20 DATA1+tan’Œ,sec’Œ,10,30
-30 DATA1+cot’Œ,cosec’Œ,20,40
-40 DATAsin(ˆù‰),sinˆ¥cos‰ùcosˆ¥sin‰,30,50
-50 DATAcos(ˆù‰),cosˆ¥cos‰úsinˆ¥sin‰,40,60
-60 DATAtan(ˆù‰),(tanˆùtan‰)/(1útanˆ¥tan‰),50,70
-70 DATAcot(ˆù‰),(cotˆ¥cot‰ú1)/(cot‰ùcotˆ),60,80
-80 DATAsin2Œ,2sinŒ¥cosŒ,70,90
-90 DATAcos2Œ,cos’Œ-sin’Œ,80,100
-100 DATAcos2Œ,1-2sin’Œ,90,110
-110 DATAcos2Œ,2cos’Œ-1,100,120
-120 DATAtan2Œ,2tanŒ/(1-tan’Œ),110,130
-130 DATAsin(Œ/2),ù‚((1-cosŒ)/2),120,140
-140 DATAcos(Œ/2),ù‚((1+cosŒ)/2),130,150
-150 DATAtan(Œ/2),ù‚((1-cosŒ)/(1+cosŒ)),140,160
-160 DATAtan(Œ/2),(1-cosŒ)/sinŒ,150,170
-170 DATAtan(Œ/2),sinŒ/(1+cosŒ),160,180
-180 DATAtan(Œ/2),cosecŒ-cotŒ,170,190
-190 DATAcot(Œ/2),ù‚((1+cosŒ)/(1-cosŒ)),180,200
-200 DATAcot(Œ/2),sinŒ/(1-cosŒ),190,210
-210 DATAcot(Œ/2),(1+cosŒ)/sinŒ,200,220
-220 DATAcot(Œ/2),cosecŒ+cotŒ,210,230
-230 DATAsin3Œ,3sinŒ-4sin“Œ,220,240
-240 DATAcos3Œ,4cos“Œ-3cosŒ,230,250
-250 DATAtan3Œ,(3tanŒ-tan“Œ)/(1-3tan’Œ),240,260
-260 DATA2sinˆ¥cos‰,sin(ˆ+‰)+sin(ˆ-‰),250,270
-270 DATA2cosˆ¥sin‰,sin(ˆ+‰)-sin(ˆ-‰),260,280
-280 DATA2cosˆ¥cos‰,cos(ˆ+‰)+cos(ˆ-‰),270,290
-290 DATA2sinˆ¥sin‰,-(cos(ˆ+‰)-cos(ˆ-‰)),280,300
-300 DATAsinˆ+sin‰,2sin((ˆ+‰)/2)¥cos((ˆ-‰)/2),290,310
-310 DATAsinˆ-sin‰,2cos((ˆ+‰)/2)¥sin((ˆ-‰)/2),300,320
-320 DATAcosˆ+cos‰,2cos((ˆ+‰)/2)¥cos((ˆ-‰)/2),310,330
-330 DATAcosˆ-cos‰,-2sin((ˆ+‰)/2)¥sin((ˆ-‰)/2),320,340
-340 DATAtan(45ßù(Œ/2)),secŒùtanŒ,330,350
-350 DATAtan(45ßù(Œ/2)),(1ùsinŒ)/cosŒ,340,360
-360 DATAtan(45ßù(Œ/2)),cot(45ßú(Œ/2)),350,370
-370 DATAtan(45ß+Œ),(1+tanŒ)/(1-tanŒ),360,380
-380 DATAcot(45ß-Œ),(1+cotŒ)/(1-cotŒ),370,380
-10010 MODE8:DIM:x=10:y=380:r=x
+5 GOTO 10010
+10 DATA sinï¿½ï¿½+cosï¿½ï¿½,1,10,20
+20 DATA 1+tanï¿½ï¿½,secï¿½ï¿½,10,30
+30 DATA 1+cotï¿½ï¿½,cosecï¿½ï¿½,20,40
+40 DATA sin(ï¿½ï¿½ï¿½),sinï¿½ï¿½cosï¿½ï¿½cosï¿½ï¿½sinï¿½,30,50
+50 DATA cos(ï¿½ï¿½ï¿½),cosï¿½ï¿½cosï¿½ï¿½sinï¿½ï¿½sinï¿½,40,60
+60 DATA tan(ï¿½ï¿½ï¿½),(tanï¿½ï¿½tanï¿½)/(1ï¿½tanï¿½ï¿½tanï¿½),50,70
+70 DATA cot(ï¿½ï¿½ï¿½),(cotï¿½ï¿½cotï¿½ï¿½1)/(cotï¿½ï¿½cotï¿½),60,80
+80 DATA sin2ï¿½,2sinï¿½ï¿½cosï¿½,70,90
+90 DATA cos2ï¿½,cosï¿½ï¿½-sinï¿½ï¿½,80,100
+100 DATA cos2ï¿½,1-2sinï¿½ï¿½,90,110
+110 DATA cos2ï¿½,2cosï¿½ï¿½-1,100,120
+120 DATA tan2ï¿½,2tanï¿½/(1-tanï¿½ï¿½),110,130
+130 DATA sin(ï¿½/2),ï¿½ï¿½((1-cosï¿½)/2),120,140
+140 DATA cos(ï¿½/2),ï¿½ï¿½((1+cosï¿½)/2),130,150
+150 DATA tan(ï¿½/2),ï¿½ï¿½((1-cosï¿½)/(1+cosï¿½)),140,160
+160 DATA tan(ï¿½/2),(1-cosï¿½)/sinï¿½,150,170
+170 DATA tan(ï¿½/2),sinï¿½/(1+cosï¿½),160,180
+180 DATA tan(ï¿½/2),cosecï¿½-cotï¿½,170,190
+190 DATA cot(ï¿½/2),ï¿½ï¿½((1+cosï¿½)/(1-cosï¿½)),180,200
+200 DATA cot(ï¿½/2),sinï¿½/(1-cosï¿½),190,210
+210 DATA cot(ï¿½/2),(1+cosï¿½)/sinï¿½,200,220
+220 DATA cot(ï¿½/2),cosecï¿½+cotï¿½,210,230
+230 DATA sin3ï¿½,3sinï¿½-4sinï¿½ï¿½,220,240
+240 DATA cos3ï¿½,4cosï¿½ï¿½-3cosï¿½,230,250
+250 DATA tan3ï¿½,(3tanï¿½-tanï¿½ï¿½)/(1-3tanï¿½ï¿½),240,260
+260 DATA 2sinï¿½ï¿½cosï¿½,sin(ï¿½+ï¿½)+sin(ï¿½-ï¿½),250,270
+270 DATA 2cosï¿½ï¿½sinï¿½,sin(ï¿½+ï¿½)-sin(ï¿½-ï¿½),260,280
+280 DATA 2cosï¿½ï¿½cosï¿½,cos(ï¿½+ï¿½)+cos(ï¿½-ï¿½),270,290
+290 DATA 2sinï¿½ï¿½sinï¿½,-(cos(ï¿½+ï¿½)-cos(ï¿½-ï¿½)),280,300
+300 DATA sinï¿½+sinï¿½,2sin((ï¿½+ï¿½)/2)ï¿½cos((ï¿½-ï¿½)/2),290,310
+310 DATA sinï¿½-sinï¿½,2cos((ï¿½+ï¿½)/2)ï¿½sin((ï¿½-ï¿½)/2),300,320
+320 DATA cosï¿½+cosï¿½,2cos((ï¿½+ï¿½)/2)ï¿½cos((ï¿½-ï¿½)/2),310,330
+330 DATA cosï¿½-cosï¿½,-2sin((ï¿½+ï¿½)/2)ï¿½sin((ï¿½-ï¿½)/2),320,340
+340 DATA tan(45ï¿½ï¿½(ï¿½/2)),secï¿½ï¿½tanï¿½,330,350
+350 DATA tan(45ï¿½ï¿½(ï¿½/2)),(1ï¿½sinï¿½)/cosï¿½,340,360
+360 DATA tan(45ï¿½ï¿½(ï¿½/2)),cot(45ï¿½ï¿½(ï¿½/2)),350,370
+370 DATA tan(45ï¿½+ï¿½),(1+tanï¿½)/(1-tanï¿½),360,380
+380 DATA cot(45ï¿½-ï¿½),(1+cotï¿½)/(1-cotï¿½),370,380
+10010 MODE 8:DIM:x=10:y=380:r=x
 10110 RESTORE(r)
-10120 READm$,n$,b,c
+10120 READ m$,n$,b,c
 10130 l$="["+MID$(STR$(r/10),2)+"]":l=32-LEN(l$)
-10140 CLS:PRINTm$;TAB(l);l$;"=";n$;
+10140 CLS:PRINT m$;TAB(l);l$;"=";n$;
 10150 z=ASC(INPUT$(1,@))
-10170 IFz=29 ANDr<>x THENr=x:GOTO10110
-10180 IFz=28 ANDr<>y THENr=y:GOTO10110
-10190 IFz=30 ANDr<>b THENr=b:GOTO10110
-10200 IF(z=31 ORz=13) ANDr<>c THENr=c:GOTO10110
-10280 GOTO10150
+10170 IF z=29 AND r<>x THEN r=x:GOTO 10110
+10180 IF z=28 AND r<>y THEN r=y:GOTO 10110
+10190 IF z=30 AND r<>b THEN r=b:GOTO 10110
+10200 IF(z=31 OR z=13) AND r<>c THEN r=c:GOTO 10110
+10280 GOTO 10150

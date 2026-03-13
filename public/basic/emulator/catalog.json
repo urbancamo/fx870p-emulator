@@ -1,76 +1,76 @@
 [
   {
-    "file": "LIFE.FX",
+    "file": "LIFE.BAS",
     "name": "Conway's Game of Life",
     "description": "Cellular automaton on a 31x4 toroidal grid with four preset patterns"
   },
   {
-    "file": "HANGMAN.FX",
+    "file": "HANGMAN.BAS",
     "name": "Hangman",
     "description": "Word-guessing game with 100 ROT13-encoded hidden words and 7 lives"
   },
   {
-    "file": "BLKJACK.FX",
+    "file": "BLKJACK.BAS",
     "name": "Blackjack",
     "description": "Classic card game — hit or stand to beat the dealer without going over 21"
   },
   {
-    "file": "YAHTZEE.FX",
+    "file": "YAHTZEE.BAS",
     "name": "Yahtzee",
     "description": "Classic dice game — roll, keep, and score across 13 categories for the highest total"
   },
   {
-    "file": "WUMPUS.FX",
+    "file": "WUMPUS.BAS",
     "name": "Hunt the Wumpus",
     "description": "Classic cave adventure — navigate 20 caves, avoid pits and bats, slay the Wumpus"
   },
   {
-    "file": "FLIPFLOP.FX",
+    "file": "FLIPFLOP.BAS",
     "name": "Flip Flop",
     "description": "Puzzle from '101 BASIC Computer Games' — flip all X to O, but some positions are linked"
   },
   {
-    "file": "POKER.FX",
+    "file": "POKER.BAS",
     "name": "Draw Poker",
     "description": "Five-card draw poker from '101 BASIC Computer Games' — bet, draw, and bluff against the AI"
   },
   {
-    "file": "BSEARCH.FX",
+    "file": "BSEARCH.BAS",
     "name": "Binary Search",
     "description": "Sort and search demo — bubble sorts 10 numbers then finds values with binary search"
   },
   {
-    "file": "G2048.FX",
+    "file": "G2048.BAS",
     "name": "2048",
     "description": "Slide and merge tiles on a 4x4 grid to reach 2048 — classic puzzle game"
   },
   {
-    "file": "STREK.FX",
+    "file": "STREK.BAS",
     "name": "Super Star Trek",
     "description": "Command the USS Enterprise — destroy Klingons, navigate an 8x8 galaxy, manage energy and shields"
   },
   {
-    "file": "LANDER.FX",
+    "file": "LANDER.BAS",
     "name": "Lunar Lander",
     "description": "Real-time lunar landing sim — tilt, burn, and land the LEM on the moon's surface"
   },
   {
-    "file": "AIRMAN.FX",
+    "file": "AIRMAN.BAS",
     "name": "Airline Manager",
     "description": "Run a Chicago-based airline — buy planes, trade cargo, fly courier contracts, and survive inflight mishaps"
   },
   {
-    "file": "FLE.FX",
+    "file": "FLE.BAS",
     "name": "FLE Logger",
     "description": "Fast Log Entry logger for amateur radio — record QSOs to memo, view log, download via COM0"
   },
   {
-    "file": "CARDTRK.FX",
+    "file": "CARDTRK.BAS",
     "name": "3-Pile Card Trick",
     "description": "Classic card trick — think of a card, pick its column three times, and the computer reveals it"
   },
   {
-    "file": "REMCHR.FX",
+    "file": "REMCHR.BAS",
     "name": "Character Set Demo",
     "description": "Displays the full Casio ASCII character set (0x20-0xFF) — math, Greek, katakana, card suits, CJK"
   }

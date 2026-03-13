@@ -445,7 +445,7 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
     <input
       ref="fileInput"
       type="file"
-      accept=".bas,.fx,.txt,.prg"
+      accept=".bas,.txt,.prg"
       style="display: none"
       @change="onFileSelected"
     />

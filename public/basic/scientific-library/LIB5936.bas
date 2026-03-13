@@ -1,32 +1,32 @@
-5 GOTO10010
-10 DATACoulomb's law (electric f.),"F=kû¥QüQı/r’ , kû=9*10™[N¥m’/C’]",10,20,
-20 DATAElectric field,"E=V/d , F=QE , W=QV",10,30,
-30 DATACapacitance,"Q=CV , C=‹û¥S/d",20,40,
-40 DATACapacitance,"C=Cü+Cı , 1/C=1/Cü+1/Cı",30,50,
-50 DATADielectric constant,"D=‹ûE , C=‹Cû",40,60,
-60 DATAElectrostatic energy,U=1/2¥QV=1/2¥CV’,50,70,
-70 DATAElectrons in electric field,"a=QE/m , 1/2¥mv’=eV",60,80,
-80 DATACoulomb's law (magnetic f.),"F=kû¥mümı/r’ , kû=10—/(4ç)’",70,90,
-90 DATAMagnetic field,"H=I/2çr , H=I/2r , H=nI",80,100,
-100 DATAMagnetic field,F=ûIHl=IBl,90,110,
-110 DATAMagnetic flux density,B=m/4çr’=ûH,100,120,
-120 DATALorentz force,"F=QvB , r=mv/QB",110,130,
-130 DATAElectrons in magnetic field,"1/2¥mv’=Q’B’r’/2m , ş=v/r=QB/m",120,140,
-140 DATAFaraday's law of induction,V=-n¥î/ît,130,150,
-150 DATAElectromagnetic induction,"V=El=vBl , I=vBl/R",140,160,
-160 DATAMutual induction,Vı=-M¥îIü/ît,150,170,
-170 DATASelf-induction,Vƒ=-L¥îI/ît,160,170,
-10010 MODE8:DIM:x=10:y=170:r=x
-10020 DEFCHR$(254)="3E020C223E"
-10040 DEFCHR$(253)="2E2A3A0000"
-10050 DEFCHR$(252)="123E020000"
+5 GOTO 10010
+10 DATA Coulomb's law (electric f.),"F=kï¿½ï¿½Qï¿½Qï¿½/rï¿½ , kï¿½=9*10ï¿½[Nï¿½mï¿½/Cï¿½]",10,20,
+20 DATA Electric field,"E=V/d , F=QE , W=QV",10,30,
+30 DATA Capacitance,"Q=CV , C=ï¿½ï¿½ï¿½S/d",20,40,
+40 DATA Capacitance,"C=Cï¿½+Cï¿½ , 1/C=1/Cï¿½+1/Cï¿½",30,50,
+50 DATA Dielectric constant,"D=ï¿½ï¿½E , C=ï¿½Cï¿½",40,60,
+60 DATA Electrostatic energy,U=1/2ï¿½QV=1/2ï¿½CVï¿½,50,70,
+70 DATA Electrons in electric field,"a=QE/m , 1/2ï¿½mvï¿½=eV",60,80,
+80 DATA Coulomb's law (magnetic f.),"F=kï¿½ï¿½mï¿½mï¿½/rï¿½ , kï¿½=10ï¿½/(4ï¿½)ï¿½",70,90,
+90 DATA Magnetic field,"H=I/2ï¿½r , H=I/2r , H=nI",80,100,
+100 DATA Magnetic field,F=ï¿½ï¿½IHl=IBl,90,110,
+110 DATA Magnetic flux density,B=m/4ï¿½rï¿½=ï¿½ï¿½H,100,120,
+120 DATA Lorentz force,"F=QvB , r=mv/QB",110,130,
+130 DATA Electrons in magnetic field,"1/2ï¿½mvï¿½=Qï¿½Bï¿½rï¿½/2m , ï¿½=v/r=QB/m",120,140,
+140 DATA Faraday's law of induction,V=-nï¿½ï¿½/ï¿½t,130,150,
+150 DATA Electromagnetic induction,"V=El=vBl , I=vBl/R",140,160,
+160 DATA Mutual induction,Vï¿½=-Mï¿½ï¿½Iï¿½/ï¿½t,150,170,
+170 DATA Self-induction,Vï¿½=-Lï¿½ï¿½I/ï¿½t,160,170,
+10010 MODE 8:DIM:x=10:y=170:r=x
+10020 DEF CHR$(254)="3E020C223E"
+10040 DEF CHR$(253)="2E2A3A0000"
+10050 DEF CHR$(252)="123E020000"
 10110 RESTORE(r)
-10120 CLS:READm$,n$,b,c,d
+10120 CLS:READ m$,n$,b,c,d
 10130 l$="["+MID$(STR$(r/10),2)+"]":l=32-LEN(l$)
-10140 PRINTm$;TAB(l);l$;n$;:LOCATE0,0:LOCATE1,1
+10140 PRINT m$;TAB(l);l$;n$;:LOCATE 0,0:LOCATE 1,1
 10150 z=ASC(INPUT$(1,@))
-10170 IFz=29 ANDr<>x THENr=x:GOTO10110
-10180 IFz=28 ANDr<>y THENr=y:GOTO10110
-10190 IFz=30 ANDr<>b THENr=b:GOTO10110
-10200 IF(z=31 ORz=13) ANDr<>c THENr=c:GOTO10110
-10280 GOTO10150
+10170 IF z=29 AND r<>x THEN r=x:GOTO 10110
+10180 IF z=28 AND r<>y THEN r=y:GOTO 10110
+10190 IF z=30 AND r<>b THEN r=b:GOTO 10110
+10200 IF(z=31 OR z=13) AND r<>c THEN r=c:GOTO 10110
+10280 GOTO 10150

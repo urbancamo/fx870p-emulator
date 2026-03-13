@@ -1,47 +1,47 @@
-5 GOTO10010
+5 GOTO 10010
 10 DATA,x+C,10,20
-20 DATAxœ,xœš‘/(n+1)+C           (n+1â0),10,30
-30 DATA1/x,logÿxÿ+C,20,40
-40 DATA1/(xùa),logÿxùaÿ+C,30,50
-50 DATAe,e+C,40,60
-60 DATAeœ,eœ/n+C,50,70
-70 DATAa,"a/loga+C            (a>0,aâ1)",60,80
-80 DATAaœ,"aœ/(n¥loga)+C       (a>0,aâ1)",70,90
-90 DATAlogx,x(logx-1)+C,80,100
-100 DATAxeœ,eœ/n’¥(nx-1)+C,90,110
-110 DATAsinx,-cosx+C,100,120
-120 DATAsinax,-1/a¥cosax+C,110,130
-130 DATAcosx,sinx+C,120,140
-140 DATAcosax,1/a¥sinax+C,130,150
-150 DATAtanx,-logÿcosxÿ+C,140,160
-160 DATAcotx,logÿsinxÿ+C,150,170
-170 DATAsin’x,x/2-sin2x/4+C,160,180
-180 DATAcos’x,x/2+sin2x/4+C,170,190
-190 DATAsec’ax,1/a¥tanax+C,180,200
-200 DATAcosec’ax,-1/a¥cotax+C,190,210
-210 DATA1/sinx,log(tan(x/2))+C,200,220
-220 DATA1/cosx,log(tan((ç/4)+(x/2)))+C,210,230
-230 DATAeœsinbx,eœ(n¥sinbx-b¥cosbx)/(n’+b’)+C,220,240
-240 DATAeœcosbx,eœ(n¥cosbx+b¥sinbx)/(n’+b’)+C,230,250
-250 DATAsinžx,xsinžx+‚(1-x’)+C,240,260
-260 DATAcosžx,xcosžx-‚(1-x’)+C,250,270
-270 DATAsinhx,coshx+C,260,280
-280 DATAcoshx,sinhx+C,270,290
-290 DATAtanhx,log(coshx)+C,280,300
-300 DATA1/‚(a’-x’),sinž(x/a)+C            (ÿxÿ<a),290,310
-310 DATA1/(a’+x’),1/a¥tanž(x/a)+C,300,320
-320 DATA1/‚(x’ùa’),log(x+‚(x’ùa’))+C,310,330
-330 DATA‚(a’-x’),1/2¥(x‚(a’-x’)+a’sinž(x/a))+C,320,340
-340 DATA1/(x’-a’),1/2a¥log((x-a)/(x+a))+C  (x>a),330,340
-10010 MODE8:DIM:x=10:y=340:r=x
-10020 DEFCHR$(255)="0000FF0000"
+20 DATA xï¿½,xï¿½ï¿½ï¿½/(n+1)+C           (n+1ï¿½0),10,30
+30 DATA 1/x,logï¿½xï¿½+C,20,40
+40 DATA 1/(xï¿½a),logï¿½xï¿½aï¿½+C,30,50
+50 DATA eï¿½,eï¿½+C,40,60
+60 DATA eï¿½ï¿½,eï¿½ï¿½/n+C,50,70
+70 DATA aï¿½,"aï¿½/loga+C            (a>0,aï¿½1)",60,80
+80 DATA aï¿½ï¿½,"aï¿½ï¿½/(nï¿½loga)+C       (a>0,aï¿½1)",70,90
+90 DATA logx,x(logx-1)+C,80,100
+100 DATA xeï¿½ï¿½,eï¿½ï¿½/nï¿½ï¿½(nx-1)+C,90,110
+110 DATA sinx,-cosx+C,100,120
+120 DATA sinax,-1/aï¿½cosax+C,110,130
+130 DATA cosx,sinx+C,120,140
+140 DATA cosax,1/aï¿½sinax+C,130,150
+150 DATA tanx,-logï¿½cosxï¿½+C,140,160
+160 DATA cotx,logï¿½sinxï¿½+C,150,170
+170 DATA sinï¿½x,x/2-sin2x/4+C,160,180
+180 DATA cosï¿½x,x/2+sin2x/4+C,170,190
+190 DATA secï¿½ax,1/aï¿½tanax+C,180,200
+200 DATA cosecï¿½ax,-1/aï¿½cotax+C,190,210
+210 DATA 1/sinx,log(tan(x/2))+C,200,220
+220 DATA 1/cosx,log(tan((ï¿½/4)+(x/2)))+C,210,230
+230 DATA eï¿½ï¿½sinbx,eï¿½ï¿½(nï¿½sinbx-bï¿½cosbx)/(nï¿½+bï¿½)+C,220,240
+240 DATA eï¿½ï¿½cosbx,eï¿½ï¿½(nï¿½cosbx+bï¿½sinbx)/(nï¿½+bï¿½)+C,230,250
+250 DATA sinï¿½x,xsinï¿½x+ï¿½(1-xï¿½)+C,240,260
+260 DATA cosï¿½x,xcosï¿½x-ï¿½(1-xï¿½)+C,250,270
+270 DATA sinhx,coshx+C,260,280
+280 DATA coshx,sinhx+C,270,290
+290 DATA tanhx,log(coshx)+C,280,300
+300 DATA 1/ï¿½(aï¿½-xï¿½),sinï¿½(x/a)+C            (ï¿½xï¿½<a),290,310
+310 DATA 1/(aï¿½+xï¿½),1/aï¿½tanï¿½(x/a)+C,300,320
+320 DATA 1/ï¿½(xï¿½ï¿½aï¿½),log(x+ï¿½(xï¿½ï¿½aï¿½))+C,310,330
+330 DATAï¿½(aï¿½-xï¿½),1/2ï¿½(xï¿½(aï¿½-xï¿½)+aï¿½sinï¿½(x/a))+C,320,340
+340 DATA 1/(xï¿½-aï¿½),1/2aï¿½log((x-a)/(x+a))+C  (x>a),330,340
+10010 MODE 8:DIM:x=10:y=340:r=x
+10020 DEF CHR$(255)="0000FF0000"
 10110 RESTORE(r)
-10120 READm$,n$,b,c:IFm$="" THENm$=CHR$(8)
+10120 READ m$,n$,b,c:IF m$="" THEN m$=CHR$(8)
 10130 l$="["+MID$(STR$(r/10),2)+"]":l=32-LEN(l$)
-10140 CLS:PRINTCHR$(129);" ";m$;" dx";TAB(l);l$;"=";n$;
+10140 CLS:PRINT CHR$(129);" ";m$;" dx";TAB(l);l$;"=";n$;
 10150 z=ASC(INPUT$(1,@))
-10170 IFz=29 ANDr<>x THENr=x:GOTO10110
-10180 IFz=28 ANDr<>y THENr=y:GOTO10110
-10190 IFz=30 ANDr<>b THENr=b:GOTO10110
-10200 IF(z=31ORz=13)ANDr<>c THENr=c:GOTO10110
-10280 GOTO10150
+10170 IF z=29 AND r<>x THEN r=x:GOTO 10110
+10180 IF z=28 AND r<>y THEN r=y:GOTO 10110
+10190 IF z=30 AND r<>b THEN r=b:GOTO 10110
+10200 IF(z=31 OR z=13) AND r<>c THEN r=c:GOTO 10110
+10280 GOTO 10150

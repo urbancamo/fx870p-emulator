@@ -1,11 +1,11 @@
-5 ONERRORGOTO900
-20 MODE8:DIM:r=0:h=0:c$=CHR$(5)
-30 CLS:PRINT"çr‚(r’+h’)+çr’   r:radius";
-40 s$="r":z=r:GOSUB500:r=z
-45 CLS:PRINT"çr‚(r’+h’)+çr’   h:height";
-50 s$="h":z=h:GOSUB500:h=z
-70 LOCATE0,1:PRINTc$;"Surface =";PI*r*(SQR(r*r+h*h)+r);:z$=INPUT$(1,@):GOTO30
-500 LOCATE0,1:PRINTc$;s$;"=";z;"?";:INPUT@42;z:LOCATE0,0:IFz<0 THEN500 ELSERETURN
-900 IFERR=1 THENCLS:ONERRORGOTO0
-910 IFERL=500 THENRESUME500
-920 LOCATE0,1:PRINTc$;"not found";:z$=INPUT$(1,@):RESUME30
+5 ON ERROR GOTO 900
+20 MODE 8:DIM:r=0:h=0:c$=CHR$(5)
+30 CLS:PRINT "ï¿½rï¿½(rï¿½+hï¿½)+ï¿½rï¿½   r:radius";
+40 s$="r":z=r:GOSUB 500:r=z
+45 CLS:PRINT "ï¿½rï¿½(rï¿½+hï¿½)+ï¿½rï¿½   h:height";
+50 s$="h":z=h:GOSUB 500:h=z
+70 LOCATE 0,1:PRINT c$;"Surface =";PI*r*(SQR(r*r+h*h)+r);:z$=INPUT$(1,@):GOTO 30
+500 LOCATE 0,1:PRINT c$;s$;"=";z;"?";:INPUT @42;z:LOCATE 0,0:IF z<0 THEN 500 ELSE RETURN
+900 IF ERR=1 THEN CLS:ON ERROR GOTO 0
+910 IF ERL=500 THEN RESUME 500
+920 LOCATE 0,1:PRINT c$;"not found";:z$=INPUT$(1,@):RESUME 30

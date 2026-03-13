@@ -115,7 +115,7 @@ src/
     basic-highlight.ts  Syntax highlighter for listing display and rich-text clipboard export
 public/
   ABOUT.md            User-facing documentation (rendered in About popup)
-  basic/              Sample BASIC programs (.bas, .fx)
+  basic/              Sample BASIC programs (.bas)
   images/
     face.png          Calculator faceplate (standard)
     face-large.png    Calculator faceplate (large)

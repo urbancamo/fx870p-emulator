@@ -372,7 +372,7 @@ T counter increments each loop to age the game.
 
 Done. Here's what was delivered:
 
-**`AIRMAN.FX`** — 270 lines of Casio BASIC covering:
+**`AIRMAN.BAS`** — 270 lines of Casio BASIC covering:
 - Title screen → main menu → help system (4 topics)
 - **Set Up Company**: loads all data via READ/DATA, then VARSET initialises $20K stake, stocks, fuel, turn counter
 - **Business loop**: Options → Status (2 pages) → Orders → Communications → repeat

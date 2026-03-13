@@ -1,52 +1,52 @@
-5 GOTO10010
-10 DATAC,0,10,20
-20 DATAxú,nxúû,10,30
-30 DATAx,1,20,40
-40 DATA1/x,-1/xí,30,50
-50 DATAÇˇ,1/(2Çˇ),40,60
-60 DATAaù,aùloga,50,70
-70 DATAeù,eù,60,80
-80 DATAeúù,neúù,70,90
-90 DATAlogx,1/x,80,100
-100 DATAxù,xù(logx+1),90,110
-110 DATAsinx,cosx,100,120
-120 DATAcosx,-sinx,110,130
-130 DATAtanx,secíx,120,140
-140 DATAcotx,-cosecíx,130,150
-150 DATAsecx,secx•tanx,140,160
-160 DATAcosecx,-cosecx•cotx,150,170
-170 DATAsinax,a•cosax,160,180
-180 DATAcosax,-a•sinax,170,190
-190 DATAtanax,a•secíax,180,200
-200 DATAcotax,-a•cosecíax,190,210
-210 DATAsinûx,1/Ç(1-xí)          (˛y˛<Á/2),200,220
-220 DATAcosûx,-1/Ç(1-xí)           (0<y<Á),210,230
-230 DATAtanûx,1/(1+xí)           (˛y˛<Á/2),220,240
-240 DATAcotûx,-1/(1+xí)          (˛y˛<Á/2),230,250
-250 DATAsecûx,"1/(xÇ(xí-1))    (0<y<Á,xí>1)",240,260
-260 DATAcosecûx,"1/(xÇ(xí-1))  (˛y˛<Á/2,xí>1)",250,270
-270 DATAsinhx,coshx,260,280
-280 DATAcoshx,sinhx,270,290
-290 DATAtanhx,sechíx,280,300
-300 DATAcothx,-cosechíx,290,310
-310 DATAsechx,-sechx•tanhx,300,320
-320 DATAcosechx,-cosechx•cothx,310,330
-330 DATAsinhûx,1/Ç(1+xí),320,340
-340 DATAcoshûx,"1/Ç(xí-1)         (y>0,xí>1)",330,350
-350 DATAtanhûx,1/(1-xí)              (xí<1),340,360
-360 DATAcothûx,1/(1-xí)              (xí>1),350,370
-370 DATAsechûx,-1/(xÇ(1-xí))        (0<x<1),360,380
-380 DATAcosechûx,-1/(xÇ(xí+1)),370,380
-10010 MODE8:DIM:x=10:y=380:r=x
-10020 DEFCHR$(255)="A2A49C92A2"
-10030 DEFCHR$(254)="0000FE0000"
+5 GOTO 10010
+10 DATA C,0,10,20
+20 DATA xÔøΩ,nxÔøΩÔøΩ,10,30
+30 DATA x,1,20,40
+40 DATA 1/x,-1/xÔøΩ,30,50
+50 DATAÔøΩÔøΩ,1/(2ÔøΩÔøΩ),40,60
+60 DATA aÔøΩ,aÔøΩloga,50,70
+70 DATA eÔøΩ,eÔøΩ,60,80
+80 DATA eÔøΩÔøΩ,neÔøΩÔøΩ,70,90
+90 DATA logx,1/x,80,100
+100 DATA xÔøΩ,xÔøΩ(logx+1),90,110
+110 DATA sinx,cosx,100,120
+120 DATA cosx,-sinx,110,130
+130 DATA tanx,secÔøΩx,120,140
+140 DATA cotx,-cosecÔøΩx,130,150
+150 DATA secx,secxÔøΩtanx,140,160
+160 DATA cosecx,-cosecxÔøΩcotx,150,170
+170 DATA sinax,aÔøΩcosax,160,180
+180 DATA cosax,-aÔøΩsinax,170,190
+190 DATA tanax,aÔøΩsecÔøΩax,180,200
+200 DATA cotax,-aÔøΩcosecÔøΩax,190,210
+210 DATA sinÔøΩx,1/ÔøΩ(1-xÔøΩ)          (ÔøΩyÔøΩ<ÔøΩ/2),200,220
+220 DATA cosÔøΩx,-1/ÔøΩ(1-xÔøΩ)           (0<y<ÔøΩ),210,230
+230 DATA tanÔøΩx,1/(1+xÔøΩ)           (ÔøΩyÔøΩ<ÔøΩ/2),220,240
+240 DATA cotÔøΩx,-1/(1+xÔøΩ)          (ÔøΩyÔøΩ<ÔøΩ/2),230,250
+250 DATA secÔøΩx,"1/(xÔøΩ(xÔøΩ-1))    (0<y<ÔøΩ,xÔøΩ>1)",240,260
+260 DATA cosecÔøΩx,"1/(xÔøΩ(xÔøΩ-1))  (ÔøΩyÔøΩ<ÔøΩ/2,xÔøΩ>1)",250,270
+270 DATA sinhx,coshx,260,280
+280 DATA coshx,sinhx,270,290
+290 DATA tanhx,sechÔøΩx,280,300
+300 DATA cothx,-cosechÔøΩx,290,310
+310 DATA sechx,-sechxÔøΩtanhx,300,320
+320 DATA cosechx,-cosechxÔøΩcothx,310,330
+330 DATA sinhÔøΩx,1/ÔøΩ(1+xÔøΩ),320,340
+340 DATA coshÔøΩx,"1/ÔøΩ(xÔøΩ-1)         (y>0,xÔøΩ>1)",330,350
+350 DATA tanhÔøΩx,1/(1-xÔøΩ)              (xÔøΩ<1),340,360
+360 DATA cothÔøΩx,1/(1-xÔøΩ)              (xÔøΩ>1),350,370
+370 DATA sechÔøΩx,-1/(xÔøΩ(1-xÔøΩ))        (0<x<1),360,380
+380 DATA cosechÔøΩx,-1/(xÔøΩ(xÔøΩ+1)),370,380
+10010 MODE 8:DIM:x=10:y=380:r=x
+10020 DEF CHR$(255)="A2A49C92A2"
+10030 DEF CHR$(254)="0000FE0000"
 10110 RESTORE(r)
-10120 READm$,n$,b,c
+10120 READ m$,n$,b,c
 10130 l$="["+MID$(STR$(r/10),2)+"]":l=32-LEN(l$)
-10140 CLS:PRINT"y =";m$;TAB(l);l$;"y";CHR$(131);"=";n$;
+10140 CLS:PRINT "y =";m$;TAB(l);l$;"y";CHR$(131);"=";n$;
 10150 z=ASC(INPUT$(1,@))
-10170 IFz=29 ANDr<>x THENr=x:GOTO10110
-10180 IFz=28 ANDr<>y THENr=y:GOTO10110
-10190 IFz=30 ANDr<>b THENr=b:GOTO10110
-10200 IF(z=31 ORz=13) ANDr<>c THENr=c:GOTO10110
-10280 GOTO10150
+10170 IF z=29 AND r<>x THEN r=x:GOTO 10110
+10180 IF z=28 AND r<>y THEN r=y:GOTO 10110
+10190 IF z=30 AND r<>b THEN r=b:GOTO 10110
+10200 IF(z=31 OR z=13) AND r<>c THEN r=c:GOTO 10110
+10280 GOTO 10150

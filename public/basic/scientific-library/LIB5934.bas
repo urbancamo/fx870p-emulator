@@ -1,31 +1,31 @@
-5 GOTO10010
-10 DATAOhm's law,"V=IR   (I=Q/t , R=ş¥l/S)",10,20,1,3E40484830
-20 DATAResistance,"R=Rü+Rı , 1/R=1/Rü+1/Rı",10,30,
-30 DATADC circuit,V=E-IR,20,40,
-40 DATADC power & Joule heat,"P=IV=I’R , W=IVt=Pt",30,50,
-50 DATAConductance,G=1/R=I/V,40,60,
-60 DATAKirchhoff's law,"„ùI=0 , „ùV=0",50,70,
-70 DATAWheatstone bridge,RûRü=RıRş,60,80,1,2A2A3E0000
-80 DATAAC instantaneous value,"V=Vû¥sinÿt , I=Iû¥sinÿt",70,90,
-90 DATAAC effective value,"I=Iû/‚2 , V=Vû/‚2",80,100,
-100 DATAAC power,P=VI=VûIû/2,90,110,
-110 DATAPower factor,P=VI¥cos,100,120,
-120 DATATransformer,"IüVü=IıVı , Nı/Nü=Vı/Vü",110,130,
-130 DATAReactance,"X=ÿL=2çfL , X=1/ÿC=1/2çfC",120,140,
-140 DATAImpedance,"Z=‚(R’+(ÿL-1/ÿC)’) , Vû=ZIû",130,150,
-150 DATANatural frequency (circuit),fû=1/2ç‚(LC),140,160,
-160 DATAElectric oscillation,1/2¥Q’/C+1/2¥LI’=Constant,150,160,
-10010 MODE8:DIM:x=10:y=160:r=x
-10020 DEFCHR$(255)="3E020C223E"
-10040 DEFCHR$(253)="2E2A3A0000"
-10050 DEFCHR$(252)="123E020000"
+5 GOTO 10010
+10 DATA Ohm's law,"V=IR   (I=Q/t , R=ï¿½ï¿½l/S)",10,20,1,3E40484830
+20 DATA Resistance,"R=Rï¿½+Rï¿½ , 1/R=1/Rï¿½+1/Rï¿½",10,30,
+30 DATA DC circuit,V=E-IR,20,40,
+40 DATA DC power & Joule heat,"P=IV=Iï¿½R , W=IVt=Pt",30,50,
+50 DATA Conductance,G=1/R=I/V,40,60,
+60 DATA Kirchhoff's law,"ï¿½ï¿½I=0 , ï¿½ï¿½V=0",50,70,
+70 DATA Wheatstone bridge,Rï¿½Rï¿½=Rï¿½Rï¿½,60,80,1,2A2A3E0000
+80 DATA AC instantaneous value,"V=Vï¿½ï¿½sinï¿½t , I=Iï¿½ï¿½sinï¿½t",70,90,
+90 DATA AC effective value,"I=Iï¿½/ï¿½2 , V=Vï¿½/ï¿½2",80,100,
+100 DATA AC power,P=VI=Vï¿½Iï¿½/2,90,110,
+110 DATA Power factor,P=VIï¿½cosï¿½,100,120,
+120 DATA Transformer,"Iï¿½Vï¿½=Iï¿½Vï¿½ , Nï¿½/Nï¿½=Vï¿½/Vï¿½",110,130,
+130 DATA Reactance,"X=ï¿½L=2ï¿½fL , X=1/ï¿½C=1/2ï¿½fC",120,140,
+140 DATA Impedance,"Z=ï¿½(Rï¿½+(ï¿½L-1/ï¿½C)ï¿½) , Vï¿½=ZIï¿½",130,150,
+150 DATA Natural frequency (circuit),fï¿½=1/2ï¿½(LC),140,160,
+160 DATA Electric oscillation,1/2ï¿½Qï¿½/C+1/2ï¿½LIï¿½=Constant,150,160,
+10010 MODE 8:DIM:x=10:y=160:r=x
+10020 DEF CHR$(255)="3E020C223E"
+10040 DEF CHR$(253)="2E2A3A0000"
+10050 DEF CHR$(252)="123E020000"
 10110 RESTORE(r)
-10120 CLS:READm$,n$,b,c,d:IFd=1 THENREADd$:DEFCHR$(254)=d$
+10120 CLS:READ m$,n$,b,c,d:IF d=1 THEN READ d$:DEF CHR$(254)=d$
 10130 l$="["+MID$(STR$(r/10),2)+"]":l=32-LEN(l$)
-10140 PRINTm$;TAB(l);l$;n$;
+10140 PRINT m$;TAB(l);l$;n$;
 10150 z=ASC(INPUT$(1,@))
-10170 IFz=29 ANDr<>x THENr=x:GOTO10110
-10180 IFz=28 ANDr<>y THENr=y:GOTO10110
-10190 IFz=30 ANDr<>b THENr=b:GOTO10110
-10200 IF(z=31 ORz=13) ANDr<>c THENr=c:GOTO10110
-10280 GOTO10150
+10170 IF z=29 AND r<>x THEN r=x:GOTO 10110
+10180 IF z=28 AND r<>y THEN r=y:GOTO 10110
+10190 IF z=30 AND r<>b THEN r=b:GOTO 10110
+10200 IF(z=31 OR z=13) AND r<>c THEN r=c:GOTO 10110
+10280 GOTO 10150

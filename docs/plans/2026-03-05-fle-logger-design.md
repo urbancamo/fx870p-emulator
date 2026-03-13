@@ -2,7 +2,7 @@
 
 > Created: 2026-03-05
 > Requirements: docs/fle-logger-requirements.md
-> Output: public/basic/emulator/FLE.FX
+> Output: public/basic/emulator/FLE.BAS
 
 ## Overview
 

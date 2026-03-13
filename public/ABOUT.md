@@ -87,7 +87,7 @@ The toolbar below the calculator provides the following controls:
 
 | Button        | Function                                                                                               |
 |---------------|--------------------------------------------------------------------------------------------------------|
-| **LOAD**      | Select a BASIC program file (.bas, .fx) to send to the calculator via the emulated RS-232C serial port |
+| **LOAD**      | Select a BASIC program file (.bas) to send to the calculator via the emulated RS-232C serial port      |
 | **LIB**       | Open the program library — browse and load curated sample BASIC programs                               |
 | **STOP**      | Abort the current file transfer                                                                        |
 | **TURBO**     | Toggle turbo mode — runs the CPU at ~50x normal speed for compute-heavy BASIC programs                 |
@@ -112,7 +112,7 @@ Click **TURBO** to run the emulator at approximately 50x normal speed. The butto
 
 To load a BASIC program file into the calculator:
 
-1. Click **LOAD** and select a `.bas` or `.fx` file
+1. Click **LOAD** and select a `.bas` file
 2. On the calculator, type: `LOAD "COM0:6,N,8,1,N,N,N,N,N"` or use the F-COM panel (Shift - CASL then select 'L' for LOAD, use arrow keys to choose program location) and press **EXE**
 3. The file will transfer automatically with XON/XOFF flow control
 4. When complete, type `LIST` and press **EXE** to verify the program loaded
