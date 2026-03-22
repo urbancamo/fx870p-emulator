@@ -82,6 +82,6 @@
   {
     "file": "PLANETS.BAS",
     "name": "Planetary Positions",
-    "description": "Astronomical calculator — computes RA/Dec and Alt/Az for Sun and all planets using Meeus algorithms"
+    "description": "Astronomical calculator — computes RA/Dec and Alt/Az for Sun, Moon (with phase), and all planets using Meeus algorithms"
   }
 ]
