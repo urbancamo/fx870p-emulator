@@ -232,6 +232,7 @@ onUnmounted(() => {
               class="face-img"
               draggable="false"
             />
+            <div class="lcd-backing" />
             <LcdCanvas class="lcd-overlay" />
             <KeyboardOverlay @iconize="toggleToolbar" />
           </div>
@@ -249,7 +250,8 @@ onUnmounted(() => {
             class="face-img"
             draggable="false"
           />
-          <LcdCanvas class="lcd-overlay" />
+          <div class="lcd-backing" />
+            <LcdCanvas class="lcd-overlay" />
           <KeyboardOverlay @iconize="toggleToolbar" />
         </div>
         <CommPanel v-if="showToolbar" v-model:showDebug="showDebug" v-model:showBasic="showBasic" :panelLayout="panelLayout" @cycleLayout="cycleLayout" @defchrCopy="v => defchrText = v" />
@@ -344,14 +346,27 @@ onUnmounted(() => {
   height: 100%;
   display: block;
   user-select: none;
+  z-index: 1;
+  pointer-events: none;
 }
 
-/* LCD canvas sits at face.png pixel coords (48, 36).
-   The canvas has 2px top padding, so shift up to keep content aligned. */
+/* Green backing rectangle fills the entire bevel opening behind the LCD canvas */
+.lcd-backing {
+  position: absolute;
+  left: 27px;
+  top: 28px;
+  width: 420px;
+  height: 80px;
+  background: #8baa5c;
+  z-index: 0;
+}
+
+/* LCD canvas sits on top of the backing, behind the face image */
 .lcd-overlay {
   position: absolute;
   left: 48px;
-  top: 34px;
+  top: 36px;
+  z-index: 0;
 }
 
 .overlay-msg {

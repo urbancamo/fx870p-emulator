@@ -1,23 +1,21 @@
 <script setup lang="ts">
 // Renders the HD44352A01 LCD to a <canvas> element.
 // The internal canvas is 394×64 px (matching Delphi's LcdBmp dimensions).
-// Each LCD pixel is a 2×2 block; signs occupy X=0..11.
+// Each LCD pixel is a 2×2 block; signs occupy X=0..6.
 //
 // Layout (matching Delphi's View procedure):
 //   Bank 0: X=12..203, Y=0..63  (96 cols × 2 hc × 4 px/hc = 192 nibbles/row)
 //   Bank 1: X=204..393, Y=0..63 (95 cols × 2 hc × 4 px/hc, padded to same)
-//   Signs:  X=0..6, 5 indicators at Y=0,15,30,45,60
+//   Signs:  X=0..6, 5 indicators at Y=0,15,30,45,60 (Row*15, 7×4 each)
 
 import { onMounted, onUnmounted, ref } from 'vue';
 import { lcdimage, lcdctrl } from '../emulator/lcd.js';
 import { setRenderCallback } from '../emulator/emulator.js';
 import { VDD2_bit } from '../emulator/def.js';
 
-// Canvas dimensions (internal resolution)
+// Canvas dimensions (internal resolution — matches Delphi's 394×64)
 const LCD_W = 394;
-const LCD_PAD_TOP = 2; // blank green rows above content
-const LCD_PAD_BOT = 2; // blank green rows below content
-const LCD_H = 64 + LCD_PAD_TOP + LCD_PAD_BOT;
+const LCD_H = 64;
 
 // Sign indicator nibble indices and their bitmasks (from Delphi)
 const SIGN_IND  = [0x03BE, 0x047E, 0x053E, 0x053F, 0x05FF];
@@ -60,7 +58,7 @@ function render(): void {
 
   for (let bank = 0; bank < 2; bank++) {
     let x = startX;
-    let y = LCD_PAD_TOP;
+    let y = 0;
     const cols = 96 - bank;
 
     for (let row = 0; row < 4; row++) {
@@ -93,7 +91,7 @@ function render(): void {
     const mask = SIGN_MASK[s] ?? 0;
     const on   = ((lcdimage[idx] ?? 0) & mask) !== 0;
     const color = on ? PIXEL_ON : PIXEL_OFF;
-    const sy = LCD_PAD_TOP + s * 13; // spread vertically
+    const sy = s * 15; // Y=0,15,30,45,60 (matches Delphi reference)
     for (let dy = 0; dy < 4; dy++) {
       for (let dx = 0; dx < 7; dx++) {
         pixels[(sy + dy) * LCD_W + dx] = color;
@@ -127,7 +125,7 @@ onUnmounted(() => {
     ref="canvasRef"
     class="lcd-canvas"
     :width="394"
-    :height="68"
+    :height="64"
   />
 </template>
 
@@ -135,6 +133,6 @@ onUnmounted(() => {
 .lcd-canvas {
   image-rendering: pixelated;
   width: 394px;
-  height: 68px;
+  height: 64px;
 }
 </style>

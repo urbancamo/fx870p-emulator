@@ -415,6 +415,7 @@ onUnmounted(() => {
   cursor: pointer;
   user-select: none;
   touch-action: none;
+  z-index: 2;
 }
 .key-canvas {
   position: absolute;
