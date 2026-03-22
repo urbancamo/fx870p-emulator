@@ -1,0 +1,59 @@
+5 ON ERROR GOTO 1000
+10 MODE 8:DIM:c$=CHR$(5):ANGLE 0:a=1:b=0:c=0:d=0
+20 CLS:PRINT "ax“+bx’+cx+d=0";
+30 s$="a":z=a:GOSUB 700:a=z:IF a=0 THEN 30
+40 s$="b":z=b:GOSUB 700:b=z
+50 s$="c":z=c:GOSUB 700:c=z
+60 s$="d":z=d:GOSUB 700:d=z
+70 LOCATE 0,1:PRINT c$;".....";
+100 u=b/a/3:p=c/a/3-u*u:q=2*u*u*u-u*c/a+d/a
+102 IF ABS p<u*u*1e-10 THEN p=0
+104 IF ABS q<u*u*u*1e-10 THEN q=0
+110 t=q*q+4*p*p*p:IF ABS t<q*q*5e-10 THEN t=0
+115 r=(q+SQR(ABS t))/2:s=(q-SQR(ABS t))/2:r=SGN r*CUR(ABS r):s=SGN s*CUR(ABS s)
+120 v=r+s
+130 ON SGN t+2 GOTO 400,,300
+140 x=-v-u:IF p THEN 200
+175 GOSUB 520:PRINT "a(x-ˆ)“=0";:PRINT
+180 PRINT c$;"ˆ =";x;
+190 GOSUB 550:IF w=13 THEN 20 ELSE 190
+200 y=v/2-u
+205 GOSUB 510:PRINT "a(x-ˆ)(x-‰)’=0";:PRINT
+210 PRINT c$;"ˆ =";x;
+230 GOSUB 550:IF w<>13 AND w<>31 THEN 230
+240 PRINT c$;"‰ =";y;
+260 GOSUB 550:IF w=30 THEN 210 ELSE IF w=13 THEN 20 ELSE 260
+300 x=-v-u:y=v/2-u:z=ABS(SQR 3/2*(r-s))
+302 GOSUB 500:PRINT "a(x-ˆ)(x-‰)(x-Š)=0";:PRINT
+305 y$=STR$(y)+" ":z$=MID$(STR$(z),2):IF y=0 THEN y$=""
+310 PRINT c$;"ˆ =";x;
+330 GOSUB 550:IF w<>13 AND w<>31 THEN 330
+340 PRINT c$;"‰ =";y$;:IF y THEN PRINT "+";
+350 IF z-1 THEN PRINT " ";z$;"i"; ELSE PRINT " i";
+360 GOSUB 550:IF w=30 THEN 310 ELSE IF w<>13 AND w<>31 THEN 360
+370 PRINT c$;"Š =";y$;"-";:IF y THEN PRINT " ";
+380 IF z-1 THEN PRINT z$;"i"; ELSE PRINT "i";
+390 GOSUB 550:IF w=30 THEN 340 ELSE IF w=13 THEN 20 ELSE 390
+400 h=ACS(q/2/SQR(ABS(-p*p*p)))/3:i=-2*SQR(ABS(-p)):x=i*COS h-u:y=i*COS(h+120)-u:z=i*COS(h+240)-u
+405 GOSUB 500:PRINT "a(x-ˆ)(x-‰)(x-Š)=0";:PRINT
+410 PRINT c$;"ˆ =";x;
+430 GOSUB 550:IF w<>13 AND w<>31 THEN 430
+440 PRINT c$;"‰ =";y;
+460 GOSUB 550:IF w=30 THEN 410 ELSE IF w<>13 AND w<>31 THEN 460
+470 PRINT c$;"Š =";z;
+490 GOSUB 550:IF w=30 THEN 440 ELSE IF w=13 THEN 20 ELSE 490
+500 IF z<>0 AND ABS z>=1e-90 THEN z=ROUND(z,LOG(ABS z)-7)
+502 IF z<>0 AND ABS z<1e-90 THEN z=z*1e10:z=ROUND(z,LOG(ABS z)-7):z=z/1e10
+505 IF ABS z<ABS u*1e-10 THEN z=0
+510 IF y<>0 AND ABS y>=1e-90 THEN y=ROUND(y,LOG(ABS y)-7)
+512 IF y<>0 AND ABS y<1e-90 THEN y=y*1e10:y=ROUND(y,LOG(ABS y)-7):y=y/1e10
+515 IF ABS y<ABS u*1e-10 THEN y=0
+520 IF x<>0 AND ABS x>=1e-90 THEN x=ROUND(x,LOG(ABS x)-7)
+522 IF x<>0 AND ABS x<1e-90 THEN x=x*1e10:x=ROUND(x,LOG(ABS x)-7):x=x/1e10
+525 IF ABS x<ABS u*1e-10 THEN x=0
+530 CLS:RETURN
+550 LOCATE 0,0:LOCATE 0,1:w=ASC(INPUT$(1)):RETURN
+700 LOCATE 0,1:PRINT c$;s$;"=";z;:INPUT s$+"=";z:LOCATE 0,0:RETURN
+1000 IF ERR=1 THEN CLS:ON ERROR GOTO 0
+1010 IF ERL=700 THEN RESUME 700
+1050 LOCATE 0,1:PRINT c$;"not found";:z$=INPUT$(1):RESUME 20
