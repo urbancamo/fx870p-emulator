@@ -16,20 +16,20 @@ A local coordinate frame is built at the observer: Up (radial from Earth centre)
 
 | Prompt | Description | Units / Range |
 |---|---|---|
-| `Satellite?` | Name label for display | Text |
-| `Year?` | Epoch year | e.g. 2026 |
-| `Month(1-12)?` | Epoch month | 1–12 |
-| `Day(1-31)?` | Epoch day | 1–31 |
-| `Hour(0-23)?` | Epoch hour (UTC) | 0–23 |
-| `Min(0-59)?` | Epoch minute (UTC) | 0–59 |
-| `Long(-W)?` | Observer longitude, negative = West | Degrees |
-| `Lat?` | Observer latitude, positive = North | Degrees |
-| `X?` | Satellite position X (ECI) | km |
-| `Y?` | Satellite position Y (ECI) | km |
-| `Z?` | Satellite position Z (ECI) | km |
-| `Vx?` | Satellite velocity X (ECI) | km/s |
-| `Vy?` | Satellite velocity Y (ECI) | km/s |
-| `Vz?` | Satellite velocity Z (ECI) | km/s |
+| `Satellite` | Name label for display | Text |
+| `Year` | Epoch year | e.g. 2026 |
+| `Month(1-12)` | Epoch month | 1–12 |
+| `Day(1-31)` | Epoch day | 1–31 |
+| `Hour(0-23)` | Epoch hour (UTC) | 0–23 |
+| `Min(0-59)` | Epoch minute (UTC) | 0–59 |
+| `Long(-W)` | Observer longitude, negative = West | Degrees |
+| `Lat` | Observer latitude, positive = North | Degrees |
+| `X` | Satellite position X (ECI) | km |
+| `Y` | Satellite position Y (ECI) | km |
+| `Z` | Satellite position Z (ECI) | km |
+| `Vx` | Satellite velocity X (ECI) | km/s |
+| `Vy` | Satellite velocity Y (ECI) | km/s |
+| `Vz` | Satellite velocity Z (ECI) | km/s |
 
 Position and velocity are in the Earth-Centred Inertial (ECI) frame at the given epoch. For geostationary satellites the Z component is zero (or very small) and the position magnitude is ~42,164 km.
 
@@ -37,25 +37,25 @@ Position and velocity are in the Earth-Centred Inertial (ECI) frame at the given
 
 Each detected pass shows two screens in sequence. Press any key to advance.
 
-**Screen 1 — Identity and Position**
+**Screen 1 — Identity and Status**
 
 ```
 #1 ASTRA 1M
-22:00 22/3/2026
-X:42164 Y:0
-Z:0 Alt:35793km
+20:30 13/3/2026
+Altitude: 35793 km
+Visibility: GOOD
 ```
 
 **Screen 2 — Observation Data**
 
 ```
-Az:177.2 El:28.4
-Vis:GOOD
-Vel:3075m/s
-Acc:0.000
+Azimuth:   177.8°
+Elevation:  28.8°
+Velocity:  3075 m/s
+Accel: 0.000 m/s
 ```
 
-`Vis` shows `GOOD` during dawn (03:54–06:06) and dusk (17:54–20:06) twilight windows when the satellite may be sunlit against a dark sky. `POOR` means the pass is in full darkness (harder to see with the naked eye but fine for dishes). Daytime passes are not shown at all.
+`Visibility` shows `GOOD` during dawn (03:54–06:06) and dusk (17:54–20:06) twilight windows when the satellite may be sunlit against a dark sky. `POOR` means the pass is in full darkness (harder to see with the naked eye but fine for dishes). Daytime passes are not shown at all.
 
 ## Example: ASTRA 1M over Manchester
 
