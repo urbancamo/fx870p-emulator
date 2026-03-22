@@ -78,5 +78,10 @@
     "file": "CALENDAR.BAS",
     "name": "Calendar",
     "description": "Monthly calendar display — enter any date to see the month grid and day of the week"
+  },
+  {
+    "file": "PLANETS.BAS",
+    "name": "Planetary Positions",
+    "description": "Astronomical calculator — computes RA/Dec and Alt/Az for Sun and all planets using Meeus algorithms"
   }
 ]
