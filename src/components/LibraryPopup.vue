@@ -25,6 +25,7 @@ const programEntries = ref<CatalogEntry[]>([]);
 const sciEntries = ref<CatalogEntry[]>([]);
 const loadError = ref('');
 const expandedDoc = ref<string | null>(null);
+const expandedEntry = ref<CatalogEntry | null>(null);
 const docHtml = ref('');
 const docLoading = ref(false);
 
@@ -69,14 +70,9 @@ function docFile(entry: CatalogEntry): string {
   return `${basename}.md`;
 }
 
-async function toggleInfo(entry: CatalogEntry): Promise<void> {
-  const key = entry.file;
-  if (expandedDoc.value === key) {
-    expandedDoc.value = null;
-    docHtml.value = '';
-    return;
-  }
-  expandedDoc.value = key;
+async function showInfo(entry: CatalogEntry): Promise<void> {
+  expandedDoc.value = entry.file;
+  expandedEntry.value = entry;
   docHtml.value = '';
   docLoading.value = true;
   try {
@@ -91,13 +87,13 @@ async function toggleInfo(entry: CatalogEntry): Promise<void> {
     docHtml.value = '<p>Failed to load documentation.</p>';
   } finally {
     docLoading.value = false;
-    await nextTick();
-    const el = document.querySelector(`.lib-entry-doc-${CSS.escape(key)}`);
-    if (el) {
-      const row = el.previousElementSibling;
-      (row || el).scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
   }
+}
+
+function closeInfo(): void {
+  expandedDoc.value = null;
+  expandedEntry.value = null;
+  docHtml.value = '';
 }
 
 async function onLoad(entry: CatalogEntry): Promise<void> {
@@ -134,8 +130,7 @@ function onBackdrop(e: MouseEvent): void {
 
 function switchTab(tab: LibTab): void {
   activeTab.value = tab;
-  expandedDoc.value = null;
-  docHtml.value = '';
+  closeInfo();
 }
 
 const currentEntries = computed(() =>
@@ -146,49 +141,43 @@ const currentEntries = computed(() =>
 <template>
   <div class="lib-backdrop" @click="onBackdrop">
     <div class="lib-popup">
+      <!-- Header: tabs (list view) or back+name+actions (doc view) -->
       <div class="lib-header">
-        <div class="lib-tabs">
-          <button class="lib-tab" :class="{ active: activeTab === 'programs' }"
-                  @click="switchTab('programs')">Program Library</button>
-          <button class="lib-tab" :class="{ active: activeTab === 'scientific' }"
-                  @click="switchTab('scientific')">Scientific Library</button>
-        </div>
+        <template v-if="expandedEntry">
+          <button class="lib-back" @click="closeInfo">&larr; Back</button>
+          <span class="lib-detail-name">{{ expandedEntry.name }}</span>
+          <div class="lib-detail-actions">
+            <button class="lib-btn lib-btn-load" @click="onLoad(expandedEntry)">LOAD</button>
+            <button class="lib-btn lib-btn-dl" @click="onDownload(expandedEntry)" title="Download"><i class="fa-solid fa-download"></i></button>
+          </div>
+        </template>
+        <template v-else>
+          <div class="lib-tabs">
+            <button class="lib-tab" :class="{ active: activeTab === 'programs' }"
+                    @click="switchTab('programs')">Program Library</button>
+            <button class="lib-tab" :class="{ active: activeTab === 'scientific' }"
+                    @click="switchTab('scientific')">Scientific Library</button>
+          </div>
+        </template>
         <button class="lib-close" @click="emit('close')">&times;</button>
       </div>
 
+      <!-- Body: doc view or list view -->
       <div class="lib-body">
-        <div v-if="loadError" class="lib-error">{{ loadError }}</div>
-        <div v-else-if="currentEntries.length === 0" class="lib-empty">Loading...</div>
+        <!-- Doc detail view -->
+        <template v-if="expandedEntry">
+          <div v-if="docLoading" class="lib-doc-loading">Loading...</div>
+          <div v-else class="lib-doc-content" v-html="docHtml" />
+        </template>
 
-        <!-- Program Library: flat list -->
-        <div v-else-if="activeTab === 'programs'" class="lib-list">
-          <div v-for="entry in programEntries" :key="entry.file" class="lib-entry">
-            <div class="lib-row">
-              <div class="lib-info">
-                <span class="lib-name">{{ entry.name }}</span>
-                <span class="lib-desc">{{ entry.description }}</span>
-                <span class="lib-file">{{ entry.file }}</span>
-              </div>
-              <div class="lib-actions">
-                <button class="lib-btn lib-btn-info" @click="toggleInfo(entry)">
-                  {{ expandedDoc === entry.file ? 'HIDE' : 'INFO' }}
-                </button>
-                <button class="lib-btn lib-btn-load" @click="onLoad(entry)">LOAD</button>
-                <button class="lib-btn lib-btn-dl" @click="onDownload(entry)" title="Download"><i class="fa-solid fa-download"></i></button>
-              </div>
-            </div>
-            <div v-if="expandedDoc === entry.file" :class="['lib-doc', `lib-entry-doc-${entry.file}`]">
-              <div v-if="docLoading" class="lib-doc-loading">Loading...</div>
-              <div v-else class="lib-doc-content" v-html="docHtml" />
-            </div>
-          </div>
-        </div>
+        <!-- List view -->
+        <template v-else>
+          <div v-if="loadError" class="lib-error">{{ loadError }}</div>
+          <div v-else-if="currentEntries.length === 0" class="lib-empty">Loading...</div>
 
-        <!-- Scientific Library: grouped by category -->
-        <div v-else class="lib-list">
-          <div v-for="group in sciGroups" :key="group.category" class="lib-category">
-            <div class="lib-category-header">{{ group.category }}</div>
-            <div v-for="entry in group.entries" :key="entry.file" class="lib-entry">
+          <!-- Program Library: flat list -->
+          <div v-else-if="activeTab === 'programs'" class="lib-list">
+            <div v-for="entry in programEntries" :key="entry.file" class="lib-entry">
               <div class="lib-row">
                 <div class="lib-info">
                   <span class="lib-name">{{ entry.name }}</span>
@@ -196,13 +185,34 @@ const currentEntries = computed(() =>
                   <span class="lib-file">{{ entry.file }}</span>
                 </div>
                 <div class="lib-actions">
+                  <button class="lib-btn lib-btn-info" @click="showInfo(entry)">INFO</button>
                   <button class="lib-btn lib-btn-load" @click="onLoad(entry)">LOAD</button>
                   <button class="lib-btn lib-btn-dl" @click="onDownload(entry)" title="Download"><i class="fa-solid fa-download"></i></button>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+
+          <!-- Scientific Library: grouped by category -->
+          <div v-else class="lib-list">
+            <div v-for="group in sciGroups" :key="group.category" class="lib-category">
+              <div class="lib-category-header">{{ group.category }}</div>
+              <div v-for="entry in group.entries" :key="entry.file" class="lib-entry">
+                <div class="lib-row">
+                  <div class="lib-info">
+                    <span class="lib-name">{{ entry.name }}</span>
+                    <span class="lib-desc">{{ entry.description }}</span>
+                    <span class="lib-file">{{ entry.file }}</span>
+                  </div>
+                  <div class="lib-actions">
+                    <button class="lib-btn lib-btn-load" @click="onLoad(entry)">LOAD</button>
+                    <button class="lib-btn lib-btn-dl" @click="onDownload(entry)" title="Download"><i class="fa-solid fa-download"></i></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
       </div>
 
       <div class="lib-footer">
@@ -224,7 +234,7 @@ const currentEntries = computed(() =>
 }
 
 .lib-popup {
-  width: 50vw;
+  width: 80vw;
   max-width: 95vw;
   max-height: 85vh;
   display: flex;
@@ -404,11 +414,35 @@ const currentEntries = computed(() =>
   color: #aad4ff;
 }
 
-.lib-doc {
-  border-top: 1px solid #222;
-  padding: 12px 16px;
-  max-height: 400px;
-  overflow-y: auto;
+.lib-back {
+  background: none;
+  border: none;
+  color: #7eb8f7;
+  font-family: monospace;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 10px 12px;
+  flex-shrink: 0;
+}
+.lib-back:hover {
+  color: #aad4ff;
+}
+
+.lib-detail-name {
+  flex: 1;
+  color: #fff;
+  font-size: 1.02rem;
+  padding: 10px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lib-detail-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  padding-right: 8px;
 }
 
 .lib-doc-loading {
