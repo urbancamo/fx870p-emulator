@@ -83,5 +83,10 @@
     "file": "PLANETS.BAS",
     "name": "Planetary Positions",
     "description": "Astronomical calculator — computes RA/Dec and Alt/Az for Sun, Moon (with phase), and all planets using Meeus algorithms"
+  },
+  {
+    "file": "SATTRACK.BAS",
+    "name": "Satellite Tracker",
+    "description": "Single-satellite tracker — propagates an orbit over 24h showing compass bearing, elevation, altitude, and velocity for visible passes"
   }
 ]
