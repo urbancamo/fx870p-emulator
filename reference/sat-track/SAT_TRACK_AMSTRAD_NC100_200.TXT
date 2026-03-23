@@ -1,0 +1,194 @@
+Program Description:
+
+The final program is a  single-satellite tracker for the
+Amstrad NC100/NC200 portable computers written in BBC BASIC
+By Alvin Banderas
+
+It simulates a 24-hour pass window based on user-supplied 
+initial conditions and observer location. 
+
+For each visible pass (satellite above the geometric horizon
+and in favourable lighting),it displays two screens:
+
+Screen 1:Pass number, satellite name, current time, 
+and the satellite’s Cartesian coordinates (X, Y, Z in km).  
+
+Screen 2:Pass number, observation period, local time, 
+compass bearing (degrees clockwise from north), elevation, 
+visibility (GOOD/POOR),Altitude (km),Velocity (m/s) 
+and acceleration (m/s²).
+
+A beep (VDU7) sounds when a new pass is about to be shown, 
+and a pass counter keeps track of how many passes have been 
+displayed.At the end,the total number of passes is printed.
+
+Key Features:
+
+1/ User-defined satellite:
+ 
+Name, initial position (km) and 
+velocity (km/s) are entered manually.
+
+Date and time: 
+
+2/ Full date (with leap-year handling) 
+and start hour/minute are validated.
+
+3/ Observer location:
+
+longitude and latitude are requested and validated.
+
+4/ Numerical integration:
+
+5/ Five-step iteration over 15-minute intervals propagates 
+the orbit using a simple Euler-type method.
+
+6/ Visibility check:-satellite is considered visible 
+if it is above the geometric horizon and not in the middle
+of the day (crude 06:06-17:54 daylight exclusion).
+
+7/ Local coordinate transformation: 
+up, north & east vectors are derived from the observer’s 
+position to compute azimuth and elevation.
+
+8/ Formatted output: 
+numbers are displayed with the correct
+decimal places using the `@%` system variable; screens 
+are cleared between passes.
+
+9/ Pass counter: 
+Increments for each visible pass and is shown on every 
+screen; final total printed at the end.
+
+Real Life Examples:
+
+Three UK TV Satellite's
+
+All three are  geostationary, they appear fixed in the sky. 
+The approximate look angles are given for  Manchester  (53.5°N, 2.2°W)
+at  20:30 UTC  on any given day. 
+For a perfect geostationary orbit, set:
+
+-  Position X  = 42164 km (geostationary radius)  
+-  Position Y  = 0 km  
+-  Position Z  = 0 km  
+-  Velocity X  = 0 km/s  
+-  Velocity Y  = 3.0747 km/s (circular speed)  
+-  Velocity Z  = 0 km/s  
+
+| Satellite Name   | Orbital Longitude  | Compass Bearing | Elevation | Typical TV Services         |
+|------------------|--------------------|-----------------|-----------|-----------------------------|
+|Astra 1  (19.2°E) | 19.2°E | ~165°(SSE)|  ~26°           |           |European channels            |
+|Astra 2  (28.2°E) | 28.2°E | ~155°(SSE)|  ~22°           |           |BBC,ITV,C4,Sky UK(main UK TV)|
+|Eutelsat Hot Bird | (13°E) |  13.0°E   |  ~172°S         |~30°       |UK-targeted channels+European|
+
+
+Notes on the Values:
+
+Compass bearing  is measured clockwise from true north. 
+A value of 165° means the satellite is seen in the south-southeast.
+
+Elevation  is the angle above the horizon, 
+a higher number means the satellite is higher in the sky.
+
+These values are  approximate; exact angles depend on the
+observer’s exact location and the satellite’s precise orbital
+inclination (usually very small for geostationary satellites).
+
+To simulate any of these satellites, simply enter the 
+corresponding initial position and velocity when prompted.
+ 
+The BASIC program will then show passes every 15 minutes 
+throughout the 24-hour period (the satellite will remain fixed, 
+so you will see 96 passes). 
+
+The displayed altitude, velocity, and acceleration will be correct
+and the compass/elevation will match the values above.
+
+Example: ASTRA 1M over Manchester (13 March 2026, 20:30 UTC)
+User inputs:
+
+Satellite name: ASTRA 1M
+
+Position X: 42164 (geostationary radius in km)
+
+Position Y: 0
+
+Position Z: 0
+
+Velocity X: 0
+
+Velocity Y: 3.0747 (km/s – circular orbit speed)
+
+Velocity Z: 0
+
+Year: 2026
+
+Month: 3
+
+Day: 13
+
+Start hour: 20
+
+Start minute: 30
+
+Observer longitude: -2.2 (West)
+
+Observer latitude: 53.5 (North)
+
+Expected first pass output (shortly after 20:30):
+
+
+Explanation of values:
+
+Compass ~165° means the satellite is seen 
+in the south-southeast.
+
+Elevation ~26° is typical for a geostationary satellite
+at that longitude from Manchester.
+
+Altitude =42164 km-6371 km= 35793 km.
+
+Velocity = 3074.7 m/s 
+
+Acceleration ~0 because the orbit is nearly circular.
+
+The program will continue to track the satellite every 
+15 minutes over 24 hours, showing only the passes where 
+it is above the horizon and in favourable lighting. 
+With these inputs, the satellite remains fixed in the
+sky, so you will see a pass at every time 
+step (96 passes total).
+
+The counter at the end will show 96.
+
+Expected Results for Your Input (Satellite at 0° Longitude)
+With the above corrections, the first pass for your
+Input (position X=42164,Y=0,Z=0; velocity X=0,Y=3.0747,Z=0) 
+should now show:
+
+Pass #1 - ASTRA 1M
+Time: 20:30
+SATELLITE: ASTRA 1M
+POSITION X: 42164.00
+POSITION Y: 0.769
+POSITION Z: 0.00
+
+Press any key...
+
+Then screen 2:
+
+
+Pass #1 - ASTRA 1M
+PERIOD: 20:30 13/3/2026 - 20:30 14/3/2026
+TIME         : 20:30:0:00
+COMPASS      : 177.757 Degrees
+ELEVATION    : 28.848
+VISIBILITY   : GOOD
+ALTITUDE     : 35793.00 KM
+VELOCITY     : 3074.725 M/S
+ACCELERATION : -0.000 M/S
+
+Press any key...
+
+
