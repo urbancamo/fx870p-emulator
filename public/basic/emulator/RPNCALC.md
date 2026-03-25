@@ -1,0 +1,98 @@
+# RPN Calculator
+
+An HP-style Reverse Polish Notation calculator with a classic 4-level stack (T, Z, Y, X). Enter numbers first, then apply operators — no parentheses needed.
+
+## How to Use
+
+RPN works differently from algebraic calculators. Instead of `3 + 4 =`, you type `3 ENTER 4 +`. The operands go on the stack first, then the operator consumes them.
+
+### Display
+
+```
+T: 0                          Stack level 4
+Z: 0                          Stack level 3
+Y: 3                          Stack level 2
+X: 4                          Stack level 1 (working register)
+```
+
+When entering a number, line 4 changes to an input prompt:
+
+```
+T: 0
+Z: 0
+Y: 3
+>4.25_                        Number being entered
+```
+
+### Controls
+
+| Key | Action |
+|---|---|
+| `0`–`9`, `.` | Enter digits |
+| ![EXE](../../../images/keys/standard/exe.png) | Push number onto stack (ENTER) |
+| `+` `-` `*` `/` | Arithmetic — pops X and Y, pushes result |
+| `C` | Clear X register and any partial entry |
+| `S` | Swap X and Y registers |
+| `N` | Negate — changes sign of X or current entry |
+| `BS` (backspace) | Delete last digit of current entry |
+
+### Examples
+
+**Simple addition: 3 + 4 = 7**
+
+1. Type `3`, press EXE — stack: Y=0, X=3
+2. Type `4`, press `+` — stack: X=7
+
+**Expression: (5 + 3) * 2 = 16**
+
+1. Type `5`, press EXE
+2. Type `3`, press `+` — X=8
+3. Type `2`, press `*` — X=16
+
+**Complex: (10 - 3) / (2 + 5) = 1**
+
+1. Type `10`, press EXE
+2. Type `3`, press `-` — X=7
+3. Type `2`, press EXE
+4. Type `5`, press `+` — X=7, Y=7
+5. Press `/` — X=1
+
+**Duplicate with ENTER: 5^2 = 25**
+
+1. Type `5`, press EXE
+2. Press EXE again (duplicates X into Y) — Y=5, X=5
+3. Press `*` — X=25
+
+## Stack Behaviour
+
+The 4-level stack follows classic HP conventions:
+
+- **ENTER** pushes the stack up (T is lost) and either accepts the current entry as X or duplicates X into Y
+- **Operators** consume X and Y, push the result into X, and drop the stack (Z→Y, T→Z, T becomes 0)
+- **Typing digits** after ENTER or an operator starts a new entry that will auto-push when the next operator is pressed
+
+Division by zero is silently ignored — the stack is unchanged.
+
+## Running It
+
+Load from the emulator's library or type:
+
+```
+LOAD "RPNCALC.BAS"
+RUN
+```
+
+## Program Structure
+
+```
+Lines 1-3       Title and comments
+Lines 10-15     Splash screen with key guide
+Line 20         Initialise stack and entry state
+Lines 100-150   Display — stack registers and input line
+Lines 200-330   Key dispatch loop
+Lines 400-430   ENTER — push stack, accept entry
+Lines 450-490   Finish partial entry + drop stack (used by operators)
+Lines 500-515   Negate (sign change)
+Lines 520-550   Backspace during entry
+Lines 560-590   Divide with zero-guard
+```
