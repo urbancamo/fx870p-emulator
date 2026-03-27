@@ -4,7 +4,7 @@
 
 ## General Guide
 
-![Casio FX-850P Annotated](./images/Casio-FX850P-annotated.png)
+![Casio FX-850P Annotated](imagesasio-FX850P-annotated.png)
 
 1. Power Switch
 2. Shift Key
