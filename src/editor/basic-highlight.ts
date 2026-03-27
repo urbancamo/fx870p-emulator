@@ -172,11 +172,16 @@ function esc(s: string): string {
 /**
  * Highlight a BASIC line body using CSS classes (for in-page display).
  * Returns HTML with <span class="hl-*"> wrappers.
+ * Keywords and functions get data-cmd attributes for context-sensitive help.
  */
 export function highlightBasic(text: string): string {
-  return tokenizeLine(text).map(t =>
-    t.type ? `<span class="hl-${t.type}">${esc(t.text)}</span>` : esc(t.text)
-  ).join('');
+  return tokenizeLine(text).map(t => {
+    if (!t.type) return esc(t.text);
+    const cmdAttr = (t.type === 'keyword' || t.type === 'function' || t.type === 'operator-kw')
+      ? ` data-cmd="${esc(t.text.toUpperCase())}"`
+      : '';
+    return `<span class="hl-${t.type}"${cmdAttr}>${esc(t.text)}</span>`;
+  }).join('');
 }
 
 // Inline style themes for clipboard export (self-contained, no external CSS needed)
