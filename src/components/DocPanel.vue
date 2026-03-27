@@ -291,11 +291,11 @@ function breadcrumb(): string[] {
 .doc-content {
   flex: 1;
   overflow: auto;
-  padding: 12px 16px;
+  padding: 8px 12px;
   color: #ccc;
   font-family: 'Consolas', 'Menlo', 'Monaco', 'Courier New', monospace;
-  font-size: 0.8rem;
-  line-height: 1.6;
+  font-size: 0.6rem;
+  line-height: 1.5;
   text-align: left;
   word-wrap: break-word;
   overflow-wrap: break-word;
@@ -311,19 +311,19 @@ function breadcrumb(): string[] {
 }
 
 /* Markdown element styling */
-.doc-content :deep(h1) { font-size: 1.3rem; color: #fff; margin: 0 0 8px 0; border-bottom: 1px solid #333; padding-bottom: 6px; }
-.doc-content :deep(h2) { font-size: 1.1rem; color: #e5c07b; margin: 16px 0 6px 0; }
-.doc-content :deep(h3) { font-size: 0.95rem; color: #bbb; margin: 12px 0 4px 0; }
-.doc-content :deep(h4) { font-size: 0.8rem; color: #888; margin: 10px 0 3px 0; text-transform: uppercase; letter-spacing: 0.5px; }
-.doc-content :deep(p) { margin: 6px 0; }
+.doc-content :deep(h1) { font-size: 0.95rem; color: #fff; margin: 0 0 6px 0; border-bottom: 1px solid #333; padding-bottom: 4px; }
+.doc-content :deep(h2) { font-size: 0.82rem; color: #e5c07b; margin: 12px 0 4px 0; }
+.doc-content :deep(h3) { font-size: 0.72rem; color: #bbb; margin: 9px 0 3px 0; }
+.doc-content :deep(h4) { font-size: 0.6rem; color: #888; margin: 7px 0 2px 0; text-transform: uppercase; letter-spacing: 0.5px; }
+.doc-content :deep(p) { margin: 3px 0; }
 .doc-content :deep(a) { color: #7eb8f7; text-decoration: none; }
 .doc-content :deep(a:hover) { text-decoration: underline; }
 .doc-content :deep(code) { background: #1a1a1a; padding: 1px 5px; border-radius: 3px; font-size: 0.9em; }
-.doc-content :deep(pre) { background: #111; border: 1px solid #222; border-radius: 4px; padding: 8px 10px; overflow-x: auto; margin: 6px 0; white-space: pre-wrap; word-wrap: break-word; }
+.doc-content :deep(pre) { background: #111; border: 1px solid #222; border-radius: 4px; padding: 4px 8px; overflow-x: auto; margin: 4px 0; white-space: pre-wrap; word-wrap: break-word; }
 .doc-content :deep(pre code) { background: none; padding: 0; }
 .doc-content :deep(table) { border-collapse: collapse; width: 100%; margin: 8px 0; table-layout: fixed; word-wrap: break-word; }
-.doc-content :deep(th) { background: #1a1a1a; color: #aaa; padding: 4px 8px; border: 1px solid #333; text-align: left; font-size: 0.8em; }
-.doc-content :deep(td) { padding: 4px 8px; border: 1px solid #222; font-size: 0.8em; }
+.doc-content :deep(th) { background: #1a1a1a; color: #aaa; padding: 2px 6px; border: 1px solid #333; text-align: left; }
+.doc-content :deep(td) { padding: 2px 6px; border: 1px solid #222; }
 .doc-content :deep(ul), .doc-content :deep(ol) { padding-left: 20px; margin: 4px 0; }
 .doc-content :deep(li) { margin: 2px 0; }
 .doc-content :deep(blockquote) { border-left: 3px solid #444; margin: 8px 0; padding: 4px 12px; color: #999; }
