@@ -3,7 +3,7 @@
 // Loads ROMs, starts the emulator, and composes:
 //   face.png → LcdCanvas (at x=48,y=36) → KeyboardOverlay
 
-import {computed, onMounted, onUnmounted, ref} from 'vue';
+import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
 import {
   emulatorReset,
   emulatorStart,
@@ -21,6 +21,7 @@ import KeyboardOverlay from './KeyboardOverlay.vue';
 import CommPanel from './CommPanel.vue';
 import DebugPanel from './DebugPanel.vue';
 import BasicListPanel from './BasicListPanel.vue';
+import DocPanel from './DocPanel.vue';
 import {commInit} from '../emulator/comm.js';
 import {isIoDebug, setIoDebug} from '../emulator/port.js';
 
@@ -97,8 +98,18 @@ const faceImage = computed(() => {
 
 const showDebug = ref(false);
 const showBasic = ref(false);
+const showDoc = ref(false);
+const docLayout = ref<'side' | 'stack'>(localStorage.getItem('docLayout') as 'side' | 'stack' || 'side');
+const docCommand = ref('');
 const showToolbar = ref(true);
 const defchrText = ref('');
+
+watch(docLayout, (v) => localStorage.setItem('docLayout', v));
+
+function onOpenDoc(keyword: string): void {
+  docCommand.value = keyword;
+  showDoc.value = true;
+}
 
 function toggleToolbar(): void {
   showToolbar.value = !showToolbar.value;
@@ -200,9 +211,12 @@ onUnmounted(() => {
     >
       <!-- Side panel (left) -->
       <div v-if="panelLayout === 'left' && showToolbar" class="side-panels">
-        <CommPanel class="side-comm" v-model:showDebug="showDebug" v-model:showBasic="showBasic" :panelLayout="panelLayout" @cycleLayout="cycleLayout" @defchrCopy="v => defchrText = v" />
+        <CommPanel class="side-comm" v-model:showDebug="showDebug" v-model:showBasic="showBasic" v-model:showDoc="showDoc" :panelLayout="panelLayout" @cycleLayout="cycleLayout" @defchrCopy="v => defchrText = v" />
         <DebugPanel v-if="showDebug" class="side-debug" />
-        <BasicListPanel v-if="showBasic" :defchr="defchrText" />
+        <div v-if="showBasic || showDoc" class="bas-doc-container" :class="{ 'bas-doc-side': showBasic && showDoc && docLayout === 'side' }">
+          <BasicListPanel v-if="showBasic" :defchr="defchrText" @open-doc="onOpenDoc" />
+          <DocPanel v-if="showDoc" :visible="showDoc" @update:visible="v => showDoc = v" :commandPage="docCommand" :docLayout="docLayout" @update:docLayout="v => docLayout = v" :showBasic="showBasic" />
+        </div>
       </div>
 
       <!-- Divider (left layout) -->
@@ -254,9 +268,12 @@ onUnmounted(() => {
             <LcdCanvas class="lcd-overlay" />
           <KeyboardOverlay @iconize="toggleToolbar" />
         </div>
-        <CommPanel v-if="showToolbar" v-model:showDebug="showDebug" v-model:showBasic="showBasic" :panelLayout="panelLayout" @cycleLayout="cycleLayout" @defchrCopy="v => defchrText = v" />
+        <CommPanel v-if="showToolbar" v-model:showDebug="showDebug" v-model:showBasic="showBasic" v-model:showDoc="showDoc" :panelLayout="panelLayout" @cycleLayout="cycleLayout" @defchrCopy="v => defchrText = v" />
         <DebugPanel v-if="showToolbar && showDebug" />
-        <BasicListPanel v-if="showToolbar && showBasic" :defchr="defchrText" />
+        <div v-if="showToolbar && (showBasic || showDoc)" class="bas-doc-container" :class="{ 'bas-doc-side': showBasic && showDoc && docLayout === 'side' }">
+          <BasicListPanel v-if="showBasic" :defchr="defchrText" @open-doc="onOpenDoc" />
+          <DocPanel v-if="showDoc" :visible="showDoc" @update:visible="v => showDoc = v" :commandPage="docCommand" :docLayout="docLayout" @update:docLayout="v => docLayout = v" :showBasic="showBasic" />
+        </div>
       </div>
 
       <!-- Divider (right layout) -->
@@ -271,9 +288,12 @@ onUnmounted(() => {
 
       <!-- Side panel (right) -->
       <div v-if="panelLayout === 'right' && showToolbar" class="side-panels">
-        <CommPanel class="side-comm" v-model:showDebug="showDebug" v-model:showBasic="showBasic" :panelLayout="panelLayout" @cycleLayout="cycleLayout" @defchrCopy="v => defchrText = v" />
+        <CommPanel class="side-comm" v-model:showDebug="showDebug" v-model:showBasic="showBasic" v-model:showDoc="showDoc" :panelLayout="panelLayout" @cycleLayout="cycleLayout" @defchrCopy="v => defchrText = v" />
         <DebugPanel v-if="showDebug" class="side-debug" />
-        <BasicListPanel v-if="showBasic" :defchr="defchrText" />
+        <div v-if="showBasic || showDoc" class="bas-doc-container" :class="{ 'bas-doc-side': showBasic && showDoc && docLayout === 'side' }">
+          <BasicListPanel v-if="showBasic" :defchr="defchrText" @open-doc="onOpenDoc" />
+          <DocPanel v-if="showDoc" :visible="showDoc" @update:visible="v => showDoc = v" :commandPage="docCommand" :docLayout="docLayout" @update:docLayout="v => docLayout = v" :showBasic="showBasic" />
+        </div>
       </div>
     </div>
   </div>
@@ -423,6 +443,35 @@ onUnmounted(() => {
 
 .side-panels :deep(.basic-panel) {
   width: auto;
+}
+
+.bas-doc-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+.bas-doc-side {
+  flex-direction: row;
+}
+.bas-doc-side > :first-child {
+  flex: 0 0 40%;
+  min-width: 0;
+  border-right: 2px solid #333;
+}
+.bas-doc-side > :last-child {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 600px) {
+  .bas-doc-side {
+    flex-direction: column;
+  }
+  .bas-doc-side > :first-child {
+    flex: none;
+    border-right: none;
+    border-bottom: 1px solid #333;
+  }
 }
 
 </style>

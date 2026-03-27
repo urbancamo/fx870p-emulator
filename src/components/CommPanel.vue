@@ -35,12 +35,14 @@ function toggleTurbo(): void {
 const props = defineProps<{
   showDebug: boolean;
   showBasic: boolean;
+  showDoc: boolean;
   panelLayout: string;
 }>();
 
 const emit = defineEmits<{
   (e: 'update:showDebug', v: boolean): void;
   (e: 'update:showBasic', v: boolean): void;
+  (e: 'update:showDoc', v: boolean): void;
   (e: 'cycleLayout'): void;
   (e: 'defchrCopy', value: string): void;
 }>();
@@ -359,6 +361,9 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
       </button>
       <button class="btn" @click="emit('update:showBasic', !props.showBasic)">
         BAS {{ props.showBasic ? '\u25B4' : '\u25BE' }}
+      </button>
+      <button class="btn" :class="{ active: props.showDoc }" @click="emit('update:showDoc', !props.showDoc)">
+        DOC {{ props.showDoc ? '\u25B4' : '\u25BE' }}
       </button>
       <button
         class="btn btn-fw"
@@ -739,4 +744,8 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
 }
 .save-btn:hover { background: #3a3a3a; color: #fff; }
 .save-btn-cancel { color: #888; }
+.btn.active {
+  background: #8bc34a;
+  color: #000;
+}
 </style>
