@@ -23,7 +23,9 @@ CLEAR 1024,2048
 1. variable area size: Numeric expression — sets the storage area for numeric variables, array data, and variable name tables.
 2. work area size: Numeric expression — sets the area used for I/O buffers, character string operations, FOR stack, GOSUB stack, and character variable data. **[FX-870P/VX-4]**
 
-The variable area size must be smaller than the work area size.
+The work area size must be **greater than** the variable area size. This is because the work area contains the variable area within it — the variable area is allocated from the bottom of the work area, and the remainder is used for the GOSUB/FOR stack (which grows downward from the top), I/O buffers, and string workspace. If the work area is not larger than the variable area, there would be no space left for stack and string operations, resulting in immediate OM errors.
+
+For programs with deep GOSUB nesting, large string operations, or many string variables, the work area should be substantially larger than the variable area — typically at least double.
 
 Default values depend on total memory capacity:
 
