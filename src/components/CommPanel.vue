@@ -348,10 +348,8 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
       <button class="btn" :disabled="!sending" @click="onStop">STOP</button>
       <button class="btn btn-turbo" :class="{ active: turboOn }" @click="toggleTurbo">TURBO</button>
 
-      <span class="ram-group">
-        <button class="btn btn-snap-lib" @click="showSnapshots = true" title="Snapshot library">SNAP</button>
-        <button class="btn btn-ram" @click="openSnapPicker" title="Import snapshot file">&#x2191;</button>
-        <button class="btn btn-ram" @click="downloadSnapshot" title="Save snapshot file">&#x2193;</button>
+      <span class="snap-group">
+        <button class="btn btn-snap-lib" @click="showSnapshots = true" title="Snapshot library">SNAP</button><button class="btn btn-snap-io" @click="openSnapPicker" title="Import snapshot file">↑</button><button class="btn btn-snap-io" @click="downloadSnapshot" title="Save snapshot file">↓</button>
       </span>
       <button class="btn btn-diag" @click="showDiag = !showDiag">
         COM {{ showDiag ? '\u25B4' : '\u25BE' }}
@@ -528,11 +526,12 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
 }
 .btn:hover:not(:disabled) { background: #3a3a3a; color: #fff; }
 .btn:disabled { opacity: 0.4; cursor: default; }
-.ram-group { display: flex; align-items: center; gap: 3px; }
-.btn-snap-lib { color: #7eb8f7; border-color: #204050; }
-.btn-snap-lib:hover { background: #102030; color: #aad4ff; }
-.btn-ram  { color: #7eb8f7; border-color: #204050; padding: 2px 6px; }
-.btn-ram:hover  { background: #102030; color: #aad4ff; }
+.snap-group { display: inline-flex; align-items: center; gap: 0; }
+.snap-group .btn-snap-lib { color: #7eb8f7; border-color: #204050; border-radius: 3px 0 0 3px; border-right: none; }
+.snap-group .btn-snap-lib:hover { background: #102030; color: #aad4ff; }
+.snap-group .btn-snap-io { color: #7eb8f7; border-color: #204050; padding: 2px 3px; border-radius: 0; border-right: none; font-size: 0.65rem; min-width: 0; }
+.snap-group .btn-snap-io:last-child { border-radius: 0 3px 3px 0; border-right: 1px solid #204050; }
+.snap-group .btn-snap-io:hover { background: #102030; color: #aad4ff; }
 .btn-sm { padding: 1px 5px; font-size: 0.7rem; }
 .btn-turbo { color: #6a6a6a; border-color: #333; }
 .btn-turbo:hover { color: #8bc34a; border-color: #3a5a20; }
