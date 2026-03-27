@@ -6,7 +6,7 @@ import {
   getStream, clearStream, setOnReceiveComplete,
 } from '../emulator/comm.js';
 import { getUartRegs, pd, pe, pdi } from '../emulator/port.js';
-import { exportSnapshot, importSnapshot, emulatorReset, emulatorStart, readRamByte, getOption2, saveConfig } from '../emulator/emulator.js';
+import { emulatorReset, emulatorStart, readRamByte, getOption2, saveConfig } from '../emulator/emulator.js';
 import { setOption2, turbo as turboFlag, setTurbo } from '../emulator/def.js';
 import AboutPopup from './AboutPopup.vue';
 import CharsetPopup from './CharsetPopup.vue';
@@ -287,33 +287,7 @@ onUnmounted(() => {
 });
 
 // ─── snapshot import/export ───────────────────────────────────────────────────
-const snapInput = ref<HTMLInputElement | null>(null);
 
-function openSnapPicker(): void {
-  snapInput.value?.click();
-}
-
-async function onSnapshotSelected(e: Event): Promise<void> {
-  const input = e.target as HTMLInputElement;
-  const file = input.files?.[0];
-  if (!file) return;
-  input.value = '';
-  const text = await file.text();
-  await importSnapshot(text);
-  // Do NOT call emulatorReset() — restore resumes exactly where snapshot was taken
-  emulatorStart();
-}
-
-function downloadSnapshot(): void {
-  const json = exportSnapshot();
-  const blob = new Blob([json], { type: 'application/json' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = 'snapshot.fxsnap';
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 // ─── output save / clear ──────────────────────────────────────────────────────
 function clearLog(): void {
@@ -348,9 +322,7 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
       <button class="btn" :disabled="!sending" @click="onStop">STOP</button>
       <button class="btn btn-turbo" :class="{ active: turboOn }" @click="toggleTurbo">TURBO</button>
 
-      <span class="snap-group">
-        <button class="btn btn-snap-lib" @click="showSnapshots = true" title="Snapshot library">SNAP</button><button class="btn btn-snap-io" @click="openSnapPicker" title="Import snapshot file">↑</button><button class="btn btn-snap-io" @click="downloadSnapshot" title="Save snapshot file">↓</button>
-      </span>
+      <button class="btn btn-snap-lib" @click="showSnapshots = true" title="Snapshot library">SNAP</button>
       <button class="btn btn-diag" @click="showDiag = !showDiag">
         COM {{ showDiag ? '\u25B4' : '\u25BE' }}
       </button>
@@ -452,13 +424,6 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
       style="display: none"
       @change="onFileSelected"
     />
-    <input
-      ref="snapInput"
-      type="file"
-      accept=".fxsnap"
-      style="display: none"
-      @change="onSnapshotSelected"
-    />
     <Teleport to="body">
       <AboutPopup v-if="showAbout" @close="showAbout = false" />
       <CharsetPopup v-if="showCharset" @close="showCharset = false" @copy="v => emit('defchrCopy', v)" />
@@ -526,12 +491,8 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
 }
 .btn:hover:not(:disabled) { background: #3a3a3a; color: #fff; }
 .btn:disabled { opacity: 0.4; cursor: default; }
-.snap-group { display: inline-flex; align-items: center; gap: 0; }
-.snap-group .btn-snap-lib { color: #7eb8f7; border-color: #204050; border-radius: 3px 0 0 3px; border-right: none; }
-.snap-group .btn-snap-lib:hover { background: #102030; color: #aad4ff; }
-.snap-group .btn-snap-io { color: #7eb8f7; border-color: #204050; padding: 2px 3px; border-radius: 0; border-right: none; font-size: 0.65rem; min-width: 0; }
-.snap-group .btn-snap-io:last-child { border-radius: 0 3px 3px 0; border-right: 1px solid #204050; }
-.snap-group .btn-snap-io:hover { background: #102030; color: #aad4ff; }
+.btn-snap-lib { color: #7eb8f7; border-color: #204050; }
+.btn-snap-lib:hover { background: #102030; color: #aad4ff; }
 .btn-sm { padding: 1px 5px; font-size: 0.7rem; }
 .btn-turbo { color: #6a6a6a; border-color: #333; }
 .btn-turbo:hover { color: #8bc34a; border-color: #3a5a20; }

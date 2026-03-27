@@ -1,13 +1,41 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue';
 import { marked } from 'marked';
-import { importSnapshot, emulatorStart } from '../emulator/emulator.js';
+import { importSnapshot, exportSnapshot, emulatorStart } from '../emulator/emulator.js';
 
 const base = import.meta.env.BASE_URL;
 
 const emit = defineEmits<{
   (e: 'close'): void;
 }>();
+
+const snapFileInput = ref<HTMLInputElement | null>(null);
+
+function openImportPicker(): void {
+  snapFileInput.value?.click();
+}
+
+async function onImportSelected(e: Event): Promise<void> {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  input.value = '';
+  const text = await file.text();
+  await importSnapshot(text);
+  emulatorStart();
+  emit('close');
+}
+
+function saveSnapshot(): void {
+  const json = exportSnapshot();
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'snapshot.fxsnap';
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 interface CatalogEntry {
   file: string;
@@ -107,8 +135,13 @@ function onBackdrop(e: MouseEvent): void {
     <div class="snap-popup">
       <div class="snap-header">
         <span class="snap-title">Snapshot Library</span>
+        <div class="snap-header-actions">
+          <button class="snap-btn snap-btn-import" @click="openImportPicker" title="Import snapshot from file">IMPORT</button>
+          <button class="snap-btn snap-btn-save" @click="saveSnapshot" title="Save current state to file">SAVE</button>
+        </div>
         <button class="snap-close" @click="emit('close')">&times;</button>
       </div>
+      <input ref="snapFileInput" type="file" accept=".fxsnap,.json" style="display:none" @change="onImportSelected" />
 
       <div class="snap-body">
         <div v-if="restoreError" class="snap-error">{{ restoreError }}</div>
@@ -183,6 +216,31 @@ function onBackdrop(e: MouseEvent): void {
 .snap-title {
   font-size: 1.12rem;
   color: #fff;
+}
+
+.snap-header-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+  margin-right: 12px;
+}
+
+.snap-btn-import {
+  color: #7eb8f7;
+  border-color: #204050;
+}
+.snap-btn-import:hover {
+  background: #102030;
+  color: #aad4ff;
+}
+
+.snap-btn-save {
+  color: #e0a050;
+  border-color: #504020;
+}
+.snap-btn-save:hover {
+  background: #2a2010;
+  color: #f0c070;
 }
 
 .snap-close {
