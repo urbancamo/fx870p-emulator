@@ -1,0 +1,819 @@
+{
+  "keywords": {
+    "&H": {
+      "file": "commands/AMP_H.md",
+      "purpose": "Converts the 1 through 4-digit hexadecimal value following &H to a decimal value.",
+      "badge": "All Models"
+    },
+    "'": {
+      "file": "commands/REM.md",
+      "purpose": "Allows remarks or comments to be included within a program. This command is not executed.",
+      "badge": "All Models"
+    },
+    "ABS": {
+      "file": "commands/ABS.md",
+      "purpose": "Returns the absolute value of the argument.",
+      "badge": "All Models"
+    },
+    "ACS": {
+      "file": "commands/ASN_ACS_ATN.md",
+      "purpose": "Returns the value of the corresponding inverse trigonometric function value for the argument.",
+      "badge": "All Models"
+    },
+    "ALL": {
+      "file": "commands/LOAD_LOAD_ALL.md",
+      "purpose": "Reads from a file into memory.",
+      "badge": "All Models"
+    },
+    "AND": {
+      "file": "commands/LOGICAL.md",
+      "purpose": "",
+      "badge": "All Models"
+    },
+    "ANGLE": {
+      "file": "commands/ANGLE.md",
+      "purpose": "Specifies the angle unit.",
+      "badge": "All Models"
+    },
+    "ASC": {
+      "file": "commands/ASC.md",
+      "purpose": "Returns the character code corresponding to the character in the",
+      "badge": "All Models"
+    },
+    "ASN": {
+      "file": "commands/ASN_ACS_ATN.md",
+      "purpose": "Returns the value of the corresponding inverse trigonometric function value for the argument.",
+      "badge": "All Models"
+    },
+    "ATN": {
+      "file": "commands/ASN_ACS_ATN.md",
+      "purpose": "Returns the value of the corresponding inverse trigonometric function value for the argument.",
+      "badge": "All Models"
+    },
+    "BEEP": {
+      "file": "commands/BEEP.md",
+      "purpose": "Sounds the buzzer.",
+      "badge": "All Models"
+    },
+    "CALC$": {
+      "file": "commands/CALC_STRING.md",
+      "purpose": "Store a formula in the Function Memory (Formula Storage area).",
+      "badge": "Undocumented"
+    },
+    "CALCJMP": {
+      "file": "commands/CALCJMP.md",
+      "purpose": "Simulate the CALC (Function Memory) key, auto-assigning values to variables",
+      "badge": "Undocumented"
+    },
+    "CHAIN": {
+      "file": "commands/CHAIN.md",
+      "purpose": "Reads and executes a program from the file specified by the file descriptor.",
+      "badge": "FX-870P/VX-4"
+    },
+    "CHR$": {
+      "file": "commands/CHR_STRING.md",
+      "purpose": "Returns a single character which corresponds to the specified character code.",
+      "badge": "All Models"
+    },
+    "CLEAR": {
+      "file": "commands/CLEAR.md",
+      "purpose": "Clears all variables and determines the variable area size in accordance with",
+      "badge": "All Models"
+    },
+    "CLOSE": {
+      "file": "commands/CLOSE.md",
+      "purpose": "Closes files and declares an end to the use of the I/O (input/output) buffer.",
+      "badge": "All Models"
+    },
+    "CLS": {
+      "file": "commands/CLS.md",
+      "purpose": "Clears the display screen.",
+      "badge": "All Models"
+    },
+    "CNT": {
+      "file": "commands/CNT.md",
+      "purpose": "Returns the number of statistically processed data points.",
+      "badge": "FX-870P/VX-4"
+    },
+    "CONT": {
+      "file": "commands/CONT.md",
+      "purpose": "Resume execution of a program stopped by the `STOP` statement or **BRK** key.",
+      "badge": "All Models"
+    },
+    "COR": {
+      "file": "commands/COR.md",
+      "purpose": "Returns the correlation coefficient based on statistically processed paired",
+      "badge": "FX-870P/VX-4"
+    },
+    "COS": {
+      "file": "commands/SIN_COS_TAN.md",
+      "purpose": "Returns the value of the corresponding trigonometric function for the argument.",
+      "badge": "All Models"
+    },
+    "CUR": {
+      "file": "commands/CUR.md",
+      "purpose": "Returns the cube root of the argument.",
+      "badge": "All Models"
+    },
+    "DATA": {
+      "file": "commands/DATA.md",
+      "purpose": "Holds data for reading by the [READ](READ.md) statement.",
+      "badge": "All Models"
+    },
+    "DEFCHR$": {
+      "file": "commands/DEFCHR_STRING.md",
+      "purpose": "Define custom character display patterns.",
+      "badge": "All Models"
+    },
+    "DEFM": {
+      "file": "commands/DEFM.md",
+      "purpose": "",
+      "badge": "All Models"
+    },
+    "DEFSEG": {
+      "file": "commands/DEFSEG.md",
+      "purpose": "Specifies segment base address.",
+      "badge": "All Models"
+    },
+    "DEG": {
+      "file": "commands/DEG.md",
+      "purpose": "Converts a sexagesimal value to a decimal value.",
+      "badge": "All Models"
+    },
+    "DELETE": {
+      "file": "commands/DELETE.md",
+      "purpose": "Delete part of a program by line number.",
+      "badge": "All Models"
+    },
+    "DIM": {
+      "file": "commands/DIM.md",
+      "purpose": "Declares an array.",
+      "badge": "All Models"
+    },
+    "DMS$": {
+      "file": "commands/DMS_STRING.md",
+      "purpose": "Converts a decimal value to a sexagesimal string.",
+      "badge": "All Models"
+    },
+    "DSKF": {
+      "file": "commands/DSKF.md",
+      "purpose": "Returns the number of remaining clusters on the floppy disk.",
+      "badge": "FX-870P/VX-4"
+    },
+    "EDIT": {
+      "file": "commands/EDIT.md",
+      "purpose": "Enters the BASIC edit mode.",
+      "badge": "All Models"
+    },
+    "ELSE": {
+      "file": "commands/IF_THEN_ELSE.md",
+      "purpose": "Executes the `THEN` statement or [GOTO](GOTO.md) statement when the specified",
+      "badge": "All Models"
+    },
+    "END": {
+      "file": "commands/END.md",
+      "purpose": "Terminates program execution.",
+      "badge": "All Models"
+    },
+    "EOF": {
+      "file": "commands/EOF.md",
+      "purpose": "Indicates the end of file reading.",
+      "badge": "All Models"
+    },
+    "EOX": {
+      "file": "commands/EOX_EOY.md",
+      "purpose": "Estimated value functions based on linear regression of statistical data.",
+      "badge": "FX-870P/VX-4"
+    },
+    "EOY": {
+      "file": "commands/EOX_EOY.md",
+      "purpose": "Estimated value functions based on linear regression of statistical data.",
+      "badge": "FX-870P/VX-4"
+    },
+    "ERASE": {
+      "file": "commands/ERASE.md",
+      "purpose": "Erases a specified array.",
+      "badge": "All Models"
+    },
+    "ERL": {
+      "file": "commands/ERL.md",
+      "purpose": "Returns the number of a line in which an error has been generated.",
+      "badge": "All Models"
+    },
+    "ERR": {
+      "file": "commands/ERR.md",
+      "purpose": "Returns the error code which corresponds to a generated error.",
+      "badge": "All Models"
+    },
+    "ERROR": {
+      "file": "commands/ON_ERROR_GOTO.md",
+      "purpose": "Specifies the line number to which execution branches when an error is generated.",
+      "badge": "All Models"
+    },
+    "EXP": {
+      "file": "commands/EXP.md",
+      "purpose": "Returns the value of the exponential function for the argument.",
+      "badge": "All Models"
+    },
+    "FACT": {
+      "file": "commands/FACT.md",
+      "purpose": "Returns the factorial of argument.",
+      "badge": "All Models"
+    },
+    "FILES": {
+      "file": "commands/FILES.md",
+      "purpose": "Displays file names, attributes, and sizes on floppy disk.",
+      "badge": "FX-870P/VX-4"
+    },
+    "FIX": {
+      "file": "commands/FIX.md",
+      "purpose": "Returns the integer part of the argument.",
+      "badge": "All Models"
+    },
+    "FOR": {
+      "file": "commands/FOR_NEXT_STEP.md",
+      "purpose": "Executes the program lines between the `FOR` statement and `NEXT` statements",
+      "badge": "All Models"
+    },
+    "FORMAT": {
+      "file": "commands/FORMAT.md",
+      "purpose": "Format a floppy disk.",
+      "badge": "FX-870P/VX-4"
+    },
+    "FRAC": {
+      "file": "commands/FRAC.md",
+      "purpose": "Returns the fractional part of the argument.",
+      "badge": "All Models"
+    },
+    "FRE": {
+      "file": "commands/FRE.md",
+      "purpose": "Returns memory area size in accordance with argument.",
+      "badge": "All Models"
+    },
+    "GOSUB": {
+      "file": "commands/GOSUB.md",
+      "purpose": "Jumps to a specified subroutine.",
+      "badge": "All Models"
+    },
+    "GOTO": {
+      "file": "commands/GOTO.md",
+      "purpose": "Branches unconditionally to a specified branch destination.",
+      "badge": "All Models"
+    },
+    "HEX$": {
+      "file": "commands/HEX_STRING.md",
+      "purpose": "Returns a hexadecimal string for a decimal value specified in the argument.",
+      "badge": "All Models"
+    },
+    "HYP": {
+      "file": "commands/HYP_ASN_ACS_ATN.md",
+      "purpose": "Returns the value of the corresponding inverse hyperbolic function value for the argument.",
+      "badge": "All Models"
+    },
+    "HYP ACS": {
+      "file": "commands/HYP_ASN_ACS_ATN.md",
+      "purpose": "Returns the value of the corresponding inverse hyperbolic function value for the argument.",
+      "badge": "All Models"
+    },
+    "HYP ASN": {
+      "file": "commands/HYP_ASN_ACS_ATN.md",
+      "purpose": "Returns the value of the corresponding inverse hyperbolic function value for the argument.",
+      "badge": "All Models"
+    },
+    "HYP ATN": {
+      "file": "commands/HYP_ASN_ACS_ATN.md",
+      "purpose": "Returns the value of the corresponding inverse hyperbolic function value for the argument.",
+      "badge": "All Models"
+    },
+    "HYP COS": {
+      "file": "commands/HYP_SIN_COS_TAN.md",
+      "purpose": "Returns the value of the corresponding hyperbolic trigonometric function value for the argument.",
+      "badge": "All Models"
+    },
+    "HYP SIN": {
+      "file": "commands/HYP_SIN_COS_TAN.md",
+      "purpose": "Returns the value of the corresponding hyperbolic trigonometric function value for the argument.",
+      "badge": "All Models"
+    },
+    "HYP TAN": {
+      "file": "commands/HYP_SIN_COS_TAN.md",
+      "purpose": "Returns the value of the corresponding hyperbolic trigonometric function value for the argument.",
+      "badge": "All Models"
+    },
+    "IF": {
+      "file": "commands/IF_THEN_ELSE.md",
+      "purpose": "Executes the `THEN` statement or [GOTO](GOTO.md) statement when the specified",
+      "badge": "All Models"
+    },
+    "INKEY$": {
+      "file": "commands/INKEY_STRING.md",
+      "purpose": "Assigns a single character input from the keyboard to a variable.",
+      "badge": "All Models"
+    },
+    "INPUT": {
+      "file": "commands/INPUT.md",
+      "purpose": "Assigns keyboard data input to a variable.",
+      "badge": "All Models"
+    },
+    "INPUT#": {
+      "file": "commands/INPUT_HASH.md",
+      "purpose": "Reads data from a sequential file.",
+      "badge": "All Models"
+    },
+    "INPUT$": {
+      "file": "commands/INPUT_STRING.md",
+      "purpose": "Assigns a specified number of characters from the keyboard to a variable.",
+      "badge": "All Models"
+    },
+    "INPUT@": {
+      "file": "commands/INPUT_AT.md",
+      "purpose": "Restricts input to a maximum number of characters. No question mark is",
+      "badge": "Undocumented"
+    },
+    "INT": {
+      "file": "commands/INT.md",
+      "purpose": "Returns the largest integer which does not exceed the value of the argument.",
+      "badge": "All Models"
+    },
+    "KILL": {
+      "file": "commands/KILL.md",
+      "purpose": "Delete a file from floppy disk.",
+      "badge": "FX-870P/VX-4"
+    },
+    "LEFT$": {
+      "file": "commands/LEFT_STRING.md",
+      "purpose": "Returns a substring of a specified length from the left of a string.",
+      "badge": "All Models"
+    },
+    "LEN": {
+      "file": "commands/LEN.md",
+      "purpose": "Returns a value which represents the number of characters contained in a string.",
+      "badge": "All Models"
+    },
+    "LET": {
+      "file": "commands/LET.md",
+      "purpose": "Assigns the value of an expression on the right side of an equation to the",
+      "badge": "All Models"
+    },
+    "LINE": {
+      "file": "commands/LINE_INPUT_HASH.md",
+      "purpose": "Read one line of character string data from a sequential file.",
+      "badge": "FX-870P/VX-4"
+    },
+    "LINE INPUT #": {
+      "file": "commands/LINE_INPUT_HASH.md",
+      "purpose": "Read one line of character string data from a sequential file.",
+      "badge": "FX-870P/VX-4"
+    },
+    "LIST": {
+      "file": "commands/LIST.md",
+      "purpose": "Displays all or part of the current specified program.",
+      "badge": "All Models"
+    },
+    "LIST ALL": {
+      "file": "commands/LIST.md",
+      "purpose": "Displays all or part of the current specified program.",
+      "badge": "All Models"
+    },
+    "LIST#": {
+      "file": "commands/LIST_HASH.md",
+      "purpose": "Displays all DATA BANK data.",
+      "badge": "All Models"
+    },
+    "LLIST": {
+      "file": "commands/LLIST.md",
+      "purpose": "Output program contents to the printer.",
+      "badge": "All Models"
+    },
+    "LLIST#": {
+      "file": "commands/LLIST_HASH.md",
+      "purpose": "Outputs all DATA BANK data to printer.",
+      "badge": "All Models"
+    },
+    "LN": {
+      "file": "commands/LOG_LN.md",
+      "purpose": "Returns the value of the corresponding logarithm function for the argument.",
+      "badge": "All Models"
+    },
+    "LOAD": {
+      "file": "commands/LOAD_LOAD_ALL.md",
+      "purpose": "Reads from a file into memory.",
+      "badge": "All Models"
+    },
+    "LOAD ALL": {
+      "file": "commands/LOAD_LOAD_ALL.md",
+      "purpose": "Reads from a file into memory.",
+      "badge": "All Models"
+    },
+    "LOAD#": {
+      "file": "commands/LOAD_HASH.md",
+      "purpose": "Reads data into DATA BANK area.",
+      "badge": "All Models"
+    },
+    "LOCATE": {
+      "file": "commands/LOCATE.md",
+      "purpose": "Moves the cursor to a specified position on the virtual screen.",
+      "badge": "All Models"
+    },
+    "LOG": {
+      "file": "commands/LOG_LN.md",
+      "purpose": "Returns the value of the corresponding logarithm function for the argument.",
+      "badge": "All Models"
+    },
+    "LPRINT": {
+      "file": "commands/LPRINT.md",
+      "purpose": "Output text to the printer.",
+      "badge": "All Models"
+    },
+    "LRA": {
+      "file": "commands/LRA_LRB.md",
+      "purpose": "Linear regression functions for statistically processed paired data.",
+      "badge": "FX-870P/VX-4"
+    },
+    "LRB": {
+      "file": "commands/LRA_LRB.md",
+      "purpose": "Linear regression functions for statistically processed paired data.",
+      "badge": "FX-870P/VX-4"
+    },
+    "MEANX": {
+      "file": "commands/MEANX_MEANY.md",
+      "purpose": "Statistical mean (average) functions for processed data.",
+      "badge": "FX-870P/VX-4"
+    },
+    "MEANY": {
+      "file": "commands/MEANX_MEANY.md",
+      "purpose": "Statistical mean (average) functions for processed data.",
+      "badge": "FX-870P/VX-4"
+    },
+    "MERGE": {
+      "file": "commands/MERGE.md",
+      "purpose": "Mix a program from a file with the current program in memory.",
+      "badge": "All Models"
+    },
+    "MID$": {
+      "file": "commands/MID_STRING.md",
+      "purpose": "Returns a substring of a specified length from a specified position",
+      "badge": "All Models"
+    },
+    "MOD": {
+      "file": "commands/MOD.md",
+      "purpose": "Returns the remainder of integer division.",
+      "badge": "All Models"
+    },
+    "MODE (SPECIAL)": {
+      "file": "commands/MODE.md",
+      "purpose": "Hidden and special mode instructions for advanced operations.",
+      "badge": "FX-870P/VX-4"
+    },
+    "NAME": {
+      "file": "commands/NAME.md",
+      "purpose": "Rename a file on floppy disk.",
+      "badge": "FX-870P/VX-4"
+    },
+    "NCR": {
+      "file": "commands/NCR.md",
+      "purpose": "Returns the combination *n*C*r* for the values of *n* and *r*.",
+      "badge": "All Models"
+    },
+    "NEW": {
+      "file": "commands/NEW.md",
+      "purpose": "Deletes a program.",
+      "badge": "All Models"
+    },
+    "NEW ALL": {
+      "file": "commands/NEW.md",
+      "purpose": "Deletes a program.",
+      "badge": "All Models"
+    },
+    "NEW#": {
+      "file": "commands/NEW_HASH.md",
+      "purpose": "Clears DATA BANK data.",
+      "badge": "All Models"
+    },
+    "NEXT": {
+      "file": "commands/FOR_NEXT_STEP.md",
+      "purpose": "Executes the program lines between the `FOR` statement and `NEXT` statements",
+      "badge": "All Models"
+    },
+    "NOT": {
+      "file": "commands/LOGICAL.md",
+      "purpose": "",
+      "badge": "All Models"
+    },
+    "NPR": {
+      "file": "commands/NPR.md",
+      "purpose": "Returns the permutation *n*P*r* for the values of *n* and *r*.",
+      "badge": "All Models"
+    },
+    "ON": {
+      "file": "commands/ON_ERROR_GOTO.md",
+      "purpose": "Specifies the line number to which execution branches when an error is generated.",
+      "badge": "All Models"
+    },
+    "ON ERROR GOTO": {
+      "file": "commands/ON_ERROR_GOTO.md",
+      "purpose": "Specifies the line number to which execution branches when an error is generated.",
+      "badge": "All Models"
+    },
+    "ON GOSUB": {
+      "file": "commands/ON_GOSUB.md",
+      "purpose": "Jumps to a specified subroutine in accordance with a specified branching condition.",
+      "badge": "All Models"
+    },
+    "ON GOTO": {
+      "file": "commands/ON_GOTO.md",
+      "purpose": "Jumps to a specified branch destination in accordance with a specified branching condition.",
+      "badge": "All Models"
+    },
+    "OPEN": {
+      "file": "commands/OPEN.md",
+      "purpose": "Declares a file open for use.",
+      "badge": "All Models"
+    },
+    "OR": {
+      "file": "commands/LOGICAL.md",
+      "purpose": "",
+      "badge": "All Models"
+    },
+    "PASS": {
+      "file": "commands/PASS.md",
+      "purpose": "Specifies or cancels a password.",
+      "badge": "All Models"
+    },
+    "PBGET": {
+      "file": "commands/PBLOAD_PBGET.md",
+      "purpose": "",
+      "badge": "FX-850P/880P"
+    },
+    "PBLOAD": {
+      "file": "commands/PBLOAD_PBGET.md",
+      "purpose": "",
+      "badge": "FX-850P/880P"
+    },
+    "PEEK": {
+      "file": "commands/PEEK.md",
+      "purpose": "Returns the value stored at the specified memory address.",
+      "badge": "All Models"
+    },
+    "PI": {
+      "file": "commands/PI.md",
+      "purpose": "Returns the value of pi.",
+      "badge": "All Models"
+    },
+    "POKE": {
+      "file": "commands/POKE.md",
+      "purpose": "Writes data to a specified address.",
+      "badge": "All Models"
+    },
+    "POL": {
+      "file": "commands/POL.md",
+      "purpose": "Converts rectangular coordinates (x,y) to polar coordinates (r,theta).",
+      "badge": "All Models"
+    },
+    "PRINT": {
+      "file": "commands/PRINT.md",
+      "purpose": "Displays data on the screen.",
+      "badge": "All Models"
+    },
+    "PRINT USING": {
+      "file": "commands/PRINT_USING.md",
+      "purpose": "Display output formatted according to a format specification.",
+      "badge": "FX-870P/VX-4"
+    },
+    "PRINT#": {
+      "file": "commands/PRINT_HASH.md",
+      "purpose": "Outputs data to a sequential file.",
+      "badge": "All Models"
+    },
+    "RAN#": {
+      "file": "commands/RAN_HASH.md",
+      "purpose": "Returns a random value in the range of 0 to 1.",
+      "badge": "All Models"
+    },
+    "READ": {
+      "file": "commands/READ.md",
+      "purpose": "Reads the contents of the [DATA](DATA.md) statement into memory.",
+      "badge": "All Models"
+    },
+    "READ#": {
+      "file": "commands/READ_HASH.md",
+      "purpose": "Reads data from DATA BANK area.",
+      "badge": "All Models"
+    },
+    "REC": {
+      "file": "commands/REC.md",
+      "purpose": "Converts polar coordinates (r,theta) to rectangular coordinates (x,y).",
+      "badge": "All Models"
+    },
+    "REM": {
+      "file": "commands/REM.md",
+      "purpose": "Allows remarks or comments to be included within a program. This command is not executed.",
+      "badge": "All Models"
+    },
+    "RENUM": {
+      "file": "commands/RENUM.md",
+      "purpose": "Renumber program lines at regular intervals.",
+      "badge": "All Models"
+    },
+    "RESTORE": {
+      "file": "commands/RESTORE.md",
+      "purpose": "Specifies a [DATA](DATA.md) line for reading by the [READ](READ.md) statement.",
+      "badge": "All Models"
+    },
+    "RESTORE#": {
+      "file": "commands/RESTORE_HASH.md",
+      "purpose": "Searches specific data in the DATA BANK area and changes the read sequence",
+      "badge": "All Models"
+    },
+    "RESUME": {
+      "file": "commands/RESUME.md",
+      "purpose": "Returns from an error handling routine to the main routine.",
+      "badge": "All Models"
+    },
+    "RETURN": {
+      "file": "commands/RETURN.md",
+      "purpose": "Returns execution from a subroutine to the main program.",
+      "badge": "All Models"
+    },
+    "RIGHT$": {
+      "file": "commands/RIGHT_STRING.md",
+      "purpose": "Returns a substring of a specified length from the right of a string.",
+      "badge": "All Models"
+    },
+    "ROUND": {
+      "file": "commands/ROUND.md",
+      "purpose": "Rounds the argument at the specified digit.",
+      "badge": "All Models"
+    },
+    "RUN": {
+      "file": "commands/RUN.md",
+      "purpose": "Executes a program.",
+      "badge": "All Models"
+    },
+    "SAVE": {
+      "file": "commands/SAVE_SAVE_ALL.md",
+      "purpose": "Saves a program to a specified file.",
+      "badge": "All Models"
+    },
+    "SAVE ALL": {
+      "file": "commands/SAVE_SAVE_ALL.md",
+      "purpose": "Saves a program to a specified file.",
+      "badge": "All Models"
+    },
+    "SAVE#": {
+      "file": "commands/SAVE_HASH.md",
+      "purpose": "Outputs DATA BANK data to the file specified by the file descriptor.",
+      "badge": "All Models"
+    },
+    "SDX": {
+      "file": "commands/SDX_SDY.md",
+      "purpose": "Standard deviation functions for statistically processed data.",
+      "badge": "FX-870P/VX-4"
+    },
+    "SDXN": {
+      "file": "commands/SDX_SDY.md",
+      "purpose": "Standard deviation functions for statistically processed data.",
+      "badge": "FX-870P/VX-4"
+    },
+    "SDY": {
+      "file": "commands/SDX_SDY.md",
+      "purpose": "Standard deviation functions for statistically processed data.",
+      "badge": "FX-870P/VX-4"
+    },
+    "SDYN": {
+      "file": "commands/SDX_SDY.md",
+      "purpose": "Standard deviation functions for statistically processed data.",
+      "badge": "FX-870P/VX-4"
+    },
+    "SET": {
+      "file": "commands/SET.md",
+      "purpose": "Specifies output format of numeric data.",
+      "badge": "All Models"
+    },
+    "SGN": {
+      "file": "commands/SGN.md",
+      "purpose": "Returns a value which corresponds to the sign of the argument.",
+      "badge": "All Models"
+    },
+    "SIN": {
+      "file": "commands/SIN_COS_TAN.md",
+      "purpose": "Returns the value of the corresponding trigonometric function for the argument.",
+      "badge": "All Models"
+    },
+    "SQR": {
+      "file": "commands/SQR.md",
+      "purpose": "Returns the square root of the argument.",
+      "badge": "All Models"
+    },
+    "STAT": {
+      "file": "commands/STAT.md",
+      "purpose": "Enter statistical data.",
+      "badge": "FX-870P/VX-4"
+    },
+    "STAT CLEAR": {
+      "file": "commands/STAT_CLEAR.md",
+      "purpose": "Clear (initialize) statistical processing data.",
+      "badge": "FX-870P/VX-4"
+    },
+    "STOP": {
+      "file": "commands/STOP.md",
+      "purpose": "Temporarily halts program execution.",
+      "badge": "All Models"
+    },
+    "STR$": {
+      "file": "commands/STR_STRING.md",
+      "purpose": "Converts the argument (numeric value or numeric expression value)",
+      "badge": "All Models"
+    },
+    "SUMX": {
+      "file": "commands/SUMX_SUMY.md",
+      "purpose": "Statistical sum functions for processed data.",
+      "badge": "FX-870P/VX-4"
+    },
+    "SUMX2": {
+      "file": "commands/SUMX_SUMY.md",
+      "purpose": "Statistical sum functions for processed data.",
+      "badge": "FX-870P/VX-4"
+    },
+    "SUMXY": {
+      "file": "commands/SUMX_SUMY.md",
+      "purpose": "Statistical sum functions for processed data.",
+      "badge": "FX-870P/VX-4"
+    },
+    "SUMY": {
+      "file": "commands/SUMX_SUMY.md",
+      "purpose": "Statistical sum functions for processed data.",
+      "badge": "FX-870P/VX-4"
+    },
+    "SUMY2": {
+      "file": "commands/SUMX_SUMY.md",
+      "purpose": "Statistical sum functions for processed data.",
+      "badge": "FX-870P/VX-4"
+    },
+    "SYSTEM": {
+      "file": "commands/SYSTEM.md",
+      "purpose": "Display BASIC system settings and status information.",
+      "badge": "All Models"
+    },
+    "TAB": {
+      "file": "commands/TAB.md",
+      "purpose": "Outputs a horizontal tab specification to the screen or printer.",
+      "badge": "All Models"
+    },
+    "TAN": {
+      "file": "commands/SIN_COS_TAN.md",
+      "purpose": "Returns the value of the corresponding trigonometric function for the argument.",
+      "badge": "All Models"
+    },
+    "THEN": {
+      "file": "commands/IF_THEN_ELSE.md",
+      "purpose": "Executes the `THEN` statement or [GOTO](GOTO.md) statement when the specified",
+      "badge": "All Models"
+    },
+    "TROFF": {
+      "file": "commands/TROFF.md",
+      "purpose": "Cancels the trace mode.",
+      "badge": "All Models"
+    },
+    "TRON": {
+      "file": "commands/TRON.md",
+      "purpose": "Specifies the trace mode.",
+      "badge": "All Models"
+    },
+    "USING": {
+      "file": "commands/PRINT_USING.md",
+      "purpose": "Display output formatted according to a format specification.",
+      "badge": "FX-870P/VX-4"
+    },
+    "VAL": {
+      "file": "commands/VAL.md",
+      "purpose": "Converts a numeric character string to a numeric value.",
+      "badge": "All Models"
+    },
+    "VALF": {
+      "file": "commands/VALF.md",
+      "purpose": "Performs calculation of a numeric expression expressed as a string, and returns",
+      "badge": "All Models"
+    },
+    "VARLIST": {
+      "file": "commands/VARLIST.md",
+      "purpose": "Displays variable names and array names.",
+      "badge": "All Models"
+    },
+    "VERIFY": {
+      "file": "commands/VERIFY.md",
+      "purpose": "Verifies the contents of a file stored on cassette tape.",
+      "badge": "FX-850P/880P"
+    },
+    "WRITE#": {
+      "file": "commands/WRITE_HASH.md",
+      "purpose": "Rewrites and deletes DATA BANK data.",
+      "badge": "All Models"
+    },
+    "XOR": {
+      "file": "commands/LOGICAL.md",
+      "purpose": "",
+      "badge": "All Models"
+    }
+  }
+}
