@@ -1,6 +1,4 @@
-# Sorcerer's Cave Rules
-
-**Rules for THE SORCERER’S CAVE**
+# Rules for THE SORCERER’S CAVE
 
 ---
 
@@ -113,24 +111,84 @@ Each player makes up his exploring party by choosing one or more creatures from 
 
 #### Area Cards
 
-Area card types:
-- **COR**: Corridor
-- **CHA**: Chamber
-- **SPC**: Special
+I've encoded the area cards as a string, this is the key:
 
-Stair types:
-- **U**: Up
-- **D**: Down
-- 
-| Type | North | East | South | West | Stair | Special       |
-|------|-------|------|-------|------|-------|---------------|
-| COR  | Y     | N    | N     | Y    |       |               |
-| SPC  | Y     | Y    | Y     | Y    | U     | `THE GATEWAY` |
-| COR  | N     | Y    | Y     | N    |       |               | 
-| COR  | N     | Y    | Y     | Y    | U     |               |
-| COR  | N     | Y    | Y     | Y    | D     |               |
-| COR  | N     | Y    | Y     | N    |       |               |
- 
+| Character | Meaning                             |
+|-----------|-------------------------------------|
+| `N`       | Exit to the North                   |
+| `E`       | Exit to the East                    |
+| `S`       | Exit to the South                   |
+| `W`       | Exit to the West                    |
+| `C`       | Chamber (if absent then a corridor) |
+| `U`       | Staircase up                        |
+| `D`       | Staircase Down                      |
+
+This is the full set of cards, with the encoded string in column 1.
+
+| Card String | Special          |
+|-------------|------------------|
+| `NSEWUD`    |                  |
+| `NESC`      |                  |
+| `NSWD`      |                  |
+| `NESC`      |                  |
+| `NSEWD`     |                  |
+| `NSEWC`     | `TOMB OF KINGS`  |
+| `NSEWC`     | `THE GREAT HALL` |
+| `NSEWC`     | `DEEP POOL`      |
+| `NSEWC`     |                  |
+| `NSEW`      |                  |
+| `NSWC`      |                  |
+| `NESC`      |                  |
+| `NW`        |                  |
+| `NES`       |                  |
+| `NEW`       |                  |
+| `NSEWC`     | `VIPER PIT`      |
+| `NW`        |                  |
+| `NEWU`      |                  |
+| `NEWD`      |                  |
+| `NW`        |                  |
+| `NW`        |                  |
+| `NSEWU`     | `THE GATEWAY`    |
+| `NESU`      |                  |
+| `NESD`      |                  |
+| `ESW`       |                  |
+| `NSEWC`     |                  |
+| `NEWC`      |                  |
+| `NSWC`      |                  |
+| `NED`       |                  |
+| `ESWC`      |                  |
+| `ESW`       |                  |
+| `NS`        |                  |
+| `NSD`       |                  |
+| `NSEWC`     |                  |
+| `NESC`      |                  |
+| `NSWC`      |                  |
+| `ESWC`      |                  |
+| `NSEWU`     |                  |
+| `ESWU`      |                  |
+| `NEW`       |                  |
+| `NE`        |                  |
+| `EWD`       |                  |
+| `NSEWC`     |                  |
+| `NE`        |                  |
+| `ESWD`      |                  |
+| `NEWC`      |                  |
+| `EW`        |                  |
+| `SWD`       |                  |
+| `NESW`      |                  |
+| `NES`       |                  |
+| `NEWC`      |                  |
+| `NSWU`      |                  |
+| `NESC`      |                  |
+| `NSW`       |                  |
+| `NSW`       |                  |
+| `SW`        |                  |
+| `ESWD`      |                  |
+| `EW`        |                  |
+| `NS`        |                  |
+| `SW`        |                  |
+| `NSWC`      |                  |
+
 #### Creature Cards
 
 **Starting Creatures**
@@ -263,7 +321,7 @@ When a party has entered a chamber containing strangers, it must in the same tur
 `SPECTRE`, `DRAGON`, `WIZARD`, `HERO` or `WOMAN-HERO`, `PRIEST`, `MAN` or `WOMAN`, `GIANT`,
 `OGRE`, `TROLL`, `DWARF`
 
-   (that is, `SPECTRE`, `DRAGON`, `HUMANS` in order of strength, `IHUMANS` in order of strength)
+(that is, `SPECTRE`, `DRAGON`, `HUMANS` in order of strength, `IHUMANS` in order of strength)
 
 The other strangers will react in the same way as the leader. Roll a die and consult the leader’s reaction table. Note that a bonus-on this die roll (through having a hero or the ring) does not apply to a score of 1, which will always cause potentially unfriendly strangers to attack.
 
@@ -352,17 +410,25 @@ A party which retreats must leave behind any treasure dropped in the area, inclu
 
 ### Special Area Cards
 
-**Viper Pit**, On first turning the card over you move your token onto it, but not onto the narrow ledge. On the following turn you may either go back to the area you were last in or cross one segment of the narrow ledge and, if you wish, try to leave by that doorway. To cross another segment and proceed through that doorway requires another turn.
+#### Viper Pit
+On first turning the card over you move your token onto it, but not onto the narrow ledge. On the following turn you may either go back to the area you were last in or cross one segment of the narrow ledge and, if you wish, try to leave by that doorway. To cross another segment and proceed through that doorway requires another turn.
 
 Any treasure carried by a creature who falls off the ledge remains in the pit, and is recoverable only by a party with the charmed flute. Treasure may be deliberately cast into the pit. 
 
 A stairway or trap leading to the viper pit comes out ona safe island in the middle.
 
-**Deep pool**. On first turning the card over you move your token onto it, but not across the water. On the following turn you may either move back to the area you were last in or cross the water and proceed through any doorway. If a giant has to carry across more than one load of heavy treasure there is a delay of one turn per additional load before the party can proceed. 
+#### Deep pool
+On first turning the card over you move your token onto it, but not across the water. On the following turn you may either move back to the area you were last in or cross the water and proceed through any doorway. If a giant has to carry across more than one load of heavy treasure there is a delay of one turn per additional load before the party can proceed. 
 
 Heavy treasure that has to be left behind is left in the doorway. Treasure may be deliberately cast into the pool, and is recoverable only by a giant.
 
 A stairway or trap leading to the deep pool comes out on an island in the middle. Treasure may be left on this island.
+
+#### The Great Hall
+Draw 2 extra small cards.
+
+#### Tomb of Kings
+Draw 1 extra small card.
 
 ### Hazard Cards
 When two or more different hazard cards are drawn in the same chamber, they are dealt with in the order in which they are listed here, and before any other cards in the chamber are dealt with. 
