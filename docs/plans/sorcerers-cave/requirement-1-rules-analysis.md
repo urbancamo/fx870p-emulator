@@ -26,6 +26,12 @@ The creature table for Cave Creatures lists point values for most creatures, but
 
 **Decision needed:** Assign point values to DRAGON and SPECTRE. Suggest: DRAGON = 10 (doubled to 20 for the slayer), SPECTRE = 5.
 
+**CONFIRMATION:**
+the point value is assigned at the end of the game, when either the character is part of the party
+or it is an artifact or treasure carried out of the cave. Neither of these characters can be a member of the 
+party, so no point value can be assigned. If it makes sense to clarify this in the rules please update them
+so there is no longer any ambiguity. No point values assigned to any character. 
+
 ### 1.2 Medusa — Missing from All Tables
 
 MEDUSA is referenced in the Hazard Cards section and the rules mention her multiple times (she turns creatures to stone, can be put to sleep with lotus dust, wizard with magic staff is immune). However:
@@ -41,6 +47,10 @@ MEDUSA is referenced in the Hazard Cards section and the rules mention her multi
 - Suggestion: roll a die per creature, on 1-3 the creature is turned to stone. Wizard with magic staff is immune. Lotus dust puts her to sleep.
 - Number in pack: 1
 
+**CONFIRMATION:**
+Medusa is effectively a Hazard card yes. I had missed the card description in the rules, which I've added now, so
+hopefully that will fill in the gaps.
+
 ### 1.3 Vipers in the Viper Pit — Mechanics Unclear
 
 The Viper Pit card is described as a special area with a narrow ledge, but the actual viper mechanics are vague:
@@ -50,6 +60,13 @@ The Viper Pit card is described as a special area with a narrow ledge, but the a
 - The charmed flute "lulls vipers to sleep" — does this make crossing safe?
 
 **Decision needed:** Define viper pit crossing mechanics. Suggestion: roll a die per creature per segment. On a 1, the creature falls and is killed. Charmed flute makes crossing automatic (no roll needed). Treasure from fallen creatures stays in the pit.
+
+**CONFIRMATION:**
+You roll a die for each member of the party for each segment of the pit, for example if you want to cross after entering via the North entrance to the South entrance, you need to roll once for each party on the segment
+North Exit to East Exit, then East Exit to South Exit.
+
+If a creature falls they are lost in the pit and removed from the party. If the creature falls into the pit 
+and treasure it is carrying remains in the pit, EXCEPT if any party has a charmed flute. This allows a party to retrieve treasure remaining in the pit.
 
 ### 1.4 Deep Pool — Swimming/Crossing Mechanics
 
@@ -61,11 +78,15 @@ The Deep Pool says "on the following turn you may cross the water and proceed th
 
 **Decision needed:** Assume all creatures can cross the water. Only giants carrying heavy treasure need extra turns (1 extra turn per additional load beyond the first). Non-giants must drop heavy treasure at the doorway before crossing.
 
+**Confirmation: ** yes this is my understanding of the rules.
+
 ### 1.5 Treasure Redistribution Timing
 
 The rules say "A player may redistribute treasure among the creatures of his party at the beginning or end of a turn, provided the party is not involved in a fight at the time." But in solitaire, what counts as "beginning" or "end" of a turn when there's only one player?
 
 **Decision needed:** Allow redistribution at the start of each turn (before movement) and after all events in a chamber are resolved. Not during fights.
+
+**Confirmation**: yes that sounds right.
 
 ### 1.6 What Happens to Treasure When All Creatures Die?
 
@@ -73,11 +94,15 @@ If a creature carrying treasure is killed, the treasure is dropped in the curren
 
 **Decision needed:** In solitaire, if all creatures die, the game is over. No need to track curses post-death.
 
+** Confirmation**: correct for solitaire. For multi-player games the treasure remains in the chamber in which  it is dropped.
+
 ### 1.7 WOMAN Creature Appears in Both Starting and Cave Tables
 
 The WOMAN appears in both the Starting Creatures table (selection value 2, fighting strength 2, carries 25kg, "Befriends UNICORN") and... wait, there is also a WOMAN in the starting creatures with selection value 5, fighting strength 4, carries 50kg, "Has capabilities of WOMAN and HERO". That second entry appears to be mislabeled — it should be the **WOMAN-HERO** (or **HEROINE**) based on its capabilities matching the Cave Creature table entry for WOMAN HERO.
 
 **Decision needed:** The second WOMAN entry in the Starting Creatures table (selection value 5, str 4, 50kg) is actually the WOMAN-HERO/HEROINE. Label it as such.
+
+**Confirmation:** I've fixed the starting creatures table with label WOMAN-HERO.
 
 ---
 
@@ -96,6 +121,8 @@ But the interaction is unclear in some cases:
 
 **Resolution:** Yes — hand-to-hand uses total strength (fighting + magical). Background uses magical power only. This is consistent with the example in the rules.
 
+**Confirmation**: resolution is correct.
+
 ### 2.2 Who Fights the Spectre When No Magical Power Available?
 
 The rules say: "In any round of a fight in which a party does not have any magical power to pit against a spectre, the strongest creature in the party must be matched against the spectre, and is automatically slain."
@@ -103,6 +130,8 @@ The rules say: "In any round of a fight in which a party does not have any magic
 But what if the party has the Magic Sword? The rules also say: "Spectres cannot be fought hand-to-hand, except by a man, woman, or hero bearing the magic sword."
 
 **Resolution:** If a party has a human creature with the Magic Sword, they can fight the Spectre using the sword (their fighting strength). If no Magic Sword and no magical power, the strongest creature is automatically slain.
+
+**Confirmation**: resolution is correct.
 
 ### 2.3 Multiple Creatures vs Single Enemy — Who Dies?
 
@@ -152,6 +181,8 @@ As noted in 1.7 above, there are two WOMAN entries in the Starting Creatures tab
 This is a significant difference. Starting trolls are weaker carriers than cave trolls?
 
 **Decision needed:** This appears to be an error. The cave troll value of 75 kg seems more reasonable for a creature with fighting strength 4. Suggest using 75 kg for all trolls unless the designer intended starting trolls to be weaker.
+
+**Confirmation**: 75KG is correct and has been fixed in the rules
 
 ### 3.3 Errata Note About Wizard Magical Power
 
