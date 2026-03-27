@@ -106,6 +106,31 @@ const defchrText = ref('');
 
 watch(docLayout, (v) => localStorage.setItem('docLayout', v));
 
+// ─── draggable divider for BASIC/DOC side-by-side split ─────────────────────
+const DOC_SPLIT_KEY = 'fx870p-doc-split';
+const docSplitRatio = ref(parseFloat(localStorage.getItem(DOC_SPLIT_KEY) || '0.4'));
+const docDragging = ref(false);
+
+function onDocDividerDown(e: PointerEvent): void {
+  docDragging.value = true;
+  (e.target as HTMLElement).setPointerCapture(e.pointerId);
+}
+
+function onDocDividerMove(e: PointerEvent): void {
+  if (!docDragging.value) return;
+  const container = (e.target as HTMLElement).parentElement;
+  if (!container) return;
+  const rect = container.getBoundingClientRect();
+  const ratio = (e.clientX - rect.left) / rect.width;
+  docSplitRatio.value = Math.max(0.2, Math.min(0.8, ratio));
+}
+
+function onDocDividerUp(): void {
+  if (!docDragging.value) return;
+  docDragging.value = false;
+  localStorage.setItem(DOC_SPLIT_KEY, docSplitRatio.value.toFixed(3));
+}
+
 function onOpenDoc(keyword: string): void {
   docCommand.value = keyword;
   showDoc.value = true;
@@ -214,8 +239,9 @@ onUnmounted(() => {
         <CommPanel class="side-comm" v-model:showDebug="showDebug" v-model:showBasic="showBasic" v-model:showDoc="showDoc" :panelLayout="panelLayout" @cycleLayout="cycleLayout" @defchrCopy="v => defchrText = v" />
         <DebugPanel v-if="showDebug" class="side-debug" />
         <div v-if="showBasic || showDoc" class="bas-doc-container" :class="{ 'bas-doc-side': showBasic && showDoc && docLayout === 'side' }">
-          <BasicListPanel v-if="showBasic" :defchr="defchrText" @open-doc="onOpenDoc" />
-          <DocPanel v-if="showDoc" :visible="showDoc" @update:visible="v => showDoc = v" :commandPage="docCommand" :docLayout="docLayout" @update:docLayout="v => docLayout = v" :showBasic="showBasic" />
+          <BasicListPanel v-if="showBasic" class="bas-doc-left" :style="showDoc && docLayout === 'side' ? { flex: '0 0 ' + (docSplitRatio * 100) + '%' } : {}" :defchr="defchrText" @open-doc="onOpenDoc" />
+          <div v-if="showBasic && showDoc && docLayout === 'side'" class="bas-doc-divider" @pointerdown="onDocDividerDown" @pointermove="onDocDividerMove" @pointerup="onDocDividerUp" @pointercancel="onDocDividerUp" />
+          <DocPanel v-if="showDoc" class="bas-doc-right" :visible="showDoc" @update:visible="v => showDoc = v" :commandPage="docCommand" :docLayout="docLayout" @update:docLayout="v => docLayout = v" :showBasic="showBasic" />
         </div>
       </div>
 
@@ -271,8 +297,9 @@ onUnmounted(() => {
         <CommPanel v-if="showToolbar" v-model:showDebug="showDebug" v-model:showBasic="showBasic" v-model:showDoc="showDoc" :panelLayout="panelLayout" @cycleLayout="cycleLayout" @defchrCopy="v => defchrText = v" />
         <DebugPanel v-if="showToolbar && showDebug" />
         <div v-if="showToolbar && (showBasic || showDoc)" class="bas-doc-container" :class="{ 'bas-doc-side': showBasic && showDoc && docLayout === 'side' }">
-          <BasicListPanel v-if="showBasic" :defchr="defchrText" @open-doc="onOpenDoc" />
-          <DocPanel v-if="showDoc" :visible="showDoc" @update:visible="v => showDoc = v" :commandPage="docCommand" :docLayout="docLayout" @update:docLayout="v => docLayout = v" :showBasic="showBasic" />
+          <BasicListPanel v-if="showBasic" class="bas-doc-left" :style="showDoc && docLayout === 'side' ? { flex: '0 0 ' + (docSplitRatio * 100) + '%' } : {}" :defchr="defchrText" @open-doc="onOpenDoc" />
+          <div v-if="showBasic && showDoc && docLayout === 'side'" class="bas-doc-divider" @pointerdown="onDocDividerDown" @pointermove="onDocDividerMove" @pointerup="onDocDividerUp" @pointercancel="onDocDividerUp" />
+          <DocPanel v-if="showDoc" class="bas-doc-right" :visible="showDoc" @update:visible="v => showDoc = v" :commandPage="docCommand" :docLayout="docLayout" @update:docLayout="v => docLayout = v" :showBasic="showBasic" />
         </div>
       </div>
 
@@ -291,8 +318,9 @@ onUnmounted(() => {
         <CommPanel class="side-comm" v-model:showDebug="showDebug" v-model:showBasic="showBasic" v-model:showDoc="showDoc" :panelLayout="panelLayout" @cycleLayout="cycleLayout" @defchrCopy="v => defchrText = v" />
         <DebugPanel v-if="showDebug" class="side-debug" />
         <div v-if="showBasic || showDoc" class="bas-doc-container" :class="{ 'bas-doc-side': showBasic && showDoc && docLayout === 'side' }">
-          <BasicListPanel v-if="showBasic" :defchr="defchrText" @open-doc="onOpenDoc" />
-          <DocPanel v-if="showDoc" :visible="showDoc" @update:visible="v => showDoc = v" :commandPage="docCommand" :docLayout="docLayout" @update:docLayout="v => docLayout = v" :showBasic="showBasic" />
+          <BasicListPanel v-if="showBasic" class="bas-doc-left" :style="showDoc && docLayout === 'side' ? { flex: '0 0 ' + (docSplitRatio * 100) + '%' } : {}" :defchr="defchrText" @open-doc="onOpenDoc" />
+          <div v-if="showBasic && showDoc && docLayout === 'side'" class="bas-doc-divider" @pointerdown="onDocDividerDown" @pointermove="onDocDividerMove" @pointerup="onDocDividerUp" @pointercancel="onDocDividerUp" />
+          <DocPanel v-if="showDoc" class="bas-doc-right" :visible="showDoc" @update:visible="v => showDoc = v" :commandPage="docCommand" :docLayout="docLayout" @update:docLayout="v => docLayout = v" :showBasic="showBasic" />
         </div>
       </div>
     </div>
@@ -456,24 +484,36 @@ onUnmounted(() => {
 .bas-doc-side {
   flex-direction: row;
 }
-.bas-doc-side > :first-child {
-  flex: 0 0 40%;
+.bas-doc-side > .bas-doc-left {
   min-width: 0;
-  border-right: 2px solid #333;
+  overflow: hidden;
 }
-.bas-doc-side > :last-child {
+.bas-doc-side > .bas-doc-divider {
+  width: 5px;
+  cursor: col-resize;
+  background: #333;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.bas-doc-side > .bas-doc-divider:hover,
+.bas-doc-side > .bas-doc-divider:active {
+  background: #666;
+}
+.bas-doc-side > .bas-doc-right {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 
 @media (max-width: 600px) {
   .bas-doc-side {
     flex-direction: column;
   }
-  .bas-doc-side > :first-child {
-    flex: none;
-    border-right: none;
-    border-bottom: 1px solid #333;
+  .bas-doc-side > .bas-doc-left {
+    flex: none !important;
+  }
+  .bas-doc-side > .bas-doc-divider {
+    display: none;
   }
 }
 
