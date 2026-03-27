@@ -193,16 +193,16 @@ This is the full set of cards, with the encoded string in column 1.
 
 **Starting Creatures**
 
-| Type     | Magical Power | Fighting Strength | Carries (kg) | Number in Pack | Other Characteristics                                        | Selection Value | Points |
-|----------|---------------|-------------------|--------------|----------------|--------------------------------------------------------------|-----------------|--------|
-| `HERO`   | —             | 3                 | 75           | 1              | Has charisma: adds 1 to die 6 roll when testing `STRANGERS`. | 6               | 10     |
-| `WOMAN`  | —             | 4                 | 50           | 1              | Has capabilities of `WOMAN` and `HERO`                       | 5               | 5      |   
-| `OGRE`   | —             | 5                 | 100          | 3              | Inhuman: cannot use most artifacts                           | 5               | 5      |
-| `TROLL`  | —             | 4                 | 15           | 3              | Inhuman                                                      | 4               | 4      | 
-| `PRIEST` | 2             | 2                 | 25           | 3              |                                                              | 4               | 8      | 
-| `MAN`    | —             | 3                 | 50           | 6              |                                                              | 3               | 5      |
-| `WOMAN`  | —             | 2                 | 25           | 3              | Befriends `UNICORN`                                          | 2               | 5      |
-| `DWARF`  | —             | 1                 | 25           | 3              | Inhuman. Guides past `TRAPS`                                 | 1               | 2      |
+| Type         | Magical Power | Fighting Strength | Carries (kg) | Number in Pack | Other Characteristics                                        | Selection Value | Points |
+|--------------|---------------|-------------------|--------------|----------------|--------------------------------------------------------------|-----------------|--------|
+| `HERO`       | —             | 3                 | 75           | 1              | Has charisma: adds 1 to die 6 roll when testing `STRANGERS`. | 6               | 10     |
+| `WOMAN-HERO` | —             | 4                 | 50           | 1              | Has capabilities of `WOMAN` and `HERO`                       | 5               | 10     |   
+| `OGRE`       | —             | 5                 | 100          | 3              | Inhuman: cannot use most artifacts                           | 5               | 5      |
+| `TROLL`      | —             | 4                 | 75           | 3              | Inhuman                                                      | 4               | 4      | 
+| `PRIEST`     | 2             | 2                 | 25           | 3              |                                                              | 4               | 8      | 
+| `MAN`        | —             | 3                 | 50           | 6              |                                                              | 3               | 5      |
+| `WOMAN`      | —             | 2                 | 25           | 3              | Befriends `UNICORN`                                          | 2               | 5      |
+| `DWARF`      | —             | 1                 | 25           | 3              | Inhuman. Guides past `TRAPS`                                 | 1               | 2      |
 
 **Cave Creatures**
 
@@ -216,7 +216,7 @@ This is the full set of cards, with the encoded string in column 1.
 | `TROLL`        | 0             | 4                 | 75           | 2              |                                                                                    | 4      |
 | `UNICORN`      | 4             | 0                 | 0            | 1              | Friendly to `WOMEN`, otherwise indifferent                                         | 4      | 
 | `GIANT`        | 0             | 7                 | 150          | 2              |                                                                                    | 7      | 
-| `WOMAN HERO`   | 0             | 4                 | 50           | 1              | If there is a `HERO` in your party, add 1 to the die roll when testing `STRANGERS` | 10     |
+| `WOMAN-HERO`   | 0             | 4                 | 50           | 1              | If there is a `HERO` in your party, add 1 to the die roll when testing `STRANGERS` | 10     |
 
 **Cave Creatures - Die Roll Results**
 
@@ -277,12 +277,13 @@ Die roll results:
 
 #### Hazard Cards
 
-| Name         | Description                                                                                                                                                                         | Number in Pack | 
-|--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------|
-| `MUTINY`     | All `ALLIES` in your party revert to the status of `STRANGERS`. They join any other `STRANGERS` in the chamber, and may be retested in the normal way                               | 1              | 
-| `TRAP`       | Your entire party goes to the area one level below. Any creature or treasure found in this chamber remain here. Continues in effect                                                 | 2              | 
-| `EARTHQUAKE` | The last area your party was in collapses and remains impassable. Place this card in the area affected                                                                              | 1              | 
-| `GHOULS`     | Each creature in your party is immediately attacked by `GHOULS` with a strength of 2. They are driven off until the chamber is entered again; meanwhile your turn proceeds as usual | 
+| Name         | Description                                                                                                                                                                                                   | Number in Pack | 
+|--------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------|
+| `MUTINY`     | All `ALLIES` in your party revert to the status of `STRANGERS`. They join any other `STRANGERS` in the chamber, and may be retested in the normal way                                                         | 1              | 
+| `TRAP`       | Your entire party goes to the area one level below. Any creature or treasure found in this chamber remain here. Continues in effect                                                                           | 2              | 
+| `EARTHQUAKE` | The last area your party was in collapses and remains impassable. Place this card in the area affected                                                                                                        | 1              | 
+| `GHOULS`     | Each creature in your party is immediately attacked by `GHOULS` with a strength of 2. They are driven off until the chamber is entered again; meanwhile your turn proceeds as usual                           | 
+| `MEDUSA`     | All who catch her glance are turned to `STONE`. Whenever the party enters the area, roll a die for each creature in the party. A throw of 1 or 2 turns that creature to `STONE`. `STRANGERS` are not affected | 1              |
 
 ## Exploring the Cave
 

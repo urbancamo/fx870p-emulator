@@ -409,20 +409,20 @@ Play again? [Y/N]
 
 The program is divided into logical blocks, each assigned a range of line numbers:
 
-| Line Range | Module | Description |
-|------------|--------|-------------|
-| 100-499 | MAIN | Title screen, main game loop, turn dispatch |
-| 500-999 | SETUP | Party selection, deck initialization |
-| 1000-1999 | MAP | Area card management, movement, map display |
-| 2000-2999 | CHAMBER | Chamber entry, small card drawing, hazard resolution |
-| 3000-3999 | STRANGER | Stranger encounters, reaction testing |
-| 4000-4999 | FIGHT | Combat setup, rounds, retreat |
-| 5000-5999 | SPECIAL | Viper pit, deep pool, special area handling |
-| 6000-6999 | ARTIFACT | Artifact usage (carpet, flute, balm, etc.) |
-| 7000-7499 | SCORE | End game scoring, high score |
-| 7500-7999 | UI | Display helpers, prompts, status display |
-| 8000-8999 | DATA | DATA statements for cards, creatures, treasure |
-| 9000-9999 | UTIL | Utility subroutines (die roll, shuffle, etc.) |
+| Line Range | Module   | Description                                          |
+|------------|----------|------------------------------------------------------|
+| 100-499    | MAIN     | Title screen, main game loop, turn dispatch          |
+| 500-999    | SETUP    | Party selection, deck initialization                 |
+| 1000-1999  | MAP      | Area card management, movement, map display          |
+| 2000-2999  | CHAMBER  | Chamber entry, small card drawing, hazard resolution |
+| 3000-3999  | STRANGER | Stranger encounters, reaction testing                |
+| 4000-4999  | FIGHT    | Combat setup, rounds, retreat                        |
+| 5000-5999  | SPECIAL  | Viper pit, deep pool, special area handling          |
+| 6000-6999  | ARTIFACT | Artifact usage (carpet, flute, balm, etc.)           |
+| 7000-7499  | SCORE    | End game scoring, high score                         |
+| 7500-7999  | UI       | Display helpers, prompts, status display             |
+| 8000-8999  | DATA     | DATA statements for cards, creatures, treasure       |
+| 9000-9999  | UTIL     | Utility subroutines (die roll, shuffle, etc.)        |
 
 ### Subroutine Architecture
 
@@ -528,16 +528,16 @@ The game should be built incrementally, with each stage producing a playable (if
 
 Rough allocation for the VX-4's ~32KB usable memory:
 
-| Component | Estimated Size | Notes |
-|-----------|---------------|-------|
-| Program code (BASIC) | ~15-18 KB | Tokenized BASIC is compact |
-| DATA statements | ~3-4 KB | Card definitions, creature stats |
-| Map state (arrays) | ~3-4 KB | 60 areas × ~8 bytes each |
-| Party state (arrays) | ~1-2 KB | Creatures, inventory, status |
-| Small deck state | ~1-2 KB | 52 card positions/drawn status |
-| Variables | ~1-2 KB | Game state, counters, temps |
-| Stack/workspace | ~2-3 KB | GOSUB stack, BASIC workspace |
-| **Total** | **~26-33 KB** | Tight but feasible |
+| Component            | Estimated Size | Notes                            |
+|----------------------|----------------|----------------------------------|
+| Program code (BASIC) | ~15-18 KB      | Tokenized BASIC is compact       |
+| DATA statements      | ~3-4 KB        | Card definitions, creature stats |
+| Map state (arrays)   | ~3-4 KB        | 60 areas × ~8 bytes each         |
+| Party state (arrays) | ~1-2 KB        | Creatures, inventory, status     |
+| Small deck state     | ~1-2 KB        | 52 card positions/drawn status   |
+| Variables            | ~1-2 KB        | Game state, counters, temps      |
+| Stack/workspace      | ~2-3 KB        | GOSUB stack, BASIC workspace     |
+| **Total**            | **~26-33 KB**  | Tight but feasible               |
 
 Memory will be the primary constraint. Strategies to manage it:
 - Use compact numeric arrays rather than string arrays for card data
