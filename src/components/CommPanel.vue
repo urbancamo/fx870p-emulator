@@ -348,8 +348,8 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
       <button class="btn" @click="emit('cycleLayout')" title="Cycle panel layout">{{ props.panelLayout === 'bottom' ? '\u2192' : props.panelLayout === 'right' ? '\u2190' : '\u2193' }}</button>
     </div>
 
-    <!-- ── progress + hint ── -->
-    <div class="status-row">
+    <!-- ── progress + hint (only shown during activity) ── -->
+    <div v-if="sending || receiving || suspended" class="status-row">
       <div class="progress-wrap">
         <div
           class="progress-bar"
