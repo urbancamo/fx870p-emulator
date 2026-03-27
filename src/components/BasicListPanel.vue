@@ -13,6 +13,10 @@ const props = defineProps<{
   defchr?: string;
 }>();
 
+const emit = defineEmits<{
+  (e: 'open-doc', keyword: string): void;
+}>();
+
 const programs = ref<BasicProgram[]>([]);
 const debugInfo = ref('');
 const showDebugDump = ref(false);
@@ -257,6 +261,20 @@ function submitImport(code: string): void {
   }
 }
 
+function onListingClick(event: MouseEvent): void {
+  // In edit mode, clicks on lines start editing — don't intercept for docs
+  if (editMode.value) return;
+  const target = event.target as HTMLElement;
+  const cmdEl = target.closest('[data-cmd]') as HTMLElement | null;
+  if (cmdEl) {
+    const cmd = cmdEl.getAttribute('data-cmd');
+    if (cmd) {
+      event.preventDefault();
+      emit('open-doc', cmd);
+    }
+  }
+}
+
 onMounted(() => {
   refresh();
   pollId = setInterval(refresh, 1000);
@@ -325,7 +343,7 @@ onUnmounted(() => {
     <!-- Error display -->
     <div v-if="errorMsg" class="error-msg">{{ errorMsg }}</div>
 
-    <div class="basic-listing">
+    <div class="basic-listing" @click="onListingClick">
       <template v-if="programs.length === 0">
         <span class="empty">(no programs in memory)</span>
       </template>
@@ -613,4 +631,17 @@ onUnmounted(() => {
 .line-text :deep(.hl-comment) { color: #666; font-style: italic; }
 .line-text :deep(.hl-variable) { color: #ccc; }
 .line-text :deep(.hl-operator) { color: #aaa; }
+
+.line-text :deep([data-cmd]) {
+  cursor: pointer;
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+  text-decoration-color: #555;
+}
+.line-text :deep([data-cmd]:hover) {
+  text-decoration-color: #7eb8f7;
+  background: rgba(126, 184, 247, 0.08);
+  border-radius: 2px;
+}
 </style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { marked } from 'marked';
 import { loadFileBytes, clearOutput } from '../emulator/comm.js';
 
