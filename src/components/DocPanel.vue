@@ -41,7 +41,17 @@ onMounted(async () => {
     console.warn('Failed to load command index');
   }
   if (props.visible) {
-    await loadPage(currentPath.value);
+    // If opened with a specific command, navigate to it; otherwise show index
+    if (props.commandPage && commandIndex.value) {
+      const entry = commandIndex.value.keywords[props.commandPage.toUpperCase()];
+      if (entry) {
+        await loadPage(entry.file);
+      } else {
+        await loadPage(currentPath.value);
+      }
+    } else {
+      await loadPage(currentPath.value);
+    }
   }
 });
 
