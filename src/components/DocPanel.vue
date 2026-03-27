@@ -207,6 +207,7 @@ function breadcrumb(): string[] {
   flex-direction: column;
   min-height: 200px;
   max-height: 400px;
+  text-align: left;
 }
 
 .doc-header {
@@ -285,6 +286,9 @@ function breadcrumb(): string[] {
   font-family: 'Consolas', 'Menlo', 'Monaco', 'Courier New', monospace;
   font-size: 0.8rem;
   line-height: 1.6;
+  text-align: left;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .doc-loading {
@@ -305,9 +309,9 @@ function breadcrumb(): string[] {
 .doc-content :deep(a) { color: #7eb8f7; text-decoration: none; }
 .doc-content :deep(a:hover) { text-decoration: underline; }
 .doc-content :deep(code) { background: #1a1a1a; padding: 1px 5px; border-radius: 3px; font-size: 0.9em; }
-.doc-content :deep(pre) { background: #111; border: 1px solid #222; border-radius: 4px; padding: 8px 10px; overflow-x: auto; margin: 6px 0; }
+.doc-content :deep(pre) { background: #111; border: 1px solid #222; border-radius: 4px; padding: 8px 10px; overflow-x: auto; margin: 6px 0; white-space: pre-wrap; word-wrap: break-word; }
 .doc-content :deep(pre code) { background: none; padding: 0; }
-.doc-content :deep(table) { border-collapse: collapse; width: 100%; margin: 8px 0; }
+.doc-content :deep(table) { border-collapse: collapse; width: 100%; margin: 8px 0; table-layout: fixed; word-wrap: break-word; }
 .doc-content :deep(th) { background: #1a1a1a; color: #aaa; padding: 4px 8px; border: 1px solid #333; text-align: left; font-size: 0.8em; }
 .doc-content :deep(td) { padding: 4px 8px; border: 1px solid #222; font-size: 0.8em; }
 .doc-content :deep(ul), .doc-content :deep(ol) { padding-left: 20px; margin: 4px 0; }
