@@ -1,0 +1,159 @@
+<h2>DOC Panel: Side-by-Side with BASIC Panel</h2>
+<p class="subtitle">BASIC listing on the left, DOC panel on the right — both below the calculator</p>
+
+<div class="section">
+  <h3>Desktop Layout</h3>
+  <div class="mockup">
+    <div class="mockup-header">Emulator — DOC beside BASIC panel</div>
+    <div class="mockup-body" style="font-family: 'Consolas', 'Menlo', monospace; font-size: 11px; max-width: 720px; margin: 0 auto;">
+      <!-- Toolbar -->
+      <div style="background: #1a1a1a; padding: 4px 8px; display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid #333;">
+        <span style="background: #2a2a2a; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px;">LOAD</span>
+        <span style="background: #2a2a2a; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px;">LIB</span>
+        <span style="background: #2a2a2a; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px;">STOP</span>
+        <span style="background: #2a2a2a; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px;">TURBO</span>
+        <span style="background: #2a2a2a; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px;">SNAP</span>
+        <span style="background: #2a2a2a; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px;">↑</span>
+        <span style="background: #2a2a2a; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px;">↓</span>
+        <span style="background: #2a2a2a; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px;">DBG</span>
+        <span style="background: #2a2a2a; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px;">BAS</span>
+        <span style="background: #8bc34a; color: #000; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: bold;">DOC</span>
+        <span style="background: #2a2a2a; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px;">CHR</span>
+        <span style="background: #2a2a2a; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px;">?</span>
+      </div>
+
+      <!-- LCD area -->
+      <div style="background: #222; padding: 14px; text-align: center; border-bottom: 1px solid #333;">
+        <div style="background: #4a6a2a; display: inline-block; padding: 8px 36px; border-radius: 4px;">
+          <div style="color: #1a2a0a; font-size: 12px; letter-spacing: 1px;">P 0 1 2 3 4 5 6 7 8 9 &nbsp;&nbsp; 3355B</div>
+          <div style="color: #1a2a0a; font-size: 12px;">Ready P0</div>
+          <div style="color: #1a2a0a; font-size: 12px;">_</div>
+        </div>
+      </div>
+
+      <!-- Below calculator: BASIC + DOC side by side -->
+      <div style="display: flex; border-top: 1px solid #333;">
+        <!-- BASIC Panel (left) -->
+        <div style="flex: 0 0 40%; background: #0d0d0d; border-right: 2px solid #333; min-height: 280px;">
+          <!-- BASIC Header -->
+          <div style="background: #1a1a1a; padding: 4px 8px; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 4px;">
+            <span style="color: #888; font-size: 10px; font-weight: bold;">BASIC</span>
+            <span style="color: #000; background: #8bc34a; padding: 1px 5px; border-radius: 2px; font-size: 9px;">P0</span>
+            <span style="color: #444; background: #222; padding: 1px 5px; border-radius: 2px; font-size: 9px;">P1</span>
+            <span style="flex: 1;"></span>
+            <span style="color: #4a4; font-size: 9px;">● LIVE</span>
+          </div>
+          <!-- BASIC Listing -->
+          <div style="padding: 6px 8px; font-size: 11px; line-height: 1.7;">
+            <div><span style="color: #555;">10 </span><span style="color: #c678dd;">REM</span> <span style="color: #666;">Cylinder</span></div>
+            <div><span style="color: #555;">20 </span><span style="color: #e5c07b;">R</span> <span style="color: #ccc;">=</span> <span style="color: #d19a66;">15</span></div>
+            <div style="background: rgba(126,184,247,0.08); border-radius: 2px; padding: 0 4px; margin: 0 -4px;">
+              <span style="color: #555;">30 </span><span style="color: #c678dd; text-decoration: underline; text-decoration-color: #7eb8f7; text-decoration-style: dotted; text-underline-offset: 3px; cursor: pointer; background: rgba(126,184,247,0.12); padding: 0 2px; border-radius: 2px;">INPUT</span> <span style="color: #98c379;">"H="</span><span style="color: #ccc;">;</span> <span style="color: #e5c07b;">H</span>
+              <span style="color: #7eb8f7; font-size: 9px; margin-left: 4px;">⟵ clicked</span>
+            </div>
+            <div><span style="color: #555;">40 </span><span style="color: #e5c07b;">V</span> <span style="color: #ccc;">=</span> <span style="color: #61afef; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; cursor: pointer;">PI</span> <span style="color: #ccc;">*</span> <span style="color: #e5c07b;">R</span> <span style="color: #ccc;">^</span> <span style="color: #d19a66;">2</span> <span style="color: #ccc;">*</span> <span style="color: #e5c07b;">H</span></div>
+            <div><span style="color: #555;">50 </span><span style="color: #c678dd; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; cursor: pointer;">PRINT</span> <span style="color: #98c379;">"V="</span><span style="color: #ccc;">;</span> <span style="color: #e5c07b;">V</span></div>
+            <div><span style="color: #555;">60 </span><span style="color: #c678dd; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; cursor: pointer;">END</span></div>
+          </div>
+        </div>
+
+        <!-- DOC Panel (right) -->
+        <div style="flex: 1; background: #0a0a0a; display: flex; flex-direction: column; min-height: 280px;">
+          <!-- DOC Header -->
+          <div style="background: #1a1a1a; padding: 4px 8px; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 6px;">
+            <span style="color: #8bc34a; font-weight: bold; font-size: 10px;">DOC</span>
+            <span style="color: #444;">│</span>
+            <span style="color: #7eb8f7; cursor: pointer; font-size: 10px;">←</span>
+            <span style="color: #555; font-size: 9px;">Index › </span><span style="color: #ccc; font-size: 9px;">INPUT</span>
+            <span style="flex: 1;"></span>
+            <span style="color: #555; cursor: pointer; font-size: 11px;">✕</span>
+          </div>
+          <!-- DOC Content -->
+          <div style="flex: 1; padding: 10px 12px; overflow: auto; color: #ccc; line-height: 1.5;">
+            <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px;">
+              <span style="color: #e5c07b; font-size: 15px; font-weight: bold;">INPUT</span>
+              <span style="background: #2a4a2a; color: #8bc34a; padding: 1px 6px; border-radius: 3px; font-size: 8px;">All Models</span>
+            </div>
+
+            <p style="margin: 6px 0; font-size: 11px; color: #bbb;">Assigns input from the keyboard to a specified variable.</p>
+
+            <h4 style="color: #666; margin: 10px 0 3px 0; font-size: 9px; text-transform: uppercase; letter-spacing: 1px;">Format</h4>
+            <div style="background: #111; padding: 6px 8px; border-radius: 3px; margin-bottom: 8px; border: 1px solid #1a1a1a; font-size: 11px;">
+              <span style="color: #c678dd;">INPUT</span> <span style="color: #666;">[</span><span style="color: #98c379;">"msg"</span> <span style="color: #666;">{;|,}]</span> <span style="color: #e5c07b;">var</span>
+            </div>
+
+            <h4 style="color: #666; margin: 8px 0 3px 0; font-size: 9px; text-transform: uppercase; letter-spacing: 1px;">Explanation</h4>
+            <p style="margin: 0 0 3px 0; font-size: 10px; color: #999;">1. Displays message and waits for input.</p>
+            <p style="margin: 0 0 3px 0; font-size: 10px; color: #999;">2. Separator <code style="background:#1a1a1a; padding: 0 3px; border-radius: 2px;">;</code> appends "?", <code style="background:#1a1a1a; padding: 0 3px; border-radius: 2px;">,</code> appends nothing.</p>
+            <p style="margin: 0 0 3px 0; font-size: 10px; color: #999;">3. Multiple variables separated by commas.</p>
+
+            <h4 style="color: #666; margin: 8px 0 3px 0; font-size: 9px; text-transform: uppercase; letter-spacing: 1px;">See</h4>
+            <p style="font-size: 10px;">
+              <span style="color: #7eb8f7; cursor: pointer;">INPUT$</span> ·
+              <span style="color: #7eb8f7; cursor: pointer;">INKEY$</span> ·
+              <span style="color: #7eb8f7; cursor: pointer;">INPUT#</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 2rem;">
+  <h3>Behavior Rules</h3>
+  <div style="display: flex; gap: 16px;">
+    <div class="mockup" style="flex: 1;">
+      <div class="mockup-header">When DOC is opened standalone (DOC button)</div>
+      <div class="mockup-body" style="font-family: monospace; font-size: 10px; padding: 12px;">
+        <div style="border: 1px solid #444; border-radius: 3px; overflow: hidden;">
+          <div style="background: #333; padding: 3px 6px; color: #aaa; text-align: center;">Calculator</div>
+          <div style="background: #0a0a0a; padding: 6px 8px; border-top: 2px solid #8bc34a;">
+            <div style="color: #8bc34a; font-size: 10px; font-weight: bold; margin-bottom: 4px;">DOC — full width</div>
+            <div style="color: #888; font-size: 9px;">Shows manual index / TOC</div>
+            <div style="color: #888; font-size: 9px;">Browse sections and commands</div>
+            <div style="color: #888; font-size: 9px;">Uses full 709px width</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mockup" style="flex: 1;">
+      <div class="mockup-header">When keyword clicked in BASIC panel</div>
+      <div class="mockup-body" style="font-family: monospace; font-size: 10px; padding: 12px;">
+        <div style="border: 1px solid #444; border-radius: 3px; overflow: hidden;">
+          <div style="background: #333; padding: 3px 6px; color: #aaa; text-align: center;">Calculator</div>
+          <div style="display: flex; border-top: 1px solid #444;">
+            <div style="flex: 0 0 40%; background: #0d0d0d; padding: 6px 8px; border-right: 2px solid #333;">
+              <div style="color: #888; font-size: 10px; font-weight: bold; margin-bottom: 4px;">BASIC</div>
+              <div style="color: #888; font-size: 9px;">Listing with</div>
+              <div style="color: #888; font-size: 9px;">clickable keywords</div>
+            </div>
+            <div style="flex: 1; background: #0a0a0a; padding: 6px 8px; border-top: 2px solid #8bc34a;">
+              <div style="color: #8bc34a; font-size: 10px; font-weight: bold; margin-bottom: 4px;">DOC</div>
+              <div style="color: #888; font-size: 9px;">Shows clicked</div>
+              <div style="color: #888; font-size: 9px;">command page</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mockup" style="flex: 1;">
+      <div class="mockup-header">Mobile / narrow screen</div>
+      <div class="mockup-body" style="font-family: monospace; font-size: 10px; padding: 12px;">
+        <div style="border: 1px solid #444; border-radius: 3px; overflow: hidden; max-width: 180px; margin: 0 auto;">
+          <div style="background: #333; padding: 3px 6px; color: #aaa; text-align: center; font-size: 9px;">Calculator</div>
+          <div style="background: #0d0d0d; padding: 4px 6px; border-top: 1px solid #444;">
+            <div style="color: #888; font-size: 9px; font-weight: bold;">BASIC</div>
+            <div style="color: #666; font-size: 8px;">listing...</div>
+          </div>
+          <div style="background: #0a0a0a; padding: 4px 6px; border-top: 2px solid #8bc34a;">
+            <div style="color: #8bc34a; font-size: 9px; font-weight: bold;">DOC</div>
+            <div style="color: #666; font-size: 8px;">stacks below</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top: 1.5rem;">The DOC panel is context-aware: it sits beside the BASIC panel when triggered by a keyword click, or takes full width when opened standalone via the DOC button. On narrow screens it stacks below as usual.</p>

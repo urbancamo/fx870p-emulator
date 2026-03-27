@@ -1,0 +1,140 @@
+<h2>DOC Panel: Toggleable Layout</h2>
+<p class="subtitle">A toggle icon in the DOC header switches between side-by-side and stacked</p>
+
+<div class="section">
+  <h3>The Toggle Button</h3>
+  <div class="mockup">
+    <div class="mockup-header">DOC panel header with layout toggle</div>
+    <div class="mockup-body" style="font-family: 'Consolas', monospace; font-size: 11px; max-width: 600px; margin: 0 auto; padding: 16px;">
+      <!-- Side-by-side header -->
+      <p style="color: #888; font-size: 10px; margin-bottom: 4px;">Current: side-by-side (default)</p>
+      <div style="background: #1a1a1a; padding: 5px 10px; border-radius: 4px 4px 0 0; display: flex; align-items: center; gap: 6px; border: 1px solid #333; border-bottom: none;">
+        <span style="color: #8bc34a; font-weight: bold; font-size: 11px;">DOC</span>
+        <span style="color: #444;">│</span>
+        <span style="color: #7eb8f7; cursor: pointer; font-size: 10px;">←</span>
+        <span style="color: #555; font-size: 9px;">Index › </span><span style="color: #ccc; font-size: 9px;">INPUT</span>
+        <span style="flex: 1;"></span>
+        <span title="Switch to stacked layout" style="cursor: pointer; color: #888; font-size: 13px; padding: 0 4px; border: 1px solid #444; border-radius: 3px; line-height: 1.2;">⬒</span>
+        <span style="color: #555; cursor: pointer; font-size: 12px;">✕</span>
+      </div>
+      <div style="background: #0a0a0a; padding: 8px 10px; border: 1px solid #333; border-radius: 0 0 4px 4px; border-top: 2px solid #8bc34a;">
+        <span style="color: #888; font-size: 10px;">doc content...</span>
+      </div>
+
+      <div style="margin: 20px 0; color: #555; text-align: center;">click toggle ⬒ to switch ↕</div>
+
+      <!-- Stacked header -->
+      <p style="color: #888; font-size: 10px; margin-bottom: 4px;">After toggle: stacked (full width)</p>
+      <div style="background: #1a1a1a; padding: 5px 10px; border-radius: 4px 4px 0 0; display: flex; align-items: center; gap: 6px; border: 1px solid #333; border-bottom: none;">
+        <span style="color: #8bc34a; font-weight: bold; font-size: 11px;">DOC</span>
+        <span style="color: #444;">│</span>
+        <span style="color: #7eb8f7; cursor: pointer; font-size: 10px;">←</span>
+        <span style="color: #555; font-size: 9px;">Index › </span><span style="color: #ccc; font-size: 9px;">INPUT</span>
+        <span style="flex: 1;"></span>
+        <span title="Switch to side-by-side layout" style="cursor: pointer; color: #8bc34a; font-size: 13px; padding: 0 4px; border: 1px solid #444; border-radius: 3px; line-height: 1.2;">⬓</span>
+        <span style="color: #555; cursor: pointer; font-size: 12px;">✕</span>
+      </div>
+      <div style="background: #0a0a0a; padding: 8px 10px; border: 1px solid #333; border-radius: 0 0 4px 4px; border-top: 2px solid #8bc34a;">
+        <span style="color: #888; font-size: 10px;">doc content (full width)...</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 2rem;">
+  <h3>Both Layouts in Context</h3>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">⬒ Side-by-side (default)</div>
+      <div class="mockup-body" style="font-family: monospace; font-size: 9px; padding: 0;">
+        <div style="background: #333; padding: 3px 6px; color: #aaa; text-align: center; font-size: 9px;">Calculator (709×280)</div>
+        <div style="display: flex;">
+          <div style="flex: 0 0 40%; background: #0d0d0d; padding: 6px; border-right: 2px solid #333;">
+            <div style="color: #888; font-weight: bold; margin-bottom: 4px;">BASIC P0</div>
+            <div><span style="color: #555;">10 </span><span style="color: #c678dd;">REM</span> <span style="color: #666;">Cyl</span></div>
+            <div><span style="color: #555;">20 </span><span style="color: #e5c07b;">R</span><span style="color: #ccc;">=</span><span style="color: #d19a66;">15</span></div>
+            <div style="background: rgba(126,184,247,0.08); padding: 0 2px; border-radius: 2px;"><span style="color: #555;">30 </span><span style="color: #c678dd; text-decoration: underline dotted; text-underline-offset: 2px;">INPUT</span> <span style="color: #98c379;">"H="</span></div>
+            <div><span style="color: #555;">40 </span><span style="color: #e5c07b;">V</span><span style="color: #ccc;">=</span><span style="color: #61afef;">PI</span><span style="color: #ccc;">*</span><span style="color: #e5c07b;">R</span><span style="color: #ccc;">^</span><span style="color: #d19a66;">2</span></div>
+            <div><span style="color: #555;">50 </span><span style="color: #c678dd;">PRINT</span> <span style="color: #98c379;">"V="</span></div>
+            <div><span style="color: #555;">60 </span><span style="color: #c678dd;">END</span></div>
+          </div>
+          <div style="flex: 1; background: #0a0a0a; padding: 6px; border-top: 2px solid #8bc34a;">
+            <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 6px;">
+              <span style="color: #8bc34a; font-weight: bold;">DOC</span>
+              <span style="color: #444;">│</span>
+              <span style="color: #7eb8f7;">←</span>
+              <span style="color: #ccc;">INPUT</span>
+              <span style="flex:1;"></span>
+              <span style="color: #888;">⬒</span>
+            </div>
+            <span style="color: #e5c07b; font-weight: bold;">INPUT</span>
+            <span style="background: #2a4a2a; color: #8bc34a; padding: 0 4px; border-radius: 2px; font-size: 8px; margin-left: 4px;">All</span>
+            <p style="color: #999; margin: 4px 0; font-size: 9px;">Assigns input from the keyboard to a variable.</p>
+            <div style="background: #111; padding: 3px 6px; border-radius: 2px; margin: 4px 0;">
+              <span style="color: #c678dd;">INPUT</span> <span style="color: #666;">[</span><span style="color: #98c379;">"msg"</span><span style="color: #666;">]</span> <span style="color: #e5c07b;">var</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">⬓ Stacked (full width)</div>
+      <div class="mockup-body" style="font-family: monospace; font-size: 9px; padding: 0;">
+        <div style="background: #333; padding: 3px 6px; color: #aaa; text-align: center; font-size: 9px;">Calculator (709×280)</div>
+        <div style="background: #0d0d0d; padding: 6px; border-bottom: 1px solid #333;">
+          <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
+            <span style="color: #888; font-weight: bold;">BASIC P0</span>
+            <span style="flex:1;"></span>
+            <span style="color: #4a4;">● LIVE</span>
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <div>
+              <div><span style="color: #555;">10 </span><span style="color: #c678dd;">REM</span> <span style="color: #666;">Cylinder</span></div>
+              <div><span style="color: #555;">20 </span><span style="color: #e5c07b;">R</span><span style="color: #ccc;">=</span><span style="color: #d19a66;">15</span></div>
+              <div><span style="color: #555;">30 </span><span style="color: #c678dd; text-decoration: underline dotted;">INPUT</span> <span style="color: #98c379;">"H="</span></div>
+            </div>
+            <div>
+              <div><span style="color: #555;">40 </span><span style="color: #e5c07b;">V</span><span style="color: #ccc;">=</span><span style="color: #61afef;">PI</span><span style="color: #ccc;">*R^2*H</span></div>
+              <div><span style="color: #555;">50 </span><span style="color: #c678dd;">PRINT</span> <span style="color: #98c379;">"V="</span><span style="color: #ccc;">;V</span></div>
+              <div><span style="color: #555;">60 </span><span style="color: #c678dd;">END</span></div>
+            </div>
+          </div>
+        </div>
+        <div style="background: #0a0a0a; padding: 6px; border-top: 2px solid #8bc34a;">
+          <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
+            <span style="color: #8bc34a; font-weight: bold;">DOC</span>
+            <span style="color: #444;">│</span>
+            <span style="color: #7eb8f7;">←</span>
+            <span style="color: #ccc;">INPUT</span>
+            <span style="flex:1;"></span>
+            <span style="color: #8bc34a;">⬓</span>
+          </div>
+          <div style="display: flex; gap: 16px;">
+            <div style="flex: 1;">
+              <span style="color: #e5c07b; font-weight: bold;">INPUT</span>
+              <span style="background: #2a4a2a; color: #8bc34a; padding: 0 4px; border-radius: 2px; font-size: 8px; margin-left: 4px;">All Models</span>
+              <p style="color: #999; margin: 4px 0;">Assigns input from the keyboard to a specified variable.</p>
+            </div>
+            <div style="flex: 1;">
+              <div style="color: #666; font-size: 8px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px;">Format</div>
+              <div style="background: #111; padding: 3px 6px; border-radius: 2px;">
+                <span style="color: #c678dd;">INPUT</span> <span style="color: #666;">[</span><span style="color: #98c379;">"message"</span> <span style="color: #666;">{;|,}]</span> <span style="color: #e5c07b;">variable</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 1.5rem; padding: 1rem; background: #1a1a2e; border-radius: 8px; border: 1px solid #333;">
+  <h3>Summary of Behavior</h3>
+  <ul style="color: #ccc; line-height: 2; font-size: 13px;">
+    <li><strong>Default:</strong> side-by-side (⬒) — DOC panel to the right of BASIC panel</li>
+    <li><strong>Toggle:</strong> click ⬒/⬓ icon in DOC header to switch to stacked (full width below)</li>
+    <li><strong>Preference saved</strong> to localStorage — remembered across sessions</li>
+    <li><strong>Auto-stack on narrow screens</strong> — forced to stacked below ~600px width regardless of preference</li>
+    <li><strong>Standalone DOC</strong> (no BASIC panel open) — always full width, no toggle needed</li>
+  </ul>
+</div>

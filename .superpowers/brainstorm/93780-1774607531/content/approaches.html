@@ -1,0 +1,80 @@
+<h2>Manual Integration: Three Approaches</h2>
+<p class="subtitle">How should the BASIC reference manual integrate with the emulator?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>DOC Popup + Context-Sensitive Help</h3>
+      <p><strong>A new DocPanel popup</strong> (like LibraryPopup) with a sidebar TOC and markdown viewer. Plus <strong>keyword-click help</strong>: clicking/hovering a BASIC keyword anywhere in the app links to its command page.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>Familiar pattern — matches existing popups</li>
+          <li>Keyword help works everywhere (BasicListPanel, Library listings, editor)</li>
+          <li>Single reusable component for all manual viewing</li>
+          <li>Full manual browsable from one place</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Popup overlays the emulator — can't see both at once</li>
+          <li>Context switch between coding and docs</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Integrated Side Panel + Context Help</h3>
+      <p><strong>A dockable DOC panel</strong> that uses the existing side-panel layout (like DebugPanel/BasicListPanel). Manual pages render inline beside the calculator. Plus keyword-click help that <strong>opens the panel to the right page</strong>.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>See docs and emulator simultaneously</li>
+          <li>Natural fit with existing layout system</li>
+          <li>Click a keyword → docs panel opens to that command</li>
+          <li>Can browse the full manual in the panel</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Panel space is shared with Debug and BASIC panels</li>
+          <li>May need tab management or panel switching</li>
+          <li>More complex layout changes</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Hybrid: Inline Tooltip + Full DOC Popup</h3>
+      <p><strong>Hover tooltips</strong> on BASIC keywords showing a quick summary (Purpose + Format), with a "More..." link that opens the <strong>full DOC popup</strong> for detailed reading. Best of both worlds.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>Quick answers without leaving the flow</li>
+          <li>Full manual available when needed</li>
+          <li>Tooltips are lightweight and unobtrusive</li>
+          <li>Progressive disclosure — summary → full docs</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Two components to build (tooltip + popup)</li>
+          <li>Tooltip positioning can be tricky</li>
+          <li>Need to parse Purpose/Format from markdown files</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 2rem; padding: 1.5rem; background: #1a1a2e; border-radius: 8px; border: 1px solid #333;">
+  <h3>Context-Sensitive Help Locations (included in all approaches)</h3>
+  <p style="color: #aaa;">These are the places where clicking a BASIC keyword would link to its manual page:</p>
+  <ul style="color: #ccc; line-height: 1.8;">
+    <li><strong>BasicListPanel</strong> — syntax-highlighted program listings (P0-P3 tabs)</li>
+    <li><strong>BasicEditor</strong> — the CodeMirror inline editor when editing a line</li>
+    <li><strong>LibraryPopup</strong> — library program documentation and listings</li>
+    <li><strong>Error messages</strong> — when an error is displayed, link the error code to error docs</li>
+    <li><strong>DOC button</strong> — new toolbar button to open the full manual</li>
+  </ul>
+</div>
+
+<p class="subtitle" style="margin-top: 1.5rem;">My recommendation: <strong>Option C (Hybrid)</strong> — tooltips give instant help without disrupting flow, and the full popup is there when you need to read more. The tooltip component is reusable across all keyword locations.</p>

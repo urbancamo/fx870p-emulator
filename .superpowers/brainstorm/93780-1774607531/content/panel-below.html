@@ -1,0 +1,144 @@
+<h2>DOC Panel: Below Calculator Layout</h2>
+<p class="subtitle">The DOC panel sits below the emulator, just like BASIC and Debug panels</p>
+
+<div class="section">
+  <h3>Desktop Layout</h3>
+  <div class="mockup">
+    <div class="mockup-header">Emulator — DOC Panel Below</div>
+    <div class="mockup-body" style="font-family: 'Consolas', 'Menlo', monospace; font-size: 11px; max-width: 700px; margin: 0 auto;">
+      <!-- Toolbar -->
+      <div style="background: #1a1a1a; padding: 4px 8px; display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid #333;">
+        <span style="background: #2a2a2a; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px;">LOAD</span>
+        <span style="background: #2a2a2a; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px;">LIB</span>
+        <span style="background: #2a2a2a; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px;">STOP</span>
+        <span style="background: #2a2a2a; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px;">TURBO</span>
+        <span style="background: #2a2a2a; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px;">SNAP</span>
+        <span style="background: #2a2a2a; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px;">↑</span>
+        <span style="background: #2a2a2a; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px;">↓</span>
+        <span style="background: #2a2a2a; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px;">DBG</span>
+        <span style="background: #2a2a2a; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px;">BAS</span>
+        <span style="background: #8bc34a; color: #000; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: bold;">DOC</span>
+        <span style="background: #2a2a2a; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px;">CHR</span>
+        <span style="background: #2a2a2a; color: #ccc; padding: 2px 6px; border-radius: 3px; font-size: 10px;">?</span>
+      </div>
+
+      <!-- LCD area (compact representation) -->
+      <div style="background: #222; padding: 16px; text-align: center; border-bottom: 1px solid #333;">
+        <div style="background: #4a6a2a; display: inline-block; padding: 10px 40px; border-radius: 4px;">
+          <div style="color: #1a2a0a; font-size: 13px; font-weight: bold; letter-spacing: 1px;">P 0 1 2 3 4 5 6 7 8 9 &nbsp;&nbsp; 3355B</div>
+          <div style="color: #1a2a0a; font-size: 13px;">Ready P0</div>
+          <div style="color: #1a2a0a; font-size: 13px;">10 INPUT "H=";H</div>
+          <div style="color: #1a2a0a; font-size: 13px;">_</div>
+        </div>
+      </div>
+
+      <!-- BASIC Panel (collapsed, showing a few lines) -->
+      <div style="background: #0d0d0d; border-bottom: 1px solid #333; padding: 6px 8px;">
+        <div style="display: flex; gap: 4px; margin-bottom: 4px; align-items: center;">
+          <span style="color: #888; font-size: 10px; font-weight: bold;">BASIC</span>
+          <span style="color: #000; background: #8bc34a; padding: 1px 6px; border-radius: 2px; font-size: 9px;">P0</span>
+          <span style="flex: 1;"></span>
+          <span style="color: #666; font-size: 9px;">LIVE</span>
+        </div>
+        <div style="display: flex; gap: 8px; font-size: 10px; line-height: 1.6;">
+          <div>
+            <span style="color: #666;">10 </span><span style="color: #c678dd;">REM</span> <span style="color: #888;">Cylinder</span><br>
+            <span style="color: #666;">20 </span><span style="color: #e5c07b;">R</span> <span style="color: #ccc;">=</span> <span style="color: #d19a66;">15</span><br>
+            <span style="color: #666;">30 </span><span style="color: #c678dd; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; cursor: pointer;">INPUT</span> <span style="color: #98c379;">"H="</span><span style="color: #ccc;">;</span> <span style="color: #e5c07b;">H</span>
+          </div>
+          <div>
+            <span style="color: #666;">40 </span><span style="color: #e5c07b;">V</span> <span style="color: #ccc;">=</span> <span style="color: #61afef; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; cursor: pointer;">PI</span> <span style="color: #ccc;">*</span> <span style="color: #e5c07b;">R</span> <span style="color: #ccc;">^</span> <span style="color: #d19a66;">2</span> <span style="color: #ccc;">*</span> <span style="color: #e5c07b;">H</span><br>
+            <span style="color: #666;">50 </span><span style="color: #c678dd; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; cursor: pointer;">PRINT</span> <span style="color: #98c379;">"V="</span><span style="color: #ccc;">;</span> <span style="color: #e5c07b;">V</span><br>
+            <span style="color: #666;">60 </span><span style="color: #c678dd; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; cursor: pointer;">END</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- DOC Panel -->
+      <div style="background: #0a0a0a; border: 2px solid #8bc34a; border-top-width: 2px;">
+        <!-- DOC Header -->
+        <div style="background: #1a1a1a; padding: 6px 10px; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 8px;">
+          <span style="color: #8bc34a; font-weight: bold; font-size: 11px;">DOC</span>
+          <span style="color: #444;">│</span>
+          <span style="color: #7eb8f7; cursor: pointer; font-size: 10px;">← Back</span>
+          <span style="color: #444;">│</span>
+          <span style="color: #555; font-size: 10px;">Index › Commands › </span><span style="color: #ccc; font-size: 10px;">INPUT</span>
+          <span style="flex: 1;"></span>
+          <span style="color: #555; cursor: pointer; font-size: 12px;">✕</span>
+        </div>
+        <!-- DOC Content -->
+        <div style="padding: 12px 16px; color: #ccc; line-height: 1.6; max-height: 260px; overflow: auto;">
+          <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px;">
+            <h3 style="color: #e5c07b; margin: 0; font-size: 16px;">INPUT</h3>
+            <span style="background: #2a4a2a; color: #8bc34a; padding: 1px 8px; border-radius: 3px; font-size: 9px;">All Models</span>
+          </div>
+
+          <h4 style="color: #888; margin: 10px 0 4px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Purpose</h4>
+          <p style="margin: 0 0 10px 0; font-size: 12px;">Assigns input from the keyboard to a specified variable.</p>
+
+          <h4 style="color: #888; margin: 10px 0 4px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Format</h4>
+          <div style="background: #141414; padding: 8px 12px; border-radius: 4px; margin-bottom: 10px; border: 1px solid #222;">
+            <span style="color: #c678dd;">INPUT</span> <span style="color: #888;">[</span><span style="color: #98c379;">"message"</span> <span style="color: #888;">{</span><span style="color: #ccc;">;</span><span style="color: #888;">|</span><span style="color: #ccc;">,</span><span style="color: #888;">}]</span> <span style="color: #e5c07b;">variable</span> <span style="color: #888;">[, </span><span style="color: #e5c07b;">variable</span><span style="color: #888;"> ...]</span>
+          </div>
+
+          <h4 style="color: #888; margin: 10px 0 4px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Example</h4>
+          <div style="background: #141414; padding: 8px 12px; border-radius: 4px; margin-bottom: 10px; border: 1px solid #222;">
+            <span style="color: #c678dd;">INPUT</span> <span style="color: #98c379;">"Enter height: "</span><span style="color: #ccc;">;</span> <span style="color: #e5c07b;">H</span>
+          </div>
+
+          <h4 style="color: #888; margin: 10px 0 4px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Explanation</h4>
+          <p style="margin: 0 0 4px 0; font-size: 11px; color: #bbb;">1. Displays the message string and waits for keyboard input. The entered data is assigned to the variable.</p>
+          <p style="margin: 0 0 4px 0; font-size: 11px; color: #bbb;">2. When the separator after the message is <code style="background:#222; padding: 1px 4px; border-radius: 2px;">;</code>, a <code style="background:#222; padding: 1px 4px; border-radius: 2px;">?</code> is appended to the message. When <code style="background:#222; padding: 1px 4px; border-radius: 2px;">,</code> is used, nothing is appended.</p>
+          <p style="margin: 0 0 4px 0; font-size: 11px; color: #bbb;">3. Multiple variables can be specified, separated by commas.</p>
+
+          <h4 style="color: #888; margin: 10px 0 4px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">See</h4>
+          <p style="font-size: 11px;">
+            <span style="color: #7eb8f7; cursor: pointer;">INPUT$</span> ·
+            <span style="color: #7eb8f7; cursor: pointer;">INKEY$</span> ·
+            <span style="color: #7eb8f7; cursor: pointer;">INPUT#</span> ·
+            <span style="color: #7eb8f7; cursor: pointer;">INPUT@</span>
+            <span style="color: #555; font-size: 9px;">[Undocumented]</span>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 2rem;">
+  <h3>Panel Stacking Order</h3>
+  <p class="subtitle">Multiple panels can be open below the calculator at the same time</p>
+  <div class="mockup">
+    <div class="mockup-header">Panel arrangement options</div>
+    <div class="mockup-body" style="padding: 20px; font-family: 'Consolas', monospace;">
+      <div style="display: flex; gap: 24px;">
+        <!-- Option 1: stacked -->
+        <div style="flex: 1;">
+          <p style="color: #8bc34a; font-size: 11px; margin-bottom: 8px; font-weight: bold;">All panels stack vertically:</p>
+          <div style="border: 1px solid #444; border-radius: 4px; overflow: hidden;">
+            <div style="background: #333; padding: 4px 8px; color: #ccc; font-size: 10px; text-align: center;">🖥 Calculator (709×280)</div>
+            <div style="background: #1a1a1a; padding: 4px 8px; color: #8bc34a; font-size: 10px; border-top: 1px solid #444;">BASIC Panel</div>
+            <div style="background: #0d0d0d; padding: 4px 8px; color: #8bc34a; font-size: 10px; border-top: 2px solid #8bc34a;">DOC Panel (scrollable)</div>
+          </div>
+          <p style="color: #888; font-size: 10px; margin-top: 6px;">DOC panel scrolls independently. Toggle with DOC button.</p>
+        </div>
+        <!-- Option 2: tabs -->
+        <div style="flex: 1;">
+          <p style="color: #7eb8f7; font-size: 11px; margin-bottom: 8px; font-weight: bold;">Or: BAS / DBG / DOC as tabs:</p>
+          <div style="border: 1px solid #444; border-radius: 4px; overflow: hidden;">
+            <div style="background: #333; padding: 4px 8px; color: #ccc; font-size: 10px; text-align: center;">🖥 Calculator (709×280)</div>
+            <div style="background: #1a1a1a; padding: 4px 8px; display: flex; gap: 2px; border-top: 1px solid #444;">
+              <span style="background: #222; color: #888; padding: 2px 8px; font-size: 10px; border-radius: 3px 3px 0 0;">BAS</span>
+              <span style="background: #222; color: #888; padding: 2px 8px; font-size: 10px; border-radius: 3px 3px 0 0;">DBG</span>
+              <span style="background: #0d0d0d; color: #8bc34a; padding: 2px 8px; font-size: 10px; border-radius: 3px 3px 0 0; border: 1px solid #8bc34a; border-bottom: none;">DOC</span>
+            </div>
+            <div style="background: #0d0d0d; padding: 4px 8px; color: #ccc; font-size: 10px; min-height: 40px;">DOC content here...</div>
+          </div>
+          <p style="color: #888; font-size: 10px; margin-top: 6px;">Only one panel visible at a time. Simpler, saves vertical space.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top: 1.5rem;">The existing behavior stacks panels vertically (BASIC + Debug can both be open). The DOC panel would follow the same pattern — a third stackable panel below the calculator.</p>
