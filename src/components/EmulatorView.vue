@@ -448,7 +448,10 @@ onUnmounted(() => {
 .bas-doc-container {
   display: flex;
   flex-direction: column;
-  width: 100%;
+  width: 709px;
+  max-width: 100%;
+  align-self: center;
+  overflow: hidden;
 }
 .bas-doc-side {
   flex-direction: row;
