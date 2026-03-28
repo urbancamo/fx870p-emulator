@@ -463,11 +463,204 @@ Decode with GOSUB 9220 → CF, CM, CW, CV, CP.
 | SU | Surprise (+1=party, -1=strangers) |
 | RD | Combat round |
 
-## References
+## Deep Dive: Fitting a Board Game into 32KB
 
-- Original rules: `reference/sorcerers-cave/sorcerers-cave-rules.md`
-- Rules analysis: `docs/plans/sorcerers-cave/requirement-1-rules-analysis.md`
-- Architecture: `docs/plans/sorcerers-cave/requirement-2-high-level-architecture.md`
-- Data structures: `docs/plans/sorcerers-cave/requirement-3-4-data-structures.md`
-- UI design: `docs/plans/sorcerers-cave/requirement-5-6-phases-and-ui.md`
-- Area card encoding: `reference/sorcerers-cave/area-card-encoding.md`
+The Casio VX-4 has approximately 32KB of usable RAM, shared between the BASIC program text, DATA statements, variables, arrays, the GOSUB/FOR stack, string workspace, and I/O buffers. Implementing a game with 61 area cards, 52 chamber cards, 14 creature types, 15 treasure types, 5 hazards, a multi-level map, a party of up to 9 creatures each carrying treasure, and a full combat system required aggressive memory optimisation at every level.
+
+### The CLEAR Problem
+
+The VX-4's `CLEAR` command takes two parameters: `CLEAR variable_area, work_area`. The variable area stores numeric arrays and variable name tables. The work area contains the variable area *within it*, plus the GOSUB/FOR stack (growing downward from the top), I/O buffers, and string workspace. Crucially, the work area must be **larger** than the variable area — if they're equal, there's zero space for the stack and the program crashes with OM errors on the first GOSUB.
+
+The game requires `CLEAR 11000,17000` — 11KB for variables and arrays, 17KB total work area, leaving 6KB for the stack and string operations. Finding these numbers required iterative testing; too small and the game crashes mid-play when arrays are full and the GOSUB stack is deep.
+
+### Bit-Packed Area Cards
+
+The original board game has 61 area cards, each with up to 4 compass exits, an optional chamber flag, optional stairs up/down, and a special type (Gateway, Deep Pool, Viper Pit, Tomb of Kings, Great Hall). Naively, this would require 8 properties per card × 61 cards = 488 array elements.
+
+Instead, each card is encoded as a single integer using bit packing:
+
+```
+Bit 0:    North exit (1)
+Bit 1:    East exit  (2)
+Bit 2:    South exit (4)
+Bit 3:    West exit  (8)
+Bit 4:    Chamber    (16)
+Bit 5:    Stair up   (32)
+Bit 6:    Stair down (64)
+Bits 7-9: Special type (×128: 1=Gateway, 2=Deep Pool, 3=Viper Pit, 4=Tomb, 5=Great Hall)
+```
+
+The GATEWAY card (`NSEWU`, special type 1) encodes as: 1+2+4+8+32+128 = **175**. A simple chamber with north and south exits (`NSC`) encodes as: 1+4+16 = **21**.
+
+This reduces 61 cards to a single `DIM AK(60)` array — 61 elements instead of 488. Decoding uses bitwise AND:
+
+```basic
+AN = AC AND 1          : REM North exit
+AE = (AC AND 2) / 2    : REM East exit
+AZ = (AC AND 4) / 4    : REM South exit (AZ not AS — AS is a reserved word)
+AW = (AC AND 8) / 8    : REM West exit
+AH = (AC AND 16) / 16  : REM Is chamber
+AU = (AC AND 32) / 32  : REM Stair up
+AD = (AC AND 64) / 64  : REM Stair down
+AT = INT((AC AND 896) / 128)  : REM Special type
+```
+
+Note the use of `AZ` for south instead of `AS` — the latter is a BASIC reserved word (`AS` is used in `OPEN ... AS #n`), which would cause a syntax error.
+
+### Decimal-Packed Creature Stats
+
+Each creature has 5 properties: fighting strength, magical power, carry capacity, selection value, and point value. Storing these in separate arrays would require 5 arrays × 14 creature types = 70 elements. Instead, all 5 values are packed into a single decimal number:
+
+```
+CD = FS×100000 + MP×10000 + CW×1000 + SV×100 + PT
+```
+
+For example, the HERO (fight=5, magic=0, carry=3 [×25=75kg], selection=6, points=10) encodes as: **503610**. A WIZARD (fight=2, magic=5, carry=0, selection=0, points=15) encodes as: **250015**.
+
+The Casio's 13-digit BCD internal precision means a 6-digit packed value is decoded without rounding errors. The decode subroutine extracts each field using integer division:
+
+```basic
+CF = INT(W / 100000)
+CM = INT((W - CF*100000) / 10000)
+CW = INT((W - CF*100000 - CM*10000) / 1000)
+CV = INT((W - CF*100000 - CM*10000 - CW*1000) / 100)
+CP = W - CF*100000 - CM*10000 - CW*1000 - CV*100
+```
+
+This reduces 5 arrays to 1, saving ~320 bytes of variable area.
+
+### Coordinate Encoding for Multi-Level Maps
+
+The game's map can span many levels, each with areas at different x,y positions. Three separate arrays (MX, MY, ML for x-coordinate, y-coordinate, and level) would cost 3 × 61 elements = 183 elements. Instead, all three values are packed into a single number:
+
+```
+ML(i) = Level × 10000 + Y × 100 + X
+```
+
+With the origin at (50, 50), coordinates range from 0-99 on each axis, supporting maps up to 50 areas in any direction from the starting point. The level occupies the ten-thousands digit.
+
+For example, the GATEWAY at level 1, position (50,50) encodes as: 1×10000 + 50×100 + 50 = **15050**. An area at level 3, position (48,52) encodes as: 3×10000 + 48×100 + 52 = **34852**.
+
+Extracting coordinates uses integer division:
+
+```basic
+TL = INT(W / 10000)              : REM Level
+TY = INT((W - TL*10000) / 100)   : REM Y coordinate
+TX = W - TL*10000 - TY*100       : REM X coordinate
+```
+
+This eliminates two arrays, saving ~976 bytes.
+
+### Pre-Built Small Pack
+
+The small pack of 52 chamber cards (19 creatures, 15 heavy treasures, 12 artifacts, 6 hazards) could be built programmatically from count arrays at runtime. The original design used arrays for creature counts, treasure counts, and hazard counts, then looped through them to build the pack. This required 3 extra arrays and ~30 lines of code.
+
+Instead, the 52 card values are pre-computed and stored directly as DATA statements:
+
+```basic
+8500 DATA 101,102,102,102,103,103
+8510 DATA 104,104,104,108,108,108
+...
+8590 DATA 300,301,301,302,303,304
+```
+
+Each card is encoded as `type × 100 + index` (creatures=1xx, treasures=2xx, hazards=3xx). The pack is read with a single `RESTORE 8500` / `FOR-READ` loop, eliminating the count arrays entirely.
+
+### Eliminating Redundant Arrays
+
+The initial design used 31 arrays totalling ~7.8KB — more than the variable area could hold. Through systematic elimination:
+
+| Optimisation | Arrays Removed | Bytes Saved |
+|-------------|---------------|-------------|
+| Pack 6 creature stat arrays → 1 | 5 | ~560 |
+| Merge MX/MY/ML → 1 packed ML | 2 | ~976 |
+| Eliminate MV (visited) array | 1 | ~488 |
+| Eliminate treasure weight/count arrays | 3 | ~360 |
+| Eliminate hazard count/name arrays | 2 | ~80 |
+| Pre-built small pack (no count arrays) | 3 | ~200 |
+| Reduce PT(12,4) → PT(8)+PU(8) | 1 (2D→2×1D) | ~360 |
+| **Total** | **17** | **~3,024** |
+
+The final design uses 16 arrays totalling ~3.6KB — less than half the original.
+
+### Stripping Comments for Memory
+
+Every REM line in a BASIC program consumes memory: 2 bytes for the line number, 2 bytes for the REM token, 1 byte per character, plus 1 byte overhead. A comment like `REM == DECODE AREA CARD ==` costs 30 bytes.
+
+All comments were stripped from the program and moved to an external documentation file (this file), saving approximately 400 bytes. The documentation is maintained with line number references so it stays synchronised with the program.
+
+### The GOSUB 9400 Pattern
+
+Many screens end with `PRINT "[EXE] Continue";:GOSUB 9410` — printing the prompt and waiting for the EXE key. This 35-character pattern appeared 12+ times. Creating a two-line subroutine:
+
+```basic
+9400 PRINT "[EXE]";
+9410 K$=INKEY$:IF K$="" THEN 9410
+9420 IF K$<>CHR$(13) THEN 9410
+9430 RETURN
+```
+
+Replaced each instance with `GOSUB 9400` (11 characters), saving ~24 bytes per call — roughly 200 bytes total.
+
+### Variable Name Collisions
+
+In Casio BASIC, all variables are global and there are no local scopes. With dozens of subroutines sharing the same variable space, name collisions are a constant risk. Two critical bugs were caused by this:
+
+1. **NC collision** — `NC` was used for both the curse count (initialised to 0 at game start) and the newly-drawn area card value. After drawing any area card, `NC` would be set to something like 175, and combat would subtract 175 from the player's die rolls, producing wildly negative scores. Fixed by renaming the card variable to `NW`.
+
+2. **AS reserved word** — `AS` is a BASIC reserved word (used in `OPEN ... FOR INPUT AS #1`). Using it as the "south exit" variable caused syntax errors. Renamed to `AZ`.
+
+### DATA Statement Sequencing
+
+Casio BASIC's `READ` command reads DATA statements sequentially across the entire program. The DATA pointer advances globally — if subroutine A reads 61 values and subroutine B reads 14 values, B picks up where A left off, regardless of which DATA line B's values are on.
+
+This caused a subtle bug: creature names (strings) were followed by the pre-built small pack (numbers), which were followed by starting creature counts (numbers). After reading 14 creature names, the DATA pointer landed on the small pack numbers, causing the starting counts to read card values instead of counts.
+
+The fix was to use `RESTORE line_number` to explicitly reset the DATA pointer before each independent read sequence:
+
+```basic
+8650 RESTORE 8660
+8655 FOR I=0 TO 7:READ CS(I):NEXT I
+8660 DATA 1,1,3,3,3,6,3,3
+```
+
+### FOR Inside IF THEN
+
+Casio BASIC evaluates `IF condition THEN statement` by skipping the statement if the condition is false. But if the statement is a `FOR` loop, the corresponding `NEXT` on the following line is *not* inside the IF — it always executes. When the condition is false, `FOR` is skipped but `NEXT` runs, causing an "FO error" (FOR without NEXT).
+
+```basic
+' BROKEN:
+3430 IF R>1 THEN FOR I=0 TO NP-1:IF PC(I)=0 THEN R=R+1
+3440 NEXT I   ← runs even when R<=1, causing FO error
+
+' FIXED:
+3430 FOR I=0 TO NP-1:IF R>1 AND PC(I)=0 THEN R=R+1
+3440 NEXT I   ← FOR always runs, condition is inside the loop
+```
+
+### Dead-End Card Persistence
+
+In the board game, a dead-end card is placed face-down — it exists on the map but can't be entered from the direction that revealed it. The initial implementation placed dead-end cards in the map arrays but didn't prevent re-entry. Moving in the same direction again would find the existing card and teleport the party into it.
+
+The fix checks the found card's exits: if it doesn't have an exit facing back toward the player (the opposite direction), movement is blocked:
+
+```basic
+1130 AC=MP(FA):GOSUB 9110      : REM Decode found area
+1134 IF DR=1 AND AZ>0 THEN OK=1 : REM Going N, need S exit on target
+1136 IF DR=2 AND AW>0 THEN OK=1 : REM Going E, need W exit
+1138 IF DR=3 AND AN>0 THEN OK=1 : REM Going S, need N exit
+1139 IF DR=4 AND AE>0 THEN OK=1 : REM Going W, need E exit
+1140 IF OK=0 THEN PRINT "Dead end.":RETURN
+```
+
+### Bidirectional Stair Links
+
+Stair connections between levels are stored in `MS()` — when area A connects to area B via stairs, both `MS(A)=B` and `MS(B)=A` are set. This bidirectional link caused a bug: going "down" from level 2 would follow MS() back to level 1 instead of drawing a new card for level 3.
+
+The fix checks the linked area's level before following the link:
+
+```basic
+1164 IF DR=5 AND W<PL THEN PA=FA:PL=W:RETURN  : REM Up: only if target is shallower
+1166 IF DR=6 AND W>PL THEN PA=FA:PL=W:RETURN  : REM Down: only if target is deeper
+' Falls through to draw new card if link goes wrong way
+```
