@@ -269,19 +269,48 @@ The hardest decision is knowing when to leave:
 
 ## Controls Reference
 
-| Key | Context | Action |
-|-----|---------|--------|
-| N/E/S/W | Exploration | Move in compass direction |
-| U/D | Exploration | Use stairs up/down |
-| I | Exploration | Inventory |
-| A | Exploration | Use artifact |
-| X | Exploration | Exit cave (level 1, stair up) |
-| ? | Exploration | Help |
-| ←/→ | Menus | Browse items/creatures |
-| EXE | Universal | Confirm / Continue |
-| W/A/T | Encounter | Withdraw / Attack / Test |
-| F/R | Combat | Fight on / Retreat |
-| R | Inventory | Redistribute treasure |
+### Exploration
+
+| Key | Action |
+|-----|--------|
+| ![N](../../images/keys/standard/n.png) ![E](../../images/keys/standard/e.png) ![S](../../images/keys/standard/s.png) ![W](../../images/keys/standard/w.png) | Move North / East / South / West |
+| ![U](../../images/keys/standard/u.png) ![D](../../images/keys/standard/d.png) | Use stairs Up / Down |
+| ![I](../../images/keys/standard/i.png) | Inventory — view party and carried items |
+| ![A](../../images/keys/standard/a.png) | Artifact menu — use carried artifacts |
+| ![X](../../images/keys/standard/x.png) | Exit cave (level 1 stair up only) |
+| ![?](../../images/keys/standard/divide.png) | Help screen |
+
+### Menus & Selection
+
+| Key | Action |
+|-----|--------|
+| ![←](../../images/keys/standard/left.png) ![→](../../images/keys/standard/right.png) | Browse items / creatures |
+| ![EXE](../../images/keys/standard/exe.png) | Confirm / Continue |
+| ![0](../../images/keys/standard/0.png) | Done selecting (party setup) |
+| ![BS](../../images/keys/standard/bs.png) | Redo selection |
+
+### Stranger Encounters
+
+| Key | Action |
+|-----|--------|
+| ![W](../../images/keys/standard/w.png) | Withdraw from chamber |
+| ![A](../../images/keys/standard/a.png) | Attack strangers |
+| ![T](../../images/keys/standard/t.png) | Test stranger reaction |
+
+### Combat
+
+| Key | Action |
+|-----|--------|
+| ![F](../../images/keys/standard/f.png) | Fight another round |
+| ![R](../../images/keys/standard/r.png) | Retreat from fight |
+
+### Inventory
+
+| Key | Action |
+|-----|--------|
+| ![R](../../images/keys/standard/r.png) | Redistribute treasure between creatures |
+| ![1](../../images/keys/standard/1.png) ![2](../../images/keys/standard/2.png) | Select item slot 1 or 2 |
+| ![D](../../images/keys/standard/d.png) | Drop item |
 
 ---
 
