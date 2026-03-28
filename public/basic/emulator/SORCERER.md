@@ -212,19 +212,26 @@ When your party escapes the Cave:
 
 ### Party Selection
 
-Your 6 selection points are the most important decision in the game. Consider these approaches:
+Your 6 selection points are the most important decision in the game. Here are some proven combinations:
 
-- **The Lone Hero (6 pts)** — maximum fighting strength (5) and the charisma bonus for befriending strangers. Carry capacity of 75 kg (3 sacks). High risk: one unlucky combat roll and the game is over. Best for aggressive, fast exploration.
+**Solo (1 creature)**
+- **Hero (6)** — fighting strength 5, charisma bonus (+1 when testing strangers), 75 kg carry. High risk but high reward. One bad fight ends the game.
 
-- **Hero + Dwarf (6+1=7? No — Hero costs all 6)** — the Hero uses the full budget. If you want a Dwarf's trap protection, you'll need a cheaper core. Try **Priest + Woman + Dwarf (4+2+1=7? No, 7>6)**. Actually: **Priest + Dwarf + Dwarf (4+1+1=6)** gives trap protection and magical power, but weak in combat.
+**Pairs (2 creatures)**
+- **Ogre + Dwarf (5+1=6)** — strong fighter (5) with trap protection. Ogre carries 100 kg. But inhuman creatures can't use most artifacts.
+- **Troll + Woman (4+2=6)** — good fighter (4) with 75 kg carry, plus the Woman befriends Unicorns.
+- **Priest + Woman (4+2=6)** — magical power (2) handles Spectres, Woman befriends Unicorns. Weak in combat but the Priest is worth 8 points.
+- **Troll + Dwarf (4+1=5)** — strong fighter with trap protection. One point unspent.
+- **Man + Man (3+3=6)** — redundancy: if one falls, the other continues. Combined 100 kg carry.
+- **Man + Woman + Dwarf (3+2+1=6)** — three creatures give numbers advantage in combat and trap protection.
 
-- **Troll + Woman (4+2=6)** — the Troll is a strong fighter (4) with good carry capacity (75 kg), while the Woman can befriend Unicorns and costs only 2. A balanced combination.
+**Trios (3 creatures)**
+- **Troll + Dwarf + Dwarf (4+1+1=6)** — strong fighter with double trap protection. Invaluable on deeper levels.
+- **Man + Dwarf + Dwarf (3+1+1=5)** — one point unspent but good trap safety.
+- **Woman + Woman + Woman (2+2+2=6)** — three Unicorn-befrienders with combined 75 kg carry. Weak individually but strength in numbers.
 
-- **Man + Man (3+3=6)** — two fighters give you redundancy. If one falls, the other continues. Total carry capacity of 100 kg. Decent combat with combined strength.
-
-- **Priest + Woman (4+2=6)** — the Priest's magical power (2) is useful against Spectres, and the Woman befriends Unicorns. Weak in raw combat but versatile. The Priest's 8 points make him very valuable to carry out.
-
-- **Troll + Dwarf + Dwarf (4+1+1=6)** — strong fighter with double trap protection. Dwarves are weak but cheap, and their trap guidance is invaluable on deeper levels where you draw more hazard cards.
+**Large parties**
+- **Dwarf × 6 (1+1+1+1+1+1=6)** — maximum trap protection and combat matchups. Each Dwarf is weak (strength 1) but six of them can overwhelm most enemies. Very low carry capacity (150 kg total).
 
 ### Party Size
 
