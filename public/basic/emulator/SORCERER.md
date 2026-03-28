@@ -208,6 +208,65 @@ When your party escapes the Cave:
 - Each curse: -30 penalty
 - Minimum score: 0
 
+## Strategy Guide
+
+### Party Selection
+
+Your 6 selection points are the most important decision in the game. Consider these approaches:
+
+- **The Lone Hero (6 pts)** — maximum fighting strength (5) and the charisma bonus for befriending strangers. Carry capacity of 75 kg (3 sacks). High risk: one unlucky combat roll and the game is over. Best for aggressive, fast exploration.
+
+- **Hero + Dwarf (6+1=7? No — Hero costs all 6)** — the Hero uses the full budget. If you want a Dwarf's trap protection, you'll need a cheaper core. Try **Priest + Woman + Dwarf (4+2+1=7? No, 7>6)**. Actually: **Priest + Dwarf + Dwarf (4+1+1=6)** gives trap protection and magical power, but weak in combat.
+
+- **Troll + Woman (4+2=6)** — the Troll is a strong fighter (4) with good carry capacity (75 kg), while the Woman can befriend Unicorns and costs only 2. A balanced combination.
+
+- **Man + Man (3+3=6)** — two fighters give you redundancy. If one falls, the other continues. Total carry capacity of 100 kg. Decent combat with combined strength.
+
+- **Priest + Woman (4+2=6)** — the Priest's magical power (2) is useful against Spectres, and the Woman befriends Unicorns. Weak in raw combat but versatile. The Priest's 8 points make him very valuable to carry out.
+
+- **Troll + Dwarf + Dwarf (4+1+1=6)** — strong fighter with double trap protection. Dwarves are weak but cheap, and their trap guidance is invaluable on deeper levels where you draw more hazard cards.
+
+### Party Size
+
+Larger parties have advantages:
+- **Redundancy** — losing one creature isn't fatal
+- **More carrying capacity** — more treasure brought out
+- **Better combat matchups** — can outnumber enemies
+
+But smaller parties have their own strengths:
+- **Higher individual strength** — the Hero at strength 5 beats most enemies
+- **Charisma bonus** — only available with the Hero
+- **Fewer casualties** from Medusa and Ghouls (fewer die rolls)
+
+A party of 2-3 creatures is usually the sweet spot.
+
+### Combat Tactics
+
+- **Test before attacking** — approaching strangers gives a chance to recruit them. A friendly Wizard (magical power 5) or Giant (fighting strength 7) is a game-changing ally.
+- **But beware** — if strangers are hostile on approach, *they* get surprise, not you. Attacking first gives *you* surprise (+1 to all your rolls in round 1).
+- **Know when to retreat** — if you lose a round, you can retreat before more creatures die. Treasure dropped in combat is lost, so redistribute valuable items before picking fights.
+- **The Magic Sword is crucial** — it adds +2 to a Hero's strength (making them effectively strength 7) and is the only way for non-magical creatures to fight Spectres.
+- **Priests and Wizards** — their total strength (fighting + magical) is used in combat. A Wizard fights at strength 7 (2+5), making them formidable.
+
+### When to Exit
+
+The hardest decision is knowing when to leave:
+
+- **Exit early** if your party is weakened — a dead party scores 0. A live party with modest treasure still scores something.
+- **Each curse costs 30 points** — if you've accumulated curses, the penalty may exceed the value of further exploration. Two curses (-60 points) wipes out most treasure gains.
+- **Deeper levels are riskier but richer** — level 3+ chambers draw 3-4 cards, meaning more treasure but also more enemies and hazards.
+- **Watch your stairways** — you need a path back to level 1 with an upward stairway. If an earthquake destroys your route, you may be trapped.
+- **The Sorcerer bonus (+30)** is tempting but dangerous — he fights at strength 13 (4 fighting + 9 magical) and is always hostile. Only attempt with a strong, well-equipped party.
+
+### Treasure Priorities
+
+- **The Ring (30 pts)** — the most valuable single item, and its +1 to all die rolls makes everything easier.
+- **Gems (20 pts, 25 kg)** — best points-per-weight ratio for heavy treasure.
+- **Priests (8 pts)** and **Wizards (15 pts)** — friendly creatures are worth more than most treasure. Recruit them when possible.
+- **The Magic Sword (15 pts)** and **Magic Staff (15 pts)** — valuable and useful. Keep these.
+- **Charmed Flute (10 pts)** — essential if you encounter the Viper Pit. Also opens secret doors.
+- **Silver (5 pts, 25 kg)** — low value for its weight. Only take it if you have spare carrying capacity.
+
 ## Controls Reference
 
 | Key | Context | Action |
