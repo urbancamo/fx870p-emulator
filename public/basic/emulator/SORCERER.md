@@ -280,44 +280,44 @@ The hardest decision is knowing when to leave:
 
 | Key | Action |
 |-----|--------|
-| ![N](../../images/keys/standard/n.png) ![E](../../images/keys/standard/e.png) ![S](../../images/keys/standard/s.png) ![W](../../images/keys/standard/w.png) | Move North / East / South / West |
-| ![U](../../images/keys/standard/u.png) ![D](../../images/keys/standard/d.png) | Use stairs Up / Down |
-| ![I](../../images/keys/standard/i.png) | Inventory — view party and carried items |
-| ![A](../../images/keys/standard/a.png) | Artifact menu — use carried artifacts |
-| ![X](../../images/keys/standard/x.png) | Exit cave (level 1 stair up only) |
-| ![?](../../images/keys/standard/divide.png) | Help screen |
+| ![N](/fx870p-emulator/images/keys/standard/n.png) ![E](/fx870p-emulator/images/keys/standard/e.png) ![S](/fx870p-emulator/images/keys/standard/s.png) ![W](/fx870p-emulator/images/keys/standard/w.png) | Move North / East / South / West |
+| ![U](/fx870p-emulator/images/keys/standard/u.png) ![D](/fx870p-emulator/images/keys/standard/d.png) | Use stairs Up / Down |
+| ![I](/fx870p-emulator/images/keys/standard/i.png) | Inventory — view party and carried items |
+| ![A](/fx870p-emulator/images/keys/standard/a.png) | Artifact menu — use carried artifacts |
+| ![X](/fx870p-emulator/images/keys/standard/x.png) | Exit cave (level 1 stair up only) |
+| ![?](/fx870p-emulator/images/keys/standard/divide.png) | Help screen |
 
 ### Menus & Selection
 
 | Key | Action |
 |-----|--------|
-| ![←](../../images/keys/standard/left.png) ![→](../../images/keys/standard/right.png) | Browse items / creatures |
-| ![EXE](../../images/keys/standard/exe.png) | Confirm / Continue |
-| ![0](../../images/keys/standard/0.png) | Done selecting (party setup) |
-| ![BS](../../images/keys/standard/bs.png) | Redo selection |
+| ![←](/fx870p-emulator/images/keys/standard/left.png) ![→](/fx870p-emulator/images/keys/standard/right.png) | Browse items / creatures |
+| ![EXE](/fx870p-emulator/images/keys/standard/exe.png) | Confirm / Continue |
+| ![0](/fx870p-emulator/images/keys/standard/0.png) | Done selecting (party setup) |
+| ![BS](/fx870p-emulator/images/keys/standard/bs.png) | Redo selection |
 
 ### Stranger Encounters
 
 | Key | Action |
 |-----|--------|
-| ![W](../../images/keys/standard/w.png) | Withdraw from chamber |
-| ![A](../../images/keys/standard/a.png) | Attack strangers |
-| ![T](../../images/keys/standard/t.png) | Test stranger reaction |
+| ![W](/fx870p-emulator/images/keys/standard/w.png) | Withdraw from chamber |
+| ![A](/fx870p-emulator/images/keys/standard/a.png) | Attack strangers |
+| ![T](/fx870p-emulator/images/keys/standard/t.png) | Test stranger reaction |
 
 ### Combat
 
 | Key | Action |
 |-----|--------|
-| ![F](../../images/keys/standard/f.png) | Fight another round |
-| ![R](../../images/keys/standard/r.png) | Retreat from fight |
+| ![F](/fx870p-emulator/images/keys/standard/f.png) | Fight another round |
+| ![R](/fx870p-emulator/images/keys/standard/r.png) | Retreat from fight |
 
 ### Inventory
 
 | Key | Action |
 |-----|--------|
-| ![R](../../images/keys/standard/r.png) | Redistribute treasure between creatures |
-| ![1](../../images/keys/standard/1.png) ![2](../../images/keys/standard/2.png) | Select item slot 1 or 2 |
-| ![D](../../images/keys/standard/d.png) | Drop item |
+| ![R](/fx870p-emulator/images/keys/standard/r.png) | Redistribute treasure between creatures |
+| ![1](/fx870p-emulator/images/keys/standard/1.png) ![2](/fx870p-emulator/images/keys/standard/2.png) | Select item slot 1 or 2 |
+| ![D](/fx870p-emulator/images/keys/standard/d.png) | Drop item |
 
 ---
 
