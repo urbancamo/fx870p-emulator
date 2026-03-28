@@ -343,7 +343,7 @@ Movement upwards from lower levels is dealt with in the same way. Any stairway l
 ### Secret Doors
 More often than not, a stairway will lead to an area on which no corresponding stairway is pictured. In such a case, one end of the stairway is considered to be concealed by a secret door.
 
-When a player explores such a stairway, marking the two levels as usual with plain markers of his colour, the marker at the hidden entrance to the stairway will show that the player ha knowledge of the secret door, and may use it to retrace his steps. No other party may use this secret door, unless it has also explored the stairway from its visible end, or has been shown the secret door by a knowledgeable party in the same area, or is in the area when another party uses the door, or has the ability to find secret doors with the charmed flute. Every player who discovers a secret door should mark it with his colour.
+When a player explores such a stairway, marking the two levels as usual with plain markers of his colour, the marker at the hidden entrance to the stairway will show that the player has knowledge of the secret door, and may use it to retrace their steps. No other party may use this secret door, unless it has also explored the stairway from its visible end, or has been shown the secret door by a knowledgeable party in the same area, or is in the area when another party uses the door, or has the ability to find secret doors with the charmed flute. Every player who discovers a secret door should mark it with his colour.
 
 The charmed flute will discover any secret door, even if it has never been explored, as long as the stairway it leads to is visible among the area cards that have been played.
 
@@ -454,45 +454,45 @@ A party which falls down a trap ignores any treasure or creature cards found wit
 #### Charmed flute
 Dragons and vipers will be lulled to sleep immediately, and remain asleep as long as the party is in the area. The flute-player may fight in the same turn. A dragon may be put to sleep before strangers are approached, so that a friendlier creature will be their leader. A creature involved in a fight cannot use the flute to find a secret door to retreat by.
 
-#### Healing balm. 
+#### Healing balm
 It may be applied only at the beginning of a turn in which the party is not involved in a fight.
 
 #### Lost ruby
 If a party has aroused the statue and then retreated, the statue attacks any party which later enters the area.
 
-#### Lotus dust. 
+#### Lotus dust
 It may be used before approaching strangers, or before any round of fighting. Magic carpet. It will transport the party one level directly up or down, or to a card adjacent along an edge. A new area card may be placed if necessary. If the party encounters strangers it may not withdraw. If it is transported to the viper pit or deep pool the party ends up on the island.
 
-#### Magic staff.
+#### Magic staff
 Medusa cannot harm a wizard bearing the staff.
 
-#### Eye of God. 
+#### Eye of God
 Priests, wizards, and all other artefacts are powerless when this gem is in the same area (priests and wizards retain fighting strength); spectres and zombies are permanently destroyed. The statue bearing the lost ruby is powerless to attack. Once a party has taken up the Eye, the gem must be kept with the main body of the party; otherwise there is a curse on that party until the gem is again taken up by the same or another party. This applies even if the gem is left behind involuntarily, e.g., on the body of a slain creature. Note that on encountering the Eye your party is under no obligation to pick it up.
 
-#### The Ring. 
+#### The Ring
 The bonus value of the ring applies to all die rolls in a round of fighting, even if the bearer is slain in that round. On the fourth level or deeper the bearer fights in the normal way, but die rolls which would normally indicate his death are ignored.
 
-#### Strength potion. 
+#### Strength potion 
 It can be taken immediately before any round of fighting.
 
-#### Talisman. 
+#### Talisman
 It has no warding-off power until actually taken up by an exploring party. The party possessing it may use its power to protect other parties in the same area.
 
-#### Treasure Chest. 
+#### Treasure Chest
 Two or more creatures may join in carrying it. It can be opened at the beginning of any turn when the party is still in the Cave. If a spectre appears, it attacks with a magical power of 5 and the turn ends after one round of fighting. If the spectre is not defeated, it remains in the area and is hostile to all parties.
 
 ###  Creature Cards
 
-#### Dragon. 
+#### Dragon 
 If a creature slays a dragon single-handedly, the dragon card is inverted and put with its slayer to indicate that creature’s status as a dragon-“slayer. 1The creature may acquire greater strength by slaying more dragons.
 
-#### Hero and woman-hero. 
+#### Hero and woman-hero 
 The presence of both in a party does not double the bonus on die rolls when testing strangers. The woman-hero has all capabilities of a woman and of a hero. Spectre. Spectres are not of flesh and blood, so they cannot be fought hand-to-hand, except by a man, woman, or hero bearing the magic sword. Priests and wizards not otherwise engaged may fight spectres, using their magical power only. In any round of a fight in which a party does not have any magical power to pit against a spectre, the strongest creature in the party must be matched against the spectre, and is automatically slain.
 
-#### Unicorn. 
+#### Unicorn 
 If found with a woman it will remain loyal to her. Otherwise it may not be approached till other strangers in the chamber have been befriended, found indifferent, or slain. Then it will join your party if it contains a woman; otherwise it will remain indifferent, guarding any treasure in the area. A unicorn will remain allied to your party only as long as it contains a woman.
 
-#### The Sorcerer. 
+#### The Sorcerer 
 An exploring party which encounters the Sorcerer may withdraw from the chamber or attack in the normal way; but it may not approach the Sorcerer or his companions to test them, as they will always be hostile.
 
 A player who defeats the Sorcerer and his companions has the option of sparing the Sorcerer’s life, on condition that he immediately transport the party and any treasure in the chamber, by magical means, to an area of the player’s choice. This option must be taken up in the first turn after the fight is over. It cannot be done if the Eye of God is present. The Sorcerer remains in the chamber.
@@ -594,7 +594,7 @@ Certain small cards may be placed here beforehand, and others drawn on entry to 
 #### The Quest
 A valuable treasure, such as `THE RING` or the `TREASURE CHEST` full of gold, is put in a hard-to-get-at place, such as in the Sorcerer’s Den, or on the island in the `VIPER PIT` at the centre of the third level and guarded by a `SPECTRE`. In a competitive game, certain tasks may be assigned to each player by secret lot, with extra points awarded for the accomplishment of the tasks. These tasks might include killing a `GIANT` (10 points), reaching the 5th level (20), finding the `MAGIC SWORD`and killing a `SPECTRE` with it (25), and carrying the `LOST RUBY` to the island in the `VIPER PIT` (40).
 
-#### The Ringbearer.
+#### The Ringbearer
 A party with a selection value of 4 tries to carry the ring from the gateway to the deep pool, which is at the centre of the fourth level. This party has a head start of seven turns over a party of three `TROLLS`, whose object is to capture `THE RING` and bring it to the surface. `THE SORCEROR` and companions are indifferent to the `TROLL`-party. The game ends when either party achieves its goal. 
 
 
