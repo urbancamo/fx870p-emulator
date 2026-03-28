@@ -195,7 +195,7 @@ This is the full set of cards, with the encoded string in column 1.
 
 | Type         | Magical Power | Fighting Strength | Carries (kg) | Number in Pack | Other Characteristics                                        | Selection Value | Points |
 |--------------|---------------|-------------------|--------------|----------------|--------------------------------------------------------------|-----------------|--------|
-| `HERO`       | —             | 3                 | 75           | 1              | Has charisma: adds 1 to die 6 roll when testing `STRANGERS`. | 6               | 10     |
+| `HERO`       | —             |                   | 75           | 1              | Has charisma: adds 1 to die 6 roll when testing `STRANGERS`. | 6               | 10     |
 | `WOMAN-HERO` | —             | 4                 | 50           | 1              | Has capabilities of `WOMAN` and `HERO`                       | 5               | 10     |   
 | `OGRE`       | —             | 5                 | 100          | 3              | Inhuman: cannot use most artifacts                           | 5               | 5      |
 | `TROLL`      | —             | 4                 | 75           | 3              | Inhuman                                                      | 4               | 4      | 

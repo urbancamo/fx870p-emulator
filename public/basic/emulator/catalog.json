@@ -95,8 +95,8 @@
     "description": "HP-style reverse polish notation calculator with 4-level stack — add, subtract, multiply, divide"
   },
   {
-    "file": "SCAVE1.BAS",
-    "name": "Sorcerer's Cave (Stage 1)",
-    "description": "Board game adaptation — explore an underground labyrinth, recruit creatures, find treasure (WIP: tunnels only, chambers in Stage 2)"
+    "file": "SORCERER.BAS",
+    "name": "Sorcerer's Cave",
+    "description": "Board game adaptation — explore a labyrinth, recruit creatures, fight monsters, collect treasure, and escape alive. Run CLEAR 11000,17000 before RUN"
   }
 ]
