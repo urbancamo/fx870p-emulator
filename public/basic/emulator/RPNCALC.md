@@ -26,15 +26,15 @@ Y: 3
 
 ### Controls
 
-| Key | Action |
-|---|---|
-| ![0](/fx870p-emulator/images/keys/standard/0.png)–![9](/fx870p-emulator/images/keys/standard/9.png), ![.](/fx870p-emulator/images/keys/standard/dot.png) | Enter digits |
-| ![EXE](/fx870p-emulator/images/keys/standard/exe.png) | Push number onto stack (ENTER) |
+| Key                                                                                                                                                                                                                        | Action |
+|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---|
+| ![0](/fx870p-emulator/images/keys/standard/0.png) – ![9](/fx870p-emulator/images/keys/standard/9.png), ![.](/fx870p-emulator/images/keys/standard/dot.png)                                                                 | Enter digits |
+| ![EXE](/fx870p-emulator/images/keys/standard/exe.png)                                                                                                                                                                      | Push number onto stack (ENTER) |
 | ![+](/fx870p-emulator/images/keys/standard/plus.png) ![-](/fx870p-emulator/images/keys/standard/minus.png) ![*](/fx870p-emulator/images/keys/standard/multiply.png) ![/](/fx870p-emulator/images/keys/standard/divide.png) | Arithmetic — pops X and Y, pushes result |
-| ![C](/fx870p-emulator/images/keys/standard/c.png) | Clear X register and any partial entry |
-| ![S](/fx870p-emulator/images/keys/standard/s.png) | Swap X and Y registers |
-| ![N](/fx870p-emulator/images/keys/standard/n.png) | Negate — changes sign of X or current entry |
-| ![BS](/fx870p-emulator/images/keys/standard/bs.png) | Delete last digit of current entry |
+| ![C](/fx870p-emulator/images/keys/standard/c.png)                                                                                                                                                                          | Clear X register and any partial entry |
+| ![S](/fx870p-emulator/images/keys/standard/s.png)                                                                                                                                                                          | Swap X and Y registers |
+| ![N](/fx870p-emulator/images/keys/standard/n.png)                                                                                                                                                                          | Negate — changes sign of X or current entry |
+| ![BS](/fx870p-emulator/images/keys/standard/bs.png)                                                                                                                                                                        | Delete last digit of current entry |
 
 ### Examples
 
