@@ -40,28 +40,28 @@ Y: 3
 
 **Simple addition: 3 + 4 = 7**
 
-1. Type `3`, press EXE — stack: Y=0, X=3
-2. Type `4`, press `+` — stack: X=7
+1. Type ![3](/fx870p-emulator/images/keys/standard/3.png), press ![EXE](/fx870p-emulator/images/keys/standard/exe.png) — stack: Y=0, X=3
+2. Type ![4](/fx870p-emulator/images/keys/standard/4.png), press ![+](/fx870p-emulator/images/keys/standard/plus.png) — stack: X=7
 
 **Expression: (5 + 3) * 2 = 16**
 
-1. Type `5`, press EXE
-2. Type `3`, press `+` — X=8
-3. Type `2`, press `*` — X=16
+1. Type ![5](/fx870p-emulator/images/keys/standard/5.png), press ![EXE](/fx870p-emulator/images/keys/standard/exe.png)
+2. Type ![3](/fx870p-emulator/images/keys/standard/3.png), press ![+](/fx870p-emulator/images/keys/standard/plus.png) — X=8
+3. Type ![2](/fx870p-emulator/images/keys/standard/2.png), press ![*](/fx870p-emulator/images/keys/standard/multiply.png) — X=16
 
 **Complex: (10 - 3) / (2 + 5) = 1**
 
-1. Type `10`, press EXE
-2. Type `3`, press `-` — X=7
-3. Type `2`, press EXE
-4. Type `5`, press `+` — X=7, Y=7
-5. Press `/` — X=1
+1. Type ![1](/fx870p-emulator/images/keys/standard/1.png) ![0](/fx870p-emulator/images/keys/standard/0.png), press ![EXE](/fx870p-emulator/images/keys/standard/exe.png)
+2. Type ![3](/fx870p-emulator/images/keys/standard/3.png), press ![-](/fx870p-emulator/images/keys/standard/minus.png) — X=7
+3. Type ![2](/fx870p-emulator/images/keys/standard/2.png), press ![EXE](/fx870p-emulator/images/keys/standard/exe.png)
+4. Type ![5](/fx870p-emulator/images/keys/standard/5.png), press ![+](/fx870p-emulator/images/keys/standard/plus.png) — X=7, Y=7
+5. Press ![/](/fx870p-emulator/images/keys/standard/divide.png) — X=1
 
 **Duplicate with ENTER: 5^2 = 25**
 
-1. Type `5`, press EXE
-2. Press EXE again (duplicates X into Y) — Y=5, X=5
-3. Press `*` — X=25
+1. Type ![5](/fx870p-emulator/images/keys/standard/5.png), press ![EXE](/fx870p-emulator/images/keys/standard/exe.png)
+2. Press ![EXE](/fx870p-emulator/images/keys/standard/exe.png) again (duplicates X into Y) — Y=5, X=5
+3. Press ![*](/fx870p-emulator/images/keys/standard/multiply.png) — X=25
 
 ## Stack Behaviour
 
