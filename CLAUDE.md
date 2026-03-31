@@ -107,3 +107,20 @@ For the stack to be in RAM, bits 3:2 of UA must be `01` (e.g. UA=0x14, 0x44, 0x5
 The `adwSbw` carry bug caused `sbcw (iz+$sy),$6` to leave C_bit=0 even when borrow occurred, making conditional-return instructions (`rtn nc`) fire incorrectly. Symptom: `LIST` returned after CR/LF header without displaying any lines.
 
 The `subBcd` bug caused all BCD floating-point results to have the exponent off by -10 (e.g., `1 EXE` → `0.0000000001`). The Delphi reference uses `(Result - $06) or cardinal(-$10)` which performs bitwise OR with `0xFFFFFFF0` to propagate the borrow into the upper nibble, while the TypeScript used arithmetic subtraction which produces entirely different values on underflow.
+
+## Coding in Casio JIS Standard BASIC
+
+- Consult the manual [index.md](./public/docs/casio-jis-basic/index.md) for clarification of Casio Basic commands, as required.
+- make note of the model indicators against individual BASIC commands - not all commands are available for the FX-870P/VX-4 model variant.
+- when writing code use line number spacing of 10 to allow for insertion of extra lines without having to re-number all the time.
+- use the ' apostrophe character for comments.
+- break code up into re-usable subroutines where required.
+- subroutines by convention are located on line numbers starting with a multiple of 100.
+
+## Coding of The Sorcerers Cave
+
+Sorcerers Cave is a very ambitious Casio BASIC. Refer to the following documentation when unsure of how to implement bug fixes or enhancements:
+
+Rules (these apply to the board game version from which this is adapted for solo play):  reference/sorcerers-cave/sorcerers-cave-rules.md
+
+Documentation of the program (although this by necessity will be someone out of date) is rooted at: public/docs/sorcerers-cave/index.md - use this documentation to help code.
