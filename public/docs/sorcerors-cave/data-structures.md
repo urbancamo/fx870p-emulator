@@ -172,7 +172,7 @@ Pts: 5  10  20  15   5   5   5  10   5  15  30  20  10   0   0
 8 pairs of (hostile_max, indifferent_max) for cave creatures, read via RESTORE 6750:
 
 ```
-DATA 1,5,  5,6,  6,6,  4,5,  3,4,  0,0,  3,5,  3,3
+DATA 1,5,  5,6,  6,6,  6,6,  3,4,  0,0,  3,5,  3,3
 ```
 
 Indexed by creature CI minus 8 (for cave creatures 8–13, plus 2 extra entries):
@@ -182,7 +182,7 @@ Indexed by creature CI minus 8 (for cave creatures 8–13, plus 2 extra entries)
 | Wizard | 8 | 1 | 5 | 1 | 2–5 | 6 |
 | Spectre | 9 | 5 | 6 | 1–5 | 6 | never |
 | Dragon | 10 | 6 | 6 | 1–6 | never | never |
-| Sorcerer | 11 | 4 | 5 | 1–4 | 5 | 6 |
+| Sorcerer | 11 | 6 | 6 | always | never | never |
 | Giant | 12 | 3 | 4 | 1–3 | 4 | 5–6 |
 | Unicorn | 13 | 0 | 0 | never | always* | never |
 

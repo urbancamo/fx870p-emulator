@@ -139,13 +139,19 @@ On first entering a chamber with creatures, or re-entering a room with persisten
 |-----|--------|
 | W | **Withdraw** — party returns to previous area (`PA = PP`). Creatures remain; `RC$(PA)` stays set for re-entry |
 | A | **Attack** — party has surprise (SU=1). Initiates combat (GOSUB 3490) |
-| T | **Test** — roll die to determine stranger reaction |
+| T | **Test** — roll die to determine stranger reaction (not available if leader is the Sorcerer, SL=11) |
+| L | **Lotus Dust** — put one non-Spectre creature to sleep (removed from encounter). Only shown if party has Lotus Dust. One use |
+
+### The Sorcerer (SL=11)
+
+Per the board game rules, the Sorcerer and his companions are always hostile and cannot be tested. When the stranger leader is the Sorcerer, the [T]est option is hidden and the reaction data (HM=6, IM=6) ensures hostile on any roll as a safety net.
 
 ### Testing Strangers
 
 1. Roll die → base result `R`
-2. Hero/W-Hero bonus: if R > 1 and party contains Hero (CI=0) or W-Hero (CI=1), R = R + 1
-3. Clamp R to 1–6
+2. Ring bonus: if R > 1 and any party member carries Ring ('K'), R = R + 1
+3. Hero/W-Hero bonus: if R > 1 and party contains Hero (CI=0) or W-Hero (CI=1), R = R + 1
+4. Clamp R to 1–6
 4. Read reaction thresholds (HM, IM) from DATA 6750 for the leader creature
 5. If R ≤ HM → **Hostile**: enemies have surprise (SU=-1), combat starts. `RC$` cleared
 6. If R ≤ IM → **Indifferent**: SS incremented. After 3 indifferent results: "Permanently indifferent". `RC$` stays set for re-entry retesting
@@ -168,16 +174,24 @@ Count enemies from DC() (CY=1 entries) → `NE`. Set round counter `RD = 1`.
 
 Number of matches = `min(NP, NE)`. For each match:
 
-1. **Party member**: total strength = CF + CM + sword bonus
+1. **Party member**: total strength = CF + CM + bonuses
    - Sword bonus: if carrying Magic Sword (item 'D'): Hero gets +2, Man/Woman gets +1
+   - Dragon-slayer bonus: `+PK(MN)` (incremented each time member slays a Dragon)
+   - Strength Potion bonus: +2 if potion used on this member (`PB=MN`)
+   - Magic Staff bonus: if carrying Staff (item 'J'): Priest gets +1, Wizard gets +2
 2. **Enemy**: find strongest remaining enemy (iterate DC() for highest CF+CM) → `EC`, `ES`
-3. **Party roll**: `YR = die + party_strength + surprise_bonus - curse_penalty`
+   - Sorcerer penalty: if EC=11 (Sorcerer), ES is reduced by 2 for each of Lotus Dust ('F') or Eye of God ('N') carried by any party member (min 0)
+3. **Party roll**: `YR = die + party_strength + surprise_bonus + ring_bonus - curse_penalty`
+   - Ring bonus: +1 if any party member carries Ring ('K')
+   - Curse penalty: `NC` (but only if Sorcerer is alive, `SK=0`)
 4. **Enemy roll**: `ER = die + enemy_strength + surprise_bonus`
-5. If YR > ER: enemy slain, NE decremented
-6. If ER > YR: party member slain (PS=3)
+5. If YR > ER: enemy slain, NE decremented. If Dragon (EC=10): `PK(MN)` incremented. If Sorcerer (EC=11): `SK=1`
+6. If ER > YR: party member slain (PS=3), unless bearer has Ring ('K') on level 4+ (invincible)
 7. If tie: no casualty
 
-Surprise bonus (+1) applies only in round 1. Curse penalty (`NC`) reduces all party rolls.
+Surprise bonus (+1) applies only in round 1.
+
+Before each round, if Strength Potion ('I') is carried by a Man/Woman/Hero and hasn't been used yet, player is offered to use it. One use per fight.
 
 ### After Each Round
 
@@ -217,6 +231,10 @@ After the loop:
 When re-entering a room with `RT$(PA)` content and no creatures:
 1. Reconstruct `DC()/ND` from `RT$(PA)`
 2. Clear `RT$` and run the pickup loop
+
+### Manual Pickup (line 135/155)
+
+The [P]ickup option appears in the main input prompt when the current room has uncollected treasure (`RT$(PA)` non-empty) and no hostile creatures (`INT(MR(PA)/10) = 0`). This provides a fallback for treasure that wasn't automatically offered after combat victory or friendly stranger resolution, and allows the player to return to a room to collect previously skipped items.
 
 ## Special Areas
 
@@ -296,18 +314,21 @@ The following board game rules are not fully implemented:
 | Earthquake destroying previous area | Cosmetic message only; map not modified |
 | Healing Balm resurrection | Searches for item but always says "No dead to heal" |
 | Spectre from Treasure Chest | Message only; no actual combat |
-| Lotus Dust (sleep effect) | Not implemented |
+| Lotus Dust (sleep effect) | Reduces Sorcerer's strength by 2. Sleep implemented: [L]otus option in encounter menu puts one non-Spectre creature to sleep (removed from encounter). One use |
 | Magic Carpet (teleport) | Not implemented |
-| Strength Potion (combat bonus) | Not implemented |
-| Talisman (ward off undead) | Not implemented |
-| Ring invincibility (level 4+) | Not implemented |
-| Magic Staff (reanimation) | Not implemented |
-| Lost Ruby (statue fight) | Not implemented |
-| Eye of God (magic nullification) | Not implemented |
-| Dragon-slayer strength bonus | PK flag tracked but bonus not applied in combat |
+| Strength Potion (combat bonus) | Implemented: offered before each combat round, adds +2 to Man/Woman/Hero strength for duration of fight. One use |
+| Talisman (ward off undead) | Implemented: wards off Ghouls if any party member carries it |
+| Ring invincibility (level 4+) | Implemented: +1 to all party combat die rolls. Bearer invincible on level 4+ (death rolls ignored). +1 to stranger test rolls |
+| Magic Staff (reanimation) | Implemented: +1 strength for Priest, +2 for Wizard in combat. [S]taff option in artifacts menu reanimates stone members (requires Wizard with Staff) |
+| Lost Ruby (statue fight) | Implemented: statue (Str 8) must be defeated to claim ruby. If party loses or draws, ruby stays in room for re-attempt |
+| Eye of God (magic nullification) | Nullification not implemented; reduces Sorcerer's strength by 2 |
+| Dragon-slayer strength bonus | Implemented: PK incremented on dragon kill, adds to fighting strength in combat. Double point value in scoring |
 | Leader priority order | Uses first creature in draw order, not board game priority |
-| Dwarf guides past traps | Not implemented |
+| Dwarf guides past traps | Implemented: living Dwarf in party ignores first trap per chamber. Second trap in same chamber still triggers |
 | Mutineers joining strangers | Removed from party but not added to room's stranger pool |
-| Secret doors | Not implemented |
+| Secret doors | Implemented: stairs to areas without matching stair bit create secret doors. Blocked from hidden side unless Charmed Flute reveals them |
 | Heavy treasure drop before combat | Not implemented |
 | Creature pairing in combat | Always fights strongest enemy; no two-on-one mechanic |
+| Sorcerer kill tracking | Implemented: SK flag set when Sorcerer slain (+30 pts). Curses nullified when Sorcerer dead. Retreat from Sorcerer causes curse |
+| Healing Balm resurrection | Implemented: [H]eal in artifacts menu. Requires Woman/Priest/Wizard with balm. Restores last-killed creature as ally. One use |
+| Spectre from Chest | Implemented: roll 2 on chest triggers one-round combat vs Spectre (Str 5). Surviving Spectre remains hostile in area |

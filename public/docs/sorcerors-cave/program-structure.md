@@ -29,7 +29,7 @@
 
 | Lines     | Subroutine          | Purpose                                                                                                                |
 |-----------|---------------------|------------------------------------------------------------------------------------------------------------------------|
-| 110–340   | Turn handler        | Reads current area, builds exit string, accepts directional/menu input. Calls movement (1080), increments turn counter |
+| 110–340   | Turn handler        | Reads current area, builds exit string, accepts directional/menu input. [P]ickup shown when room has treasure and no creatures. Calls movement (1080), increments turn counter |
 | 5220–5510 | HUD display         | Shows level, area type/number, exits, party member names, and calls area map renderer (7110)                           |
 | 5520–5690 | Inventory viewer    | Cycles through party members showing carried items, weight. Allows redistribution via GOSUB 5700                       |
 | 5700–5950 | Item redistribution | Move an item from one party member to another. Enforces weight limits                                                  |
@@ -162,3 +162,13 @@
 |-----------|--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | 7110–7330 | Chamber map (AH=1) | Draws 9x4 character ASCII map at screen column 22. Shows walls/exits using alternating CHR$(134)/CHR$(135). Centre shows room contents from `MR(PA)`: creature count + "$" for treasure. Special area codes: G=Gateway, D=Deep Pool, V=Viper Pit, T=Tomb, H=Great Hall. Shows stair symbols (CHR$ 252/253) |
 | 7340–7460 | Tunnel map (AH=0)  | Same layout but with solid block borders (CHR$(135) only)                                                                                                                                                                                                                                                  |
+
+### Artifact/Combat Subroutines (lines 8000–8795)
+
+| Lines     | Subroutine                    | Purpose                                                                                                                 |
+|-----------|-------------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| 8000–8099 | Strength Potion check         | Scans for Str Potion ('I') on Man/Woman/Hero. Offers to use: sets `PB` to member index, +2 strength for fight duration |
+| 8100–8240 | Spectre from Chest combat     | One-round fight: strongest party member vs Spectre (Str 5). Surviving Spectre added to `RC$(PA)` as hostile             |
+| 8500–8585 | Lost Ruby statue fight        | One-round fight vs statue (Str 8). Victory: ruby to party. Loss/draw: ruby stays in `RT$(PA)` for re-attempt           |
+| 8600–8696 | Lotus Dust sleep              | Lists non-Spectre creatures in encounter. Player selects target. Creature removed from `DC()`. Lotus Dust consumed      |
+| 8700–8795 | Magic Staff reanimation       | Requires Wizard with Staff. Restores all stone (PS=2) party members to alive (PS=1)                                     |
