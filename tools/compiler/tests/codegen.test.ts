@@ -98,3 +98,129 @@ describe('codegen - core', () => {
     );
   });
 });
+
+describe('codegen - expressions', () => {
+  it('generates numeric constant load', () => {
+    const asm = mnemonics('10 A=42');
+    expect(asm.length).toBeGreaterThan(0);
+  });
+
+  it('generates variable load', () => {
+    const asm = getAsm('10 A=5\n20 B=A');
+    const mnems = asm.filter(l => l.mnemonic && l.mnemonic !== 'ORG' && l.mnemonic !== 'DS');
+    expect(mnems.some(l => l.operands?.includes('VAR_A'))).toBe(true);
+  });
+
+  it('generates addition ROM call', () => {
+    const asm = mnemonics('10 A=2+3');
+    expect(asm.some(l => l.includes('&H05DA'))).toBe(true);
+  });
+
+  it('generates subtraction ROM call', () => {
+    const asm = mnemonics('10 A=5-3');
+    expect(asm.some(l => l.includes('&H05D4'))).toBe(true);
+  });
+
+  it('generates multiplication ROM call', () => {
+    const asm = mnemonics('10 A=2*3');
+    expect(asm.some(l => l.includes('&H0607'))).toBe(true);
+  });
+
+  it('generates division ROM call', () => {
+    const asm = mnemonics('10 A=6/3');
+    expect(asm.some(l => l.includes('&H16BD'))).toBe(true);
+  });
+
+  it('generates PRINT with expression', () => {
+    const asm = mnemonics('10 PRINT 42');
+    expect(asm.some(l => l.includes('&H3EF1'))).toBe(true);
+  });
+
+  it('generates INPUT', () => {
+    const asm = mnemonics('10 INPUT A');
+    expect(asm.some(l => l.includes('&H3DEE'))).toBe(true);
+  });
+
+  it('generates FOR/NEXT loop structure', () => {
+    const allLabels = labels('10 FOR I=1 TO 5\n20 NEXT I');
+    expect(allLabels.some(l => l.includes('FOR'))).toBe(true);
+  });
+
+  it('generates IF/THEN conditional jump', () => {
+    const asm = mnemonics('10 IF A>5 THEN 20\n20 END');
+    // Should have a conditional jump
+    expect(asm.some(l => l.startsWith('jr') || l.startsWith('jp'))).toBe(true);
+  });
+
+  it('generates PRINT with string and semicolon', () => {
+    const asm = mnemonics('10 PRINT "Hello";');
+    expect(asm.length).toBeGreaterThan(0);
+  });
+});
+
+describe('codegen - expressions (detailed)', () => {
+  it('generates push/pop pattern for binary operations', () => {
+    const asm = mnemonics('10 A=2+3');
+    // Should push left operand, evaluate right, pop, then call ROM
+    expect(asm.some(l => l.includes('phsm'))).toBe(true);
+    expect(asm.some(l => l.includes('ppsm'))).toBe(true);
+  });
+
+  it('generates variable store after LET expression', () => {
+    const asm = getAsm('10 A=42');
+    const mnems = asm.filter(l => l.mnemonic);
+    expect(mnems.some(l => l.mnemonic === 'stm' && l.operands?.includes('VAR_A'))).toBe(true);
+  });
+
+  it('generates OUTCR after PRINT without trailing separator', () => {
+    const asm = mnemonics('10 PRINT 42');
+    // Should end with OUTCR call
+    expect(asm.some(l => l.includes('&H2AE8'))).toBe(true);
+  });
+
+  it('suppresses OUTCR when PRINT has trailing semicolon', () => {
+    const asm = mnemonics('10 PRINT 42;');
+    // Should NOT have OUTCR
+    expect(asm.some(l => l.includes('&H2AE8'))).toBe(false);
+  });
+
+  it('generates string literal in data section', () => {
+    const lines = getAsm('10 PRINT "Hello"');
+    const dbLines = lines.filter(l => l.mnemonic === 'db');
+    expect(dbLines.length).toBeGreaterThan(0);
+    expect(dbLines.some(l => l.operands?.includes('Hello'))).toBe(true);
+  });
+
+  it('generates FOR loop with limit and step variables', () => {
+    const lines = getAsm('10 FOR I=1 TO 5\n20 NEXT I');
+    const dsLines = lines.filter(l => l.mnemonic === 'DS');
+    // Should allocate VAR_I plus limit and step temp vars
+    expect(dsLines.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('generates INPUT with prompt string', () => {
+    const lines = getAsm('10 INPUT "Name?";A');
+    const dbLines = lines.filter(l => l.mnemonic === 'db');
+    expect(dbLines.some(l => l.operands?.includes('Name?'))).toBe(true);
+  });
+
+  it('generates IF/THEN/ELSE with both branches', () => {
+    const asm = mnemonics('10 IF A>0 THEN PRINT "pos" ELSE PRINT "neg"');
+    // Should have conditional and unconditional jumps
+    const jumps = asm.filter(l => l.startsWith('jr'));
+    expect(jumps.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('generates unary negation', () => {
+    const asm = mnemonics('10 A=-5');
+    // Should negate via XOR on sign byte
+    expect(asm.some(l => l.includes('xrm'))).toBe(true);
+  });
+
+  it('allocates variables only once for repeated references', () => {
+    const lines = getAsm('10 A=1\n20 B=A\n30 A=B');
+    const dsLines = lines.filter(l => l.mnemonic === 'DS');
+    // Should have exactly 2 variables: A and B
+    expect(dsLines.length).toBe(2);
+  });
+});
