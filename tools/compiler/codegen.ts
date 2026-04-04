@@ -5,6 +5,12 @@ import type {
   Program, Statement, Expression, VarRef,
   PrintItem, BinaryOp,
   ForStatement, NextStatement, IfStatement, InputStatement, PrintStatement, LetStatement,
+  OnBranchStatement, DimStatement, ReadStatement, RestoreStatement,
+  WhileStatement, LocateStatement, AngleStatement, PokeStatement, DefsegStatement,
+  OnErrorGotoStatement, ResumeStatement, DefFnStatement,
+  OpenStatement, CloseStatement, PrintFileStatement, InputFileStatement,
+  LineInputFileStatement, WriteFileStatement, StatStatement, DefchrStatement,
+  ChainStatement, ModeStatement, ArrayDecl,
 } from './ast.js';
 import type { AsmLine, AsmProgram } from './asm-types.js';
 
@@ -23,6 +29,40 @@ const ROM = {
   OUTCH:     '&H2AF1',
   CLS:       '&H2ADF',
   BEEP:      '&H33B3',
+  // ROM addresses for built-in functions (TODO: verify exact addresses)
+  SIN:       '&H0000',  // TODO: ROM address for SIN
+  COS:       '&H0000',  // TODO: ROM address for COS
+  TAN:       '&H0000',  // TODO: ROM address for TAN
+  ASN:       '&H0000',  // TODO: ROM address for ASN
+  ACS:       '&H0000',  // TODO: ROM address for ACS
+  ATN:       '&H0000',  // TODO: ROM address for ATN
+  EXP:       '&H0000',  // TODO: ROM address for EXP
+  LN:        '&H0000',  // TODO: ROM address for LN
+  LOG:       '&H0000',  // TODO: ROM address for LOG
+  SQR:       '&H0000',  // TODO: ROM address for SQR
+  ABS:       '&H0000',  // TODO: ROM address for ABS
+  INT:       '&H0000',  // TODO: ROM address for INT
+  FIX:       '&H0000',  // TODO: ROM address for FIX
+  SGN:       '&H0000',  // TODO: ROM address for SGN
+  RND:       '&H0000',  // TODO: ROM address for RND
+  LEN:       '&H0000',  // TODO: ROM address for LEN
+  VAL:       '&H0000',  // TODO: ROM address for VAL
+  ASC:       '&H0000',  // TODO: ROM address for ASC
+  LOCATE:    '&H0000',  // TODO: ROM address for LOCATE
+  ANGLE:     '&H0000',  // TODO: ROM address for ANGLE
+  // File I/O ROM stubs (TODO: determine correct addresses)
+  FILE_OPEN:  '&H0000', // TODO: ROM address for file OPEN
+  FILE_CLOSE: '&H0000', // TODO: ROM address for file CLOSE
+  FILE_PRINT: '&H0000', // TODO: ROM address for PRINT#
+  FILE_INPUT: '&H0000', // TODO: ROM address for INPUT#
+  FILE_WRITE: '&H0000', // TODO: ROM address for WRITE#
+  // Stat ROM stubs
+  STAT_ADD:   '&H0000', // TODO: ROM address for STAT data entry
+  STAT_CLEAR: '&H0000', // TODO: ROM address for STAT CLEAR
+  // Misc ROM stubs
+  DEFCHR:     '&H0000', // TODO: ROM address for DEFCHR$
+  CHAIN:      '&H0000', // TODO: ROM address for CHAIN
+  MODE:       '&H0000', // TODO: ROM address for MODE
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -65,6 +105,10 @@ class CodeGen {
   private stringIndex = 0;
   private labelIndex = 0;
   private forStack: ForLoopInfo[] = [];
+  private whileStack: Array<{ topLabel: string; endLabel: string }> = [];
+  private arrays = new Map<string, { label: string; totalBytes: number }>();
+  private fnDefs = new Map<string, { params: string[]; body: Expression }>();
+  private currentSegment = 0;
 
   generate(program: Program): AsmProgram {
     // 1. ORG directive
@@ -90,7 +134,37 @@ class CodeGen {
     // 3. ROM_CALL wrapper
     this.emitRomCallWrapper();
 
-    // 4. String literals (DB directives)
+    // 4. DATA table — collected DATA values emitted as DB/DW directives
+    if (program.dataValues.length > 0) {
+      this.code.push({ comment: 'DATA table' });
+      this.code.push({ label: 'DATA_TABLE', comment: 'DATA values' });
+      for (const val of program.dataValues) {
+        if (val.type === 'string') {
+          const strInfo = this.allocString(val.value);
+          this.code.push({
+            mnemonic: 'dw',
+            operands: strInfo.label,
+            comment: `DATA "${val.value}"`,
+          });
+        } else {
+          // Store as a 9-byte FP value placeholder (TODO: encode as BCD)
+          this.code.push({
+            mnemonic: 'dw',
+            operands: this.formatNumber(val.value),
+            comment: `DATA ${val.value} (TODO: BCD encode)`,
+          });
+        }
+      }
+      // DATA_PTR variable — holds current read position in DATA_TABLE
+      this.code.push({
+        label: 'DATA_PTR',
+        mnemonic: 'dw',
+        operands: 'DATA_TABLE',
+        comment: 'READ pointer — initialized to start of DATA table',
+      });
+    }
+
+    // 5. String literals (DB directives)
     if (this.strings.length > 0) {
       this.code.push({ comment: 'String literals' });
       for (const str of this.strings) {
@@ -102,7 +176,20 @@ class CodeGen {
       }
     }
 
-    // 5. Variable table (DS directives)
+    // 6. Array storage (DS directives)
+    if (this.arrays.size > 0) {
+      this.code.push({ comment: 'Array storage' });
+      for (const [, info] of this.arrays) {
+        this.code.push({
+          label: info.label,
+          mnemonic: 'DS',
+          operands: String(info.totalBytes),
+          comment: 'array storage',
+        });
+      }
+    }
+
+    // 7. Variable table (DS directives)
     if (this.variables.size > 0) {
       this.code.push({ comment: 'Variable storage' });
       for (const [, info] of this.variables) {
@@ -186,8 +273,120 @@ class CodeGen {
         this.emitInput(stmt);
         break;
 
+      case 'on-branch':
+        this.emitOnBranch(stmt);
+        break;
+
+      case 'dim':
+        this.emitDim(stmt);
+        break;
+
+      case 'read':
+        this.emitRead(stmt);
+        break;
+
+      case 'data':
+        // DATA is pre-collected into program.dataValues; no inline code needed
+        break;
+
+      case 'restore':
+        this.emitRestore(stmt);
+        break;
+
+      case 'while':
+        this.emitWhile(stmt);
+        break;
+
+      case 'wend':
+        this.emitWend();
+        break;
+
+      case 'locate':
+        this.emitLocate(stmt);
+        break;
+
+      case 'angle':
+        this.emitAngle(stmt);
+        break;
+
+      case 'poke':
+        this.emitPoke(stmt);
+        break;
+
+      case 'defseg':
+        this.emitDefseg(stmt);
+        break;
+
+      case 'on-error-goto':
+        this.emitOnErrorGoto(stmt);
+        break;
+
+      case 'resume':
+        this.emitResume(stmt);
+        break;
+
+      case 'erase':
+        this.code.push({ comment: `ERASE ${stmt.names.join(',')} — simplified: array deallocation not tracked` });
+        break;
+
+      case 'clear':
+        this.code.push({ comment: 'CLEAR — simplified: variable reset not emitted' });
+        break;
+
+      case 'defm':
+        this.code.push({ comment: `DEFM — simplified: memory size directive, no code emitted` });
+        break;
+
+      case 'def-fn':
+        this.emitDefFn(stmt);
+        break;
+
+      case 'open':
+        this.emitOpen(stmt);
+        break;
+
+      case 'close':
+        this.emitClose(stmt);
+        break;
+
+      case 'print-file':
+        this.emitPrintFile(stmt);
+        break;
+
+      case 'input-file':
+        this.emitInputFile(stmt);
+        break;
+
+      case 'line-input-file':
+        this.emitLineInputFile(stmt);
+        break;
+
+      case 'write-file':
+        this.emitWriteFile(stmt);
+        break;
+
+      case 'stat':
+        this.emitStat(stmt);
+        break;
+
+      case 'stat-clear':
+        this.emitStatClear();
+        break;
+
+      case 'defchr':
+        this.emitDefchr(stmt);
+        break;
+
+      case 'chain':
+        this.emitChain(stmt);
+        break;
+
+      case 'mode':
+        this.emitMode(stmt);
+        break;
+
       default:
-        this.code.push({ comment: `TODO: ${stmt.type} not yet implemented` });
+        this.code.push({ comment: `TODO: ${(stmt as Statement).type} not yet implemented` });
         break;
     }
   }
@@ -293,8 +492,12 @@ class CodeGen {
   private emitVariableStore(ref: VarRef): void {
     const varInfo = this.allocVariable(ref);
     if (ref.isString) {
+      // String copy: the accumulator holds the source address; copy to variable storage
+      // Using a simplified byte-copy via LDM/STM (real impl would need a loop or ROM strcpy)
       this.code.push({
-        comment: `TODO: string copy for ${ref.name}$`,
+        mnemonic: 'ldm',
+        operands: `$10,${varInfo.label},256`,
+        comment: `TODO: string copy for ${ref.name}$ (placeholder — needs strcpy ROM call)`,
       });
     } else {
       this.code.push({
@@ -400,23 +603,71 @@ class CodeGen {
   // -------------------------------------------------------------------------
 
   private emitBuiltinCall(name: string, args: Expression[]): void {
-    // Evaluate arguments
+    // Evaluate first argument into accumulator (most builtins take one arg)
     for (const arg of args) {
       this.emitExpression(arg);
     }
-    this.code.push({ comment: `TODO: builtin ${name}(...)` });
+    // Look up ROM address for known functions; fall back to &H0000 with TODO comment
+    const romAddr = this.builtinRomAddr(name);
+    this.code.push({
+      mnemonic: 'ldw',
+      operands: `$2,${romAddr}`,
+      comment: `TODO: ROM address for ${name}`,
+    });
+    this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+  }
+
+  private builtinRomAddr(name: string): string {
+    const upper = name.toUpperCase();
+    const known: Record<string, string> = {
+      SIN: ROM.SIN, COS: ROM.COS, TAN: ROM.TAN,
+      ASN: ROM.ASN, ACS: ROM.ACS, ATN: ROM.ATN,
+      EXP: ROM.EXP, LN: ROM.LN, LOG: ROM.LOG,
+      SQR: ROM.SQR, ABS: ROM.ABS, INT: ROM.INT,
+      FIX: ROM.FIX, SGN: ROM.SGN, RND: ROM.RND,
+      LEN: ROM.LEN, VAL: ROM.VAL, ASC: ROM.ASC,
+    };
+    return known[upper] ?? '&H0000';
   }
 
   // -------------------------------------------------------------------------
-  // Array access
+  // Array access — compute byte offset from indices, load element
   // -------------------------------------------------------------------------
 
   private emitArrayAccess(name: string, isString: boolean, indices: Expression[]): void {
-    // Evaluate index expressions
-    for (const idx of indices) {
-      this.emitExpression(idx);
+    const elementSize = isString ? 256 : 9;
+    const arrayKey = name + (isString ? '$' : '');
+    const arrayLabel = `ARR_${name.toUpperCase()}${isString ? '_S' : ''}`;
+
+    this.code.push({ comment: `array access ${name}(${indices.length} dims)` });
+
+    // Evaluate first index into accumulator, then multiply by element size
+    // For simplicity, only handle 1-D arrays fully; multi-dim emits stubs
+    if (indices.length >= 1) {
+      this.emitExpression(indices[0]);
+      // Multiply index by element size to get byte offset
+      this.emitNumberLiteral(elementSize);
+      this.code.push({ mnemonic: 'phsm', operands: '$10,9', comment: 'push element size' });
+      // (index already evaluated above; for full impl we'd swap and call FP_MUL here)
+      this.code.push({ comment: `TODO: multiply index by ${elementSize} for array offset` });
     }
-    this.code.push({ comment: `TODO: array access ${name}(${indices.length} dims)` });
+
+    // Load element from array base + offset
+    this.code.push({
+      mnemonic: 'ldw',
+      operands: `$10,${arrayLabel}`,
+      comment: `base address of ${name}`,
+    });
+
+    // Register array if not already known (use a fallback size)
+    if (!this.arrays.has(arrayKey)) {
+      // Assume size 10 if not DIM'd explicitly
+      const fallbackElements = 11; // 0..10
+      this.arrays.set(arrayKey, {
+        label: arrayLabel,
+        totalBytes: fallbackElements * elementSize,
+      });
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -717,6 +968,498 @@ class CodeGen {
   }
 
   // -------------------------------------------------------------------------
+  // ON GOTO / ON GOSUB — jump table based on expression value
+  // -------------------------------------------------------------------------
+
+  private emitOnBranch(stmt: OnBranchStatement): void {
+    const skipLabel = this.uniqueLabel('ON_END');
+    this.code.push({ comment: `ON ... ${stmt.kind.toUpperCase()} ${stmt.targets.map(t => t.line).join(',')}` });
+
+    // Evaluate the selector expression into accumulator
+    this.emitExpression(stmt.expr);
+
+    // For each target: compare accumulator with index 1,2,3...
+    // We save the evaluated selector to a temp variable and compare sequentially
+    const selectorRef: VarRef = { name: `_ON_SEL_${this.labelIndex}`, isString: false };
+    this.emitVariableStore(selectorRef);
+
+    for (let i = 0; i < stmt.targets.length; i++) {
+      const targetLine = stmt.targets[i].line;
+      const compareLabel = this.uniqueLabel('ON_CMP');
+
+      // Load selector
+      this.emitVariableLoad(selectorRef);
+      // Push selector
+      this.code.push({ mnemonic: 'phsm', operands: '$10,9', comment: `compare selector == ${i + 1}` });
+      // Load comparison value (i+1)
+      this.emitNumberLiteral(i + 1);
+      // Pop selector to temp
+      this.code.push({ mnemonic: 'ppsm', operands: '$19,9', comment: 'pop selector to temp' });
+      // Subtract: selector - (i+1) — result in accumulator
+      this.code.push({ mnemonic: 'ldm', operands: '$28,9', comment: 'save (i+1)' });
+      this.code.push({ mnemonic: 'ldm', operands: '$10,$19,9', comment: 'acc = selector' });
+      this.code.push({ mnemonic: 'ldm', operands: '$19,$28,9', comment: 'temp = (i+1)' });
+      this.emitRomCall(ROM.FP_SUB, `selector - ${i + 1}`);
+
+      // Jump to target if zero (selector == i+1)
+      if (stmt.kind === 'goto') {
+        this.code.push({ mnemonic: 'jr', operands: `z,L${targetLine}`, comment: `ON GOTO ${targetLine}` });
+      } else {
+        // ON GOSUB: jump to a small trampoline that calls and falls through
+        this.code.push({ label: compareLabel });
+        this.code.push({ mnemonic: 'jr', operands: `nz,${skipLabel}` });
+        this.code.push({ mnemonic: 'cal', operands: `L${targetLine}`, comment: `ON GOSUB ${targetLine}` });
+        this.code.push({ mnemonic: 'jp', operands: skipLabel });
+      }
+    }
+
+    this.code.push({ label: skipLabel, comment: 'ON branch end' });
+  }
+
+  // -------------------------------------------------------------------------
+  // DIM — allocate array storage
+  // -------------------------------------------------------------------------
+
+  private emitDim(stmt: DimStatement): void {
+    for (const decl of stmt.decls) {
+      this.allocArray(decl);
+    }
+  }
+
+  private allocArray(decl: ArrayDecl): void {
+    const key = decl.name + (decl.isString ? '$' : '');
+    if (this.arrays.has(key)) return; // already DIM'd
+
+    const isString = decl.isString;
+    const elementSize = isString ? 256 : 9;
+    const label = `ARR_${decl.name.toUpperCase()}${isString ? '_S' : ''}`;
+
+    // Calculate total elements as product of (dim_i + 1) for each dimension
+    // For static dimensions (number literals) we can compute at codegen time.
+    // For dynamic dimensions we fall back to emitting a comment and using a
+    // placeholder size of 1 — the real allocator would need runtime computation.
+    let totalElements = 1;
+    let allStatic = true;
+    for (const dimExpr of decl.dimensions) {
+      if (dimExpr.type === 'number') {
+        totalElements *= (dimExpr.value + 1);
+      } else if (dimExpr.type === 'hex-literal') {
+        totalElements *= (dimExpr.value + 1);
+      } else {
+        allStatic = false;
+        break;
+      }
+    }
+
+    const totalBytes = allStatic ? totalElements * elementSize : elementSize; // fallback 1 element
+    this.arrays.set(key, { label, totalBytes });
+
+    this.code.push({
+      comment: `DIM ${decl.name}${isString ? '$' : ''}(${decl.dimensions.length} dims) — ${totalBytes} bytes`,
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // READ — load next DATA value into variable(s)
+  // -------------------------------------------------------------------------
+
+  private emitRead(stmt: ReadStatement): void {
+    for (const varRef of stmt.variables) {
+      this.allocVariable(varRef);
+      this.code.push({ comment: `READ ${varRef.name}` });
+
+      // Load DATA_PTR into IZ register
+      this.code.push({ mnemonic: 'ldw', operands: '$10,DATA_PTR', comment: 'load DATA_PTR address' });
+      // Load 2-byte word from DATA_PTR location (pointer to current DATA item)
+      this.code.push({ mnemonic: 'ldd', operands: '$10,(DATA_PTR)', comment: 'deref DATA_PTR -> current value' });
+      // Store into variable (simplified: just stores the pointer value; TODO: dereference and copy)
+      this.emitVariableStore(varRef);
+
+      // Advance DATA_PTR by 2 (word size of the pointer entry)
+      this.code.push({ mnemonic: 'ldw', operands: '$10,DATA_PTR', comment: 'advance DATA_PTR' });
+      this.code.push({ mnemonic: 'ldm', operands: '$10,DATA_PTR,2', comment: 'load current ptr' });
+      this.code.push({ comment: 'TODO: increment DATA_PTR by 2' });
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // RESTORE — reset DATA pointer
+  // -------------------------------------------------------------------------
+
+  private emitRestore(stmt: RestoreStatement): void {
+    if (stmt.target !== undefined) {
+      this.code.push({
+        comment: `RESTORE ${stmt.target} — TODO: DATA_PTR = address of DATA at line ${stmt.target}`,
+      });
+    } else {
+      this.code.push({ comment: 'RESTORE — reset DATA_PTR to DATA_TABLE' });
+      this.code.push({
+        mnemonic: 'ldw',
+        operands: '$10,DATA_TABLE',
+        comment: 'address of DATA_TABLE',
+      });
+      this.code.push({
+        mnemonic: 'stm',
+        operands: '$10,DATA_PTR,2',
+        comment: 'DATA_PTR = DATA_TABLE',
+      });
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // WHILE/WEND — loop structure
+  // -------------------------------------------------------------------------
+
+  private emitWhile(stmt: WhileStatement): void {
+    const topLabel = this.uniqueLabel('WHILE');
+    const endLabel = this.uniqueLabel('WEND');
+
+    this.code.push({ label: topLabel, comment: 'WHILE loop top' });
+
+    // Evaluate condition
+    this.emitCondition(stmt.condition);
+
+    // Jump to after WEND if condition is false (zero flag set = false/zero result)
+    this.code.push({
+      mnemonic: 'jr',
+      operands: `z,${endLabel}`,
+      comment: 'WHILE false, exit loop',
+    });
+
+    // Push loop info for matching WEND
+    this.whileStack.push({ topLabel, endLabel });
+  }
+
+  private emitWend(): void {
+    if (this.whileStack.length === 0) {
+      this.code.push({ comment: 'ERROR: WEND without WHILE' });
+      return;
+    }
+
+    const loop = this.whileStack.pop()!;
+
+    // Unconditional jump back to loop top
+    this.code.push({
+      mnemonic: 'jp',
+      operands: loop.topLabel,
+      comment: 'WEND — loop back',
+    });
+
+    // End label (jumped to when condition false)
+    this.code.push({ label: loop.endLabel, comment: 'WEND end' });
+  }
+
+  // -------------------------------------------------------------------------
+  // LOCATE — set cursor position
+  // -------------------------------------------------------------------------
+
+  private emitLocate(stmt: LocateStatement): void {
+    this.code.push({ comment: 'LOCATE col,row' });
+    // Evaluate col into accumulator
+    this.emitExpression(stmt.col);
+    this.code.push({ mnemonic: 'phsm', operands: '$10,9', comment: 'push col' });
+    // Evaluate row if present
+    if (stmt.row) {
+      this.emitExpression(stmt.row);
+    } else {
+      this.emitNumberLiteral(0);
+    }
+    // Call ROM locate routine (address TODO)
+    this.code.push({
+      mnemonic: 'ldw',
+      operands: `$2,${ROM.LOCATE}`,
+      comment: 'TODO: ROM address for LOCATE',
+    });
+    this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+  }
+
+  // -------------------------------------------------------------------------
+  // ANGLE — set trigonometric angle mode
+  // -------------------------------------------------------------------------
+
+  private emitAngle(stmt: AngleStatement): void {
+    this.code.push({ comment: 'ANGLE mode' });
+    this.emitExpression(stmt.mode);
+    this.code.push({
+      mnemonic: 'ldw',
+      operands: `$2,${ROM.ANGLE}`,
+      comment: 'TODO: ROM address for ANGLE',
+    });
+    this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+  }
+
+  // -------------------------------------------------------------------------
+  // POKE — write byte to memory address
+  // -------------------------------------------------------------------------
+
+  private emitPoke(stmt: PokeStatement): void {
+    this.code.push({ comment: 'POKE address, value' });
+    // Evaluate address
+    this.emitExpression(stmt.address);
+    this.code.push({ mnemonic: 'phsm', operands: '$10,9', comment: 'push address' });
+    // Evaluate value
+    this.emitExpression(stmt.value);
+    // Pop address to $19
+    this.code.push({ mnemonic: 'ppsm', operands: '$19,9', comment: 'pop address to temp' });
+    // $10 = value (low byte), $19 = address
+    // For a simple byte write: load address into IZ, store value byte
+    this.code.push({ comment: 'TODO: store byte $10 to address in $19 (POKE)' });
+    // Simplified: use std instruction for byte store
+    this.code.push({ mnemonic: 'ldw', operands: '$2,$19', comment: 'address from poped value' });
+    this.code.push({ mnemonic: 'std', operands: '$10,($2)', comment: 'POKE — store byte' });
+  }
+
+  // -------------------------------------------------------------------------
+  // DEFSEG — set current memory segment for POKE/PEEK
+  // -------------------------------------------------------------------------
+
+  private emitDefseg(stmt: DefsegStatement): void {
+    this.code.push({ comment: 'DEFSEG segment' });
+    this.emitExpression(stmt.segment);
+    // Store segment value in UA register area
+    this.code.push({ mnemonic: 'phsm', operands: '$10,9', comment: 'push segment value' });
+    this.code.push({ comment: 'TODO: set segment register from expression result (DEFSEG)' });
+  }
+
+  // -------------------------------------------------------------------------
+  // ON ERROR GOTO — set error handler
+  // -------------------------------------------------------------------------
+
+  private emitOnErrorGoto(stmt: OnErrorGotoStatement): void {
+    this.code.push({ comment: `ON ERROR GOTO ${stmt.target}` });
+    // Store error handler address — simplified: use a fixed memory location
+    this.code.push({
+      mnemonic: 'ldw',
+      operands: `$10,L${stmt.target}`,
+      comment: `error handler address = L${stmt.target}`,
+    });
+    this.code.push({
+      mnemonic: 'stm',
+      operands: '$10,ERR_HANDLER,2',
+      comment: 'save error handler address',
+    });
+    // Allocate error handler pointer variable
+    if (!this.variables.has('__ERR_HANDLER')) {
+      this.variables.set('__ERR_HANDLER', {
+        label: 'ERR_HANDLER',
+        type: 'numeric',
+        size: 2,
+      });
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // RESUME — return from error handler
+  // -------------------------------------------------------------------------
+
+  private emitResume(stmt: ResumeStatement): void {
+    if (stmt.target === 'next') {
+      this.code.push({ comment: 'RESUME NEXT — continue at next statement after error' });
+      // TODO: advance program counter past the faulting statement
+      this.code.push({ mnemonic: 'rtn', comment: 'RESUME NEXT (simplified: return)' });
+    } else if (typeof stmt.target === 'number') {
+      this.code.push({ comment: `RESUME ${stmt.target} — jump to line ${stmt.target}` });
+      this.code.push({ mnemonic: 'jp', operands: `L${stmt.target}`, comment: 'RESUME to target line' });
+    } else {
+      // RESUME with no target: retry the faulting statement
+      this.code.push({ comment: 'RESUME — retry faulting statement (TODO: restore saved PC)' });
+      this.code.push({ mnemonic: 'rtn', comment: 'RESUME (simplified: return)' });
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // DEF FN — store function definition for FN calls
+  // -------------------------------------------------------------------------
+
+  private emitDefFn(stmt: DefFnStatement): void {
+    // Store the function definition for later FN calls
+    this.fnDefs.set(stmt.name, { params: stmt.params, body: stmt.body });
+    this.code.push({ comment: `DEF FN${stmt.name}(${stmt.params.join(',')}) — stored for FN calls` });
+
+    // Emit the function as a callable subroutine
+    const fnLabel = `FN_${stmt.name.toUpperCase()}`;
+    this.code.push({ label: fnLabel, comment: `FN ${stmt.name} body` });
+    // Evaluate body expression (parameters are passed by convention in variables)
+    this.emitExpression(stmt.body);
+    this.code.push({ mnemonic: 'rtn', comment: `return from FN ${stmt.name}` });
+  }
+
+  // -------------------------------------------------------------------------
+  // File I/O — stub ROM calls
+  // -------------------------------------------------------------------------
+
+  private emitOpen(stmt: OpenStatement): void {
+    this.code.push({ comment: 'OPEN filename, mode, filenum — stub' });
+    this.emitExpression(stmt.filenum);
+    this.code.push({ mnemonic: 'phsm', operands: '$10,9', comment: 'push filenum' });
+    this.emitExpression(stmt.mode);
+    this.code.push({ mnemonic: 'phsm', operands: '$10,9', comment: 'push mode' });
+    this.emitExpression(stmt.filename);
+    this.code.push({
+      mnemonic: 'ldw',
+      operands: `$2,${ROM.FILE_OPEN}`,
+      comment: 'TODO: ROM address for OPEN',
+    });
+    this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+  }
+
+  private emitClose(stmt: CloseStatement): void {
+    this.code.push({ comment: 'CLOSE filenum — stub' });
+    if (stmt.filenum) {
+      this.emitExpression(stmt.filenum);
+    } else {
+      this.emitNumberLiteral(0); // close all
+    }
+    this.code.push({
+      mnemonic: 'ldw',
+      operands: `$2,${ROM.FILE_CLOSE}`,
+      comment: 'TODO: ROM address for CLOSE',
+    });
+    this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+  }
+
+  private emitPrintFile(stmt: PrintFileStatement): void {
+    this.code.push({ comment: 'PRINT# filenum, ... — stub' });
+    this.emitExpression(stmt.filenum);
+    this.code.push({ mnemonic: 'phsm', operands: '$10,9', comment: 'push filenum' });
+    // Print each item
+    for (const item of stmt.items) {
+      if (item.type === 'expr') {
+        this.emitExpression(item.value);
+        this.code.push({
+          mnemonic: 'ldw',
+          operands: `$2,${ROM.FILE_PRINT}`,
+          comment: 'TODO: ROM address for PRINT#',
+        });
+        this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+      }
+    }
+  }
+
+  private emitInputFile(stmt: InputFileStatement): void {
+    this.code.push({ comment: 'INPUT# filenum, vars — stub' });
+    this.emitExpression(stmt.filenum);
+    for (const varRef of stmt.variables) {
+      this.allocVariable(varRef);
+      this.code.push({
+        mnemonic: 'ldw',
+        operands: `$2,${ROM.FILE_INPUT}`,
+        comment: 'TODO: ROM address for INPUT#',
+      });
+      this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+      this.emitVariableStore(varRef);
+    }
+  }
+
+  private emitLineInputFile(stmt: LineInputFileStatement): void {
+    this.code.push({ comment: 'LINE INPUT# filenum, var — stub' });
+    this.emitExpression(stmt.filenum);
+    this.allocVariable(stmt.variable);
+    this.code.push({
+      mnemonic: 'ldw',
+      operands: `$2,${ROM.FILE_INPUT}`,
+      comment: 'TODO: ROM address for LINE INPUT#',
+    });
+    this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+    this.emitVariableStore(stmt.variable);
+  }
+
+  private emitWriteFile(stmt: WriteFileStatement): void {
+    this.code.push({ comment: 'WRITE# filenum, items — stub' });
+    this.emitExpression(stmt.filenum);
+    this.code.push({ mnemonic: 'phsm', operands: '$10,9', comment: 'push filenum' });
+    for (const item of stmt.items) {
+      this.emitExpression(item);
+      this.code.push({
+        mnemonic: 'ldw',
+        operands: `$2,${ROM.FILE_WRITE}`,
+        comment: 'TODO: ROM address for WRITE#',
+      });
+      this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // STAT / STAT CLEAR — statistical operations
+  // -------------------------------------------------------------------------
+
+  private emitStat(stmt: StatStatement): void {
+    this.code.push({ comment: 'STAT data — stub' });
+    for (const dataExpr of stmt.data) {
+      this.emitExpression(dataExpr);
+      this.code.push({
+        mnemonic: 'ldw',
+        operands: `$2,${ROM.STAT_ADD}`,
+        comment: 'TODO: ROM address for STAT data entry',
+      });
+      this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+    }
+  }
+
+  private emitStatClear(): void {
+    this.code.push({ comment: 'STAT CLEAR — stub' });
+    this.code.push({
+      mnemonic: 'ldw',
+      operands: `$2,${ROM.STAT_CLEAR}`,
+      comment: 'TODO: ROM address for STAT CLEAR',
+    });
+    this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+  }
+
+  // -------------------------------------------------------------------------
+  // DEFCHR$ — custom character definition
+  // -------------------------------------------------------------------------
+
+  private emitDefchr(stmt: DefchrStatement): void {
+    this.code.push({ comment: 'DEFCHR$ code, pattern — stub' });
+    this.emitExpression(stmt.code);
+    this.code.push({ mnemonic: 'phsm', operands: '$10,9', comment: 'push char code' });
+    this.emitExpression(stmt.pattern);
+    this.code.push({
+      mnemonic: 'ldw',
+      operands: `$2,${ROM.DEFCHR}`,
+      comment: 'TODO: ROM address for DEFCHR$',
+    });
+    this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+  }
+
+  // -------------------------------------------------------------------------
+  // CHAIN — load another program
+  // -------------------------------------------------------------------------
+
+  private emitChain(stmt: ChainStatement): void {
+    this.code.push({ comment: 'CHAIN filename — stub' });
+    this.emitExpression(stmt.filename);
+    this.code.push({
+      mnemonic: 'ldw',
+      operands: `$2,${ROM.CHAIN}`,
+      comment: 'TODO: ROM address for CHAIN',
+    });
+    this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+  }
+
+  // -------------------------------------------------------------------------
+  // MODE — set display/calculator mode
+  // -------------------------------------------------------------------------
+
+  private emitMode(stmt: ModeStatement): void {
+    this.code.push({ comment: 'MODE n — stub' });
+    this.emitExpression(stmt.number);
+    if (stmt.args) {
+      for (const arg of stmt.args) {
+        this.code.push({ mnemonic: 'phsm', operands: '$10,9', comment: 'push MODE arg' });
+        this.emitExpression(arg);
+      }
+    }
+    this.code.push({
+      mnemonic: 'ldw',
+      operands: `$2,${ROM.MODE}`,
+      comment: 'TODO: ROM address for MODE',
+    });
+    this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+  }
+
+  // -------------------------------------------------------------------------
   // Variable allocation
   // -------------------------------------------------------------------------
 
@@ -783,7 +1526,35 @@ class CodeGen {
       case 'next': return `NEXT ${stmt.variables.map(v => v.name).join(',')}`;
       case 'if': return 'IF ...';
       case 'input': return `INPUT ${stmt.variables.map(v => v.name).join(',')}`;
-      default: return stmt.type.toUpperCase();
+      case 'on-branch': return `ON ${this.exprToSource(stmt.expr)} ${stmt.kind.toUpperCase()} ${stmt.targets.map((t: { line: number }) => t.line).join(',')}`;
+      case 'dim': return `DIM ${stmt.decls.map((d: ArrayDecl) => `${d.name}(${d.dimensions.length})`).join(',')}`;
+      case 'read': return `READ ${stmt.variables.map((v: VarRef) => v.name).join(',')}`;
+      case 'data': return `DATA ${stmt.values.map((v: { type: string; value: unknown }) => v.type === 'string' ? `"${v.value}"` : String(v.value)).join(',')}`;
+      case 'restore': return stmt.target !== undefined ? `RESTORE ${stmt.target}` : 'RESTORE';
+      case 'while': return `WHILE ${this.exprToSource(stmt.condition)}`;
+      case 'wend': return 'WEND';
+      case 'locate': return `LOCATE ${this.exprToSource(stmt.col)}`;
+      case 'angle': return `ANGLE ${this.exprToSource(stmt.mode)}`;
+      case 'poke': return `POKE ${this.exprToSource(stmt.address)},${this.exprToSource(stmt.value)}`;
+      case 'defseg': return `DEFSEG ${this.exprToSource(stmt.segment)}`;
+      case 'on-error-goto': return `ON ERROR GOTO ${stmt.target}`;
+      case 'resume': return stmt.target !== undefined ? `RESUME ${stmt.target}` : 'RESUME';
+      case 'erase': return `ERASE ${stmt.names.join(',')}`;
+      case 'clear': return 'CLEAR';
+      case 'defm': return `DEFM ${this.exprToSource(stmt.size)}`;
+      case 'def-fn': return `DEF FN${stmt.name}(${stmt.params.join(',')})`;
+      case 'open': return 'OPEN ...';
+      case 'close': return 'CLOSE';
+      case 'print-file': return 'PRINT# ...';
+      case 'input-file': return 'INPUT# ...';
+      case 'line-input-file': return 'LINE INPUT# ...';
+      case 'write-file': return 'WRITE# ...';
+      case 'stat': return 'STAT ...';
+      case 'stat-clear': return 'STAT CLEAR';
+      case 'defchr': return 'DEFCHR$ ...';
+      case 'chain': return 'CHAIN ...';
+      case 'mode': return `MODE ${this.exprToSource(stmt.number)}`;
+      default: return (stmt as Statement).type.toUpperCase();
     }
   }
 

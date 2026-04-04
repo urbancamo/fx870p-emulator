@@ -224,3 +224,188 @@ describe('codegen - expressions (detailed)', () => {
     expect(dsLines.length).toBe(2);
   });
 });
+
+describe('codegen - remaining statements', () => {
+  it('generates ON GOTO', () => {
+    const asm = mnemonics('10 ON X GOTO 100,200,300\n100 END\n200 END\n300 END');
+    expect(asm.length).toBeGreaterThan(0);
+  });
+
+  it('generates ON GOTO jump table entries', () => {
+    const lines = getAsm('10 ON X GOTO 100,200\n100 END\n200 END');
+    // Should emit jp instructions targeting the target lines
+    const jpLines = lines.filter(l => l.mnemonic === 'jp' || l.mnemonic === 'jr');
+    expect(jpLines.some(l => l.operands?.includes('L100'))).toBe(true);
+    expect(jpLines.some(l => l.operands?.includes('L200'))).toBe(true);
+  });
+
+  it('generates DIM (array allocation)', () => {
+    const lines = getAsm('10 DIM A(10)');
+    const dsLines = lines.filter(l => l.mnemonic === 'DS');
+    // A(10) = 11 elements * 9 bytes = 99 bytes
+    expect(dsLines.some(l => parseInt(l.operands ?? '0') >= 99)).toBe(true);
+  });
+
+  it('generates DIM string array', () => {
+    const lines = getAsm('10 DIM A$(5)');
+    const dsLines = lines.filter(l => l.mnemonic === 'DS');
+    // A$(5) = 6 elements * 256 bytes = 1536 bytes
+    expect(dsLines.some(l => parseInt(l.operands ?? '0') >= 1536)).toBe(true);
+  });
+
+  it('generates DIM 2D array', () => {
+    const lines = getAsm('10 DIM A(3,4)');
+    const dsLines = lines.filter(l => l.mnemonic === 'DS');
+    // A(3,4) = 4*5=20 elements * 9 bytes = 180 bytes
+    expect(dsLines.some(l => parseInt(l.operands ?? '0') >= 180)).toBe(true);
+  });
+
+  it('generates WHILE/WEND', () => {
+    const asm = getAsm('10 WHILE A<10\n20 A=A+1\n30 WEND');
+    const allLabels = asm.filter(l => l.label).map(l => l.label);
+    expect(allLabels.some(l => l?.includes('WHILE'))).toBe(true);
+  });
+
+  it('generates WEND as unconditional jump back to WHILE', () => {
+    const lines = getAsm('10 WHILE A<10\n20 A=A+1\n30 WEND');
+    const jpLines = lines.filter(l => l.mnemonic === 'jp' && l.operands?.includes('WHILE'));
+    expect(jpLines.length).toBeGreaterThan(0);
+  });
+
+  it('generates WHILE end label', () => {
+    const asm = getAsm('10 WHILE A<10\n20 A=A+1\n30 WEND');
+    const allLabels = asm.filter(l => l.label).map(l => l.label);
+    expect(allLabels.some(l => l?.includes('WEND'))).toBe(true);
+  });
+
+  it('generates POKE', () => {
+    const asm = mnemonics('10 POKE &H1000,255');
+    expect(asm.length).toBeGreaterThan(0);
+  });
+
+  it('generates POKE with std instruction', () => {
+    const lines = getAsm('10 POKE &H1000,255');
+    const stdLines = lines.filter(l => l.mnemonic === 'std');
+    expect(stdLines.length).toBeGreaterThan(0);
+  });
+
+  it('generates LOCATE', () => {
+    const asm = mnemonics('10 LOCATE 5,2');
+    expect(asm.length).toBeGreaterThan(0);
+  });
+
+  it('generates ANGLE', () => {
+    const asm = mnemonics('10 ANGLE 1');
+    expect(asm.length).toBeGreaterThan(0);
+  });
+
+  it('generates READ/DATA', () => {
+    const asm = mnemonics('10 READ A\n20 DATA 42');
+    expect(asm.length).toBeGreaterThan(0);
+  });
+
+  it('emits DATA table in output', () => {
+    const lines = getAsm('10 READ A\n20 DATA 42');
+    const dataTable = lines.find(l => l.label === 'DATA_TABLE');
+    expect(dataTable).toBeDefined();
+  });
+
+  it('generates RESTORE resets DATA_PTR', () => {
+    const lines = getAsm('10 DATA 1,2\n20 READ A\n30 RESTORE');
+    const restoreLines = lines.filter(l => l.mnemonic === 'ldw' && l.operands?.includes('DATA_TABLE'));
+    expect(restoreLines.length).toBeGreaterThan(0);
+  });
+
+  it('generates string variable assignment', () => {
+    const asm = mnemonics('10 A$="hello"');
+    expect(asm.length).toBeGreaterThan(0);
+  });
+
+  it('generates string variable storage (256 bytes)', () => {
+    const lines = getAsm('10 A$="hello"');
+    const dsLines = lines.filter(l => l.mnemonic === 'DS');
+    expect(dsLines.some(l => l.operands === '256')).toBe(true);
+  });
+
+  it('generates ON ERROR GOTO', () => {
+    const asm = mnemonics('10 ON ERROR GOTO 100\n100 RESUME');
+    expect(asm.length).toBeGreaterThan(0);
+  });
+
+  it('generates ON ERROR GOTO with handler address', () => {
+    const lines = getAsm('10 ON ERROR GOTO 100\n100 RESUME');
+    const ldwLines = lines.filter(l => l.mnemonic === 'ldw' && l.operands?.includes('L100'));
+    expect(ldwLines.length).toBeGreaterThan(0);
+  });
+
+  it('generates RESUME as rtn', () => {
+    const asm = mnemonics('10 ON ERROR GOTO 100\n100 RESUME');
+    expect(asm.some(l => l === 'rtn')).toBe(true);
+  });
+
+  it('generates RESUME target as jp', () => {
+    const asm = mnemonics('10 ON ERROR GOTO 100\n100 RESUME 10');
+    expect(asm.some(l => l.startsWith('jp') && l.includes('L10'))).toBe(true);
+  });
+
+  it('generates ERASE as comment only', () => {
+    const lines = getAsm('10 DIM A(5)\n20 ERASE A');
+    const eraseLines = lines.filter(l => l.comment?.includes('ERASE'));
+    expect(eraseLines.length).toBeGreaterThan(0);
+  });
+
+  it('generates CLEAR as comment only', () => {
+    const lines = getAsm('10 CLEAR');
+    const clearLines = lines.filter(l => l.comment?.includes('CLEAR'));
+    expect(clearLines.length).toBeGreaterThan(0);
+  });
+
+  it('generates DEF FN subroutine label', () => {
+    // Parser requires FN as separate keyword: DEF FN <name>(params) = expr
+    const lines = getAsm('10 DEF FN A(X)=X*2');
+    const fnLabel = lines.find(l => l.label?.startsWith('FN_'));
+    expect(fnLabel).toBeDefined();
+  });
+
+  it('generates builtin function call as ROM call stub', () => {
+    const asm = mnemonics('10 A=SIN(1)');
+    // Should emit a ldw $2, addr + jr ROM_CALL pattern
+    expect(asm.some(l => l.startsWith('ldw') && l.includes('$2,'))).toBe(true);
+    expect(asm.some(l => l.includes('ROM_CALL'))).toBe(true);
+  });
+
+  it('generates OPEN as ROM call stub', () => {
+    // OPEN syntax: OPEN filename FOR mode AS #filenum
+    const asm = mnemonics('10 OPEN "test" FOR INPUT AS #1');
+    expect(asm.some(l => l.includes('ROM_CALL'))).toBe(true);
+  });
+
+  it('generates CLOSE as ROM call stub', () => {
+    const asm = mnemonics('10 OPEN "f" FOR INPUT AS #1\n20 CLOSE 1');
+    expect(asm.some(l => l.includes('ROM_CALL'))).toBe(true);
+  });
+
+  it('generates MODE as ROM call stub', () => {
+    const asm = mnemonics('10 MODE 1');
+    expect(asm.some(l => l.includes('ROM_CALL'))).toBe(true);
+  });
+
+  it('generates CHAIN as ROM call stub', () => {
+    const asm = mnemonics('10 CHAIN "prog2"');
+    expect(asm.some(l => l.includes('ROM_CALL'))).toBe(true);
+  });
+
+  it('generates ON GOSUB', () => {
+    const lines = getAsm('10 ON X GOSUB 100,200\n100 RETURN\n200 RETURN');
+    const calLines = lines.filter(l => l.mnemonic === 'cal');
+    // Should emit cal instructions to the target lines
+    expect(calLines.some(l => l.operands?.includes('L100'))).toBe(true);
+    expect(calLines.some(l => l.operands?.includes('L200'))).toBe(true);
+  });
+
+  it('generates array access with base address load', () => {
+    const lines = getAsm('10 DIM B(5)\n20 A=B(2)');
+    const ldwLines = lines.filter(l => l.mnemonic === 'ldw' && l.operands?.includes('ARR_B'));
+    expect(ldwLines.length).toBeGreaterThan(0);
+  });
+});
