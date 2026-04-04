@@ -427,6 +427,19 @@ describe('DATA / READ / RESTORE', () => {
     expect(s.variables).toHaveLength(3);
   });
 
+  it('parses READ A(I) — variable has indices', () => {
+    const s = firstStmt('10 READ A(I)') as ReadStatement;
+    expect(s.variables[0].name).toBe('A');
+    expect(s.variables[0].indices).toHaveLength(1);
+    expect(s.variables[0].indices![0]).toMatchObject({ type: 'variable', ref: { name: 'I' } });
+  });
+
+  it('parses INPUT A(I,J) — variable has 2-dimensional indices', () => {
+    const s = firstStmt('10 INPUT A(I,J)') as InputStatement;
+    expect(s.variables[0].name).toBe('A');
+    expect(s.variables[0].indices).toHaveLength(2);
+  });
+
   it('parses RESTORE without target', () => {
     const s = firstStmt('10 RESTORE') as RestoreStatement;
     expect(s.type).toBe('restore');
@@ -576,6 +589,24 @@ describe('expression precedence', () => {
     expect(expr.type).toBe('binary');
     expect(expr.op).toBe('*');
     expect(expr.left).toMatchObject({ type: 'binary', op: '^' });
+  });
+
+  it('2 MOD 3*4 is parsed as 2 MOD (3*4) — * binds tighter than MOD', () => {
+    const s = firstStmt('10 A=2 MOD 3*4') as LetStatement;
+    // Top-level op should be MOD, with right side being 3*4
+    const expr = s.expr as { type: string; op: string; right: { op: string } };
+    expect(expr.type).toBe('binary');
+    expect(expr.op).toBe('mod');
+    expect(expr.right).toMatchObject({ type: 'binary', op: '*' });
+  });
+
+  it('-X^2 is parsed as -(X^2) — ^ binds tighter than unary minus', () => {
+    const s = firstStmt('10 A=-X^2') as LetStatement;
+    // Top-level should be unary minus, operand is X^2
+    const expr = s.expr as { type: string; op: string; operand: { op: string } };
+    expect(expr.type).toBe('unary');
+    expect(expr.op).toBe('-');
+    expect(expr.operand).toMatchObject({ type: 'binary', op: '^' });
   });
 });
 
@@ -776,6 +807,12 @@ describe('OPEN / CLOSE', () => {
     const s = firstStmt('10 OPEN "FILE.BAS" AS #1') as { type: string; filename: Expression; filenum: Expression };
     expect(s.type).toBe('open');
     expect(s.filename).toMatchObject({ type: 'string', value: 'FILE.BAS' });
+  });
+
+  it('parses OPEN ... FOR OUTPUT AS #1 — mode is OUTPUT', () => {
+    const s = firstStmt('10 OPEN "FILE" FOR OUTPUT AS #1') as { type: string; mode: Expression; filenum: Expression };
+    expect(s.type).toBe('open');
+    expect(s.mode).toMatchObject({ type: 'string', value: 'OUTPUT' });
   });
 
   it('parses CLOSE with file number', () => {

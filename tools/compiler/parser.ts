@@ -777,12 +777,21 @@ function parseDefFn(stream: TokenStream): DefFnStatement {
 function parseOpen(stream: TokenStream): OpenStatement {
   stream.consumeKeyword('OPEN');
   const filename = parseExpression(stream);
+  // Optional FOR mode clause (OUTPUT, INPUT, APPEND)
+  let modeStr = 'INPUT';
+  if (stream.isKeyword('FOR')) {
+    stream.advance();
+    const modeTok = stream.peek();
+    if (modeTok.type === TokenType.Keyword &&
+        (modeTok.value === 'OUTPUT' || modeTok.value === 'INPUT' || modeTok.value === 'APPEND')) {
+      modeStr = stream.advance().value;
+    }
+  }
+  const mode: Expression = { type: 'string', value: modeStr };
   stream.consumeKeyword('AS');
   // Optional #
   stream.tryConsume(TokenType.Hash);
   const filenum = parseExpression(stream);
-  // Optional mode (OUTPUT, INPUT, APPEND) — may come before AS or after
-  const mode: Expression = { type: 'string', value: 'INPUT' };
   return { type: 'open', filename, mode, filenum };
 }
 
@@ -939,6 +948,18 @@ function parseVarRef(stream: TokenStream): VarRef {
   const ident = stream.consume(TokenType.Ident);
   const name = ident.value;
   const isString = name.endsWith('$');
+  // Check for array indices
+  if (stream.peek().type === TokenType.LParen) {
+    stream.advance(); // (
+    const indices: Expression[] = [];
+    indices.push(parseExpression(stream));
+    while (stream.peek().type === TokenType.Comma) {
+      stream.advance();
+      indices.push(parseExpression(stream));
+    }
+    stream.consume(TokenType.RParen);
+    return { name, isString, indices };
+  }
   return { name, isString };
 }
 
@@ -963,8 +984,9 @@ const enum Prec {
   And = 2,
   Comparison = 4,
   AddSub = 5,
-  MulDiv = 6,
-  Power = 7,
+  Mod = 6,
+  MulDiv = 7,
+  Power = 8,
 }
 
 function tokenPrec(tok: Token): number {
@@ -972,7 +994,7 @@ function tokenPrec(tok: Token): number {
     case TokenType.Keyword:
       if (tok.value === 'OR' || tok.value === 'XOR') return Prec.OrXor;
       if (tok.value === 'AND') return Prec.And;
-      if (tok.value === 'MOD') return Prec.MulDiv;
+      if (tok.value === 'MOD') return Prec.Mod;
       return Prec.None;
     case TokenType.Eq:
     case TokenType.Ne:
@@ -1051,10 +1073,11 @@ function parseUnary(stream: TokenStream): Expression {
     return { type: 'unary', op: 'not', operand };
   }
 
-  // Unary minus
+  // Unary minus — binds tighter than +/- but looser than ^
+  // So -X^2 is parsed as -(X^2), not (-X)^2
   if (stream.peek().type === TokenType.Minus) {
     stream.advance();
-    const operand = parsePrimary(stream);
+    const operand = parseExpression(stream, Prec.MulDiv);
     return { type: 'unary', op: '-', operand };
   }
 
