@@ -169,7 +169,10 @@ describe('codegen - expressions (detailed)', () => {
   it('generates variable store after LET expression', () => {
     const asm = getAsm('10 A=42');
     const mnems = asm.filter(l => l.mnemonic);
-    expect(mnems.some(l => l.mnemonic === 'stm' && l.operands?.includes('VAR_A'))).toBe(true);
+    // Store uses IX-indexed addressing: ldw $2,VAR_A + pre ix,$2 + stm $10,(ix+$sx),8
+    expect(mnems.some(l => l.mnemonic === 'ldw' && l.operands?.includes('VAR_A'))).toBe(true);
+    expect(mnems.some(l => l.mnemonic === 'pre' && l.operands?.includes('ix'))).toBe(true);
+    expect(mnems.some(l => l.mnemonic === 'stm' && l.operands?.includes('(ix+$sx)'))).toBe(true);
   });
 
   it('generates OUTCR after PRINT without trailing separator', () => {
