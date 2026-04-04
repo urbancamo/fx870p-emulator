@@ -1,6 +1,8 @@
 // tools/compiler/tests/assembler.test.ts
 import { describe, it, expect } from 'vitest';
 import { encodeInstruction } from '../opcodes.js';
+import { assemble } from '../assembler.js';
+import type { AsmLine } from '../asm-types.js';
 
 describe('opcode encoding', () => {
 
@@ -432,5 +434,93 @@ describe('opcode encoding', () => {
 
   it('throws on impossible encoding', () => {
     expect(() => encodeInstruction('nop', '$1')).toThrow();
+  });
+});
+
+describe('assembler', () => {
+  it('assembles a simple program', () => {
+    const lines: AsmLine[] = [
+      { mnemonic: 'ORG', operands: '&H0000' },
+      { label: 'MAIN', mnemonic: 'nop' },
+      { mnemonic: 'rtn' },
+    ];
+    const result = assemble(lines);
+    expect(result.binary[0]).toBe(0xF8); // nop
+    expect(result.binary[1]).toBe(0xF7); // rtn unconditional
+    expect(result.codeSize).toBe(2);
+  });
+
+  it('resolves forward label references', () => {
+    const lines: AsmLine[] = [
+      { mnemonic: 'ORG', operands: '&H0000' },
+      { mnemonic: 'jp', operands: 'SKIP' },
+      { mnemonic: 'nop' },
+      { label: 'SKIP', mnemonic: 'rtn' },
+    ];
+    const result = assemble(lines);
+    expect(result.binary.length).toBeGreaterThan(0);
+    expect(result.symbols.find(s => s.name === 'SKIP')).toBeDefined();
+  });
+
+  it('resolves EQU constants', () => {
+    const lines: AsmLine[] = [
+      { mnemonic: 'ORG', operands: '&H0000' },
+      { label: 'CLS_ADDR', mnemonic: 'EQU', operands: '&H2ADF' },
+      { mnemonic: 'ldw', operands: '$2,CLS_ADDR' },
+    ];
+    const result = assemble(lines);
+    // ldw should encode with &H2ADF
+    expect(result.binary.length).toBe(4); // opcode + reg + lo + hi
+  });
+
+  it('handles DS (reserve space)', () => {
+    const lines: AsmLine[] = [
+      { mnemonic: 'ORG', operands: '&H0000' },
+      { mnemonic: 'nop' },
+      { label: 'VAR_A', mnemonic: 'DS', operands: '9' },
+      { label: 'VAR_B', mnemonic: 'DS', operands: '9' },
+    ];
+    const result = assemble(lines);
+    const varA = result.symbols.find(s => s.name === 'VAR_A');
+    const varB = result.symbols.find(s => s.name === 'VAR_B');
+    expect(varA).toBeDefined();
+    expect(varB).toBeDefined();
+    // nop is 1 byte, so VAR_A at 1, VAR_B at 10
+    expect(varA!.address).toBe(1);
+    expect(varB!.address).toBe(10);
+  });
+
+  it('tracks code vs data vs variable sizes', () => {
+    const lines: AsmLine[] = [
+      { mnemonic: 'ORG', operands: '&H0000' },
+      { mnemonic: 'nop' },
+      { mnemonic: 'rtn' },
+      { mnemonic: 'db', operands: '"Hello"' },
+      { label: 'VAR', mnemonic: 'DS', operands: '9' },
+    ];
+    const result = assemble(lines);
+    expect(result.codeSize).toBe(2); // nop + rtn
+    expect(result.dataSize).toBe(5); // "Hello"
+    expect(result.variableSize).toBe(9); // DS 9
+  });
+
+  it('handles label-only lines', () => {
+    const lines: AsmLine[] = [
+      { mnemonic: 'ORG', operands: '&H0000' },
+      { label: 'START' },
+      { mnemonic: 'nop' },
+    ];
+    const result = assemble(lines);
+    expect(result.symbols.find(s => s.name === 'START')!.address).toBe(0);
+  });
+
+  it('handles comment-only and blank lines', () => {
+    const lines: AsmLine[] = [
+      { mnemonic: 'ORG', operands: '&H0000' },
+      { comment: 'just a comment' },
+      { mnemonic: 'nop' },
+    ];
+    const result = assemble(lines);
+    expect(result.codeSize).toBe(1);
   });
 });
