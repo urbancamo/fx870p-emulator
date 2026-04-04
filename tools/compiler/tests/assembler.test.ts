@@ -524,3 +524,88 @@ describe('assembler', () => {
     expect(result.codeSize).toBe(1);
   });
 });
+
+import { formatListing } from '../listing.js';
+import type { ListingLine, ListingInput } from '../listing.js';
+
+describe('listing formatter', () => {
+  const makeInput = (overrides: Partial<ListingInput> = {}): ListingInput => ({
+    sourceFile: 'TEST.BAS',
+    date: '2026-04-04',
+    lines: [],
+    symbols: [],
+    codeSize: 0,
+    dataSize: 0,
+    variableSize: 0,
+    ...overrides,
+  });
+
+  it('includes page header', () => {
+    const listing = formatListing(makeInput());
+    expect(listing).toContain('HD61700 Cross Assembler');
+    expect(listing).toContain('TEST.BAS');
+    expect(listing).toContain('Page 1');
+  });
+
+  it('formats instruction lines with correct columns', () => {
+    const listing = formatListing(makeInput({
+      lines: [{ address: 0, bytes: [0xCE], label: 'MAIN', mnemonic: 'nop', operands: '', comment: 'do nothing' }],
+      codeSize: 1,
+    }));
+    expect(listing).toContain('0000');
+    expect(listing).toContain('CE');
+    expect(listing).toContain('MAIN');
+    expect(listing).toContain('nop');
+    expect(listing).toContain('do nothing');
+  });
+
+  it('includes BASIC source annotations', () => {
+    const listing = formatListing(makeInput({
+      lines: [
+        { address: -1, bytes: [], label: '', mnemonic: '', operands: '', comment: '', basicLine: { num: 10, source: 'PRINT "HI"' } },
+        { address: 0, bytes: [0xCE], label: '', mnemonic: 'nop', operands: '', comment: '' },
+      ],
+      codeSize: 1,
+    }));
+    expect(listing).toContain('=== BASIC Line 10: PRINT "HI" ===');
+  });
+
+  it('includes symbol table', () => {
+    const listing = formatListing(makeInput({
+      symbols: [
+        { name: 'MAIN', address: 0, type: 'code' },
+        { name: 'VAR_A', address: 0x50, type: 'variable' },
+      ],
+    }));
+    expect(listing).toContain('Symbol Table:');
+    expect(listing).toContain('MAIN');
+    expect(listing).toContain('VAR_A');
+    expect(listing).toContain('0050');
+  });
+
+  it('includes size summary', () => {
+    const listing = formatListing(makeInput({ codeSize: 100, dataSize: 50, variableSize: 27 }));
+    expect(listing).toContain('Code size: 100 bytes');
+    expect(listing).toContain('Data size: 50 bytes');
+    expect(listing).toContain('Variables: 27 bytes');
+    expect(listing).toContain('Total: 177 bytes');
+  });
+
+  it('keeps lines to 132 columns max', () => {
+    const listing = formatListing(makeInput({
+      lines: [{ address: 0, bytes: [0xCE], label: 'MAIN', mnemonic: 'nop', operands: '', comment: 'a short comment' }],
+      codeSize: 1,
+    }));
+    for (const line of listing.split('\n')) {
+      expect(line.length).toBeLessThanOrEqual(132);
+    }
+  });
+
+  it('formats multi-byte hex code', () => {
+    const listing = formatListing(makeInput({
+      lines: [{ address: 0, bytes: [0x08, 0x02, 0xDF, 0x2A], label: '', mnemonic: 'ldw', operands: '$2,&H2ADF', comment: 'CLS addr' }],
+      codeSize: 4,
+    }));
+    expect(listing).toContain('08 02 DF 2A');
+  });
+});
