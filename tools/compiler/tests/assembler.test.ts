@@ -114,19 +114,21 @@ describe('opcode encoding', () => {
   it('encodes JR (unconditional, positive offset)', () => {
     // jr unconditional is at index 0xB7 with Kind.JR
     // jr at PC=0, target=&H07 -> opcode at PC=0, imm7 at PC=1
-    // imm7 is relative to PC after fetching both bytes = PC+2
-    // offset = target - (PC+2) = 7 - 2 = 5
+    // In byte memory, the executor captures y = pc AFTER the opcode byte has
+    // been fetched but BEFORE the offset byte. So y = instr_addr + 1 and
+    // target = (instr_addr + 1) + offset, i.e. offset = target - (pc + 1)
+    // offset = 7 - 1 = 6
     const bytes = encodeInstruction('jr', '&H0007', 0x0000);
     expect(bytes[0]).toBe(0xB7);
-    expect(bytes[1]).toBe(5);  // positive offset
+    expect(bytes[1]).toBe(6);  // positive offset
   });
 
   it('encodes JR (unconditional, negative offset)', () => {
-    // jr at PC=0x100, target=0xFE -> offset = 0xFE - 0x102 = -4
-    // HD61700 encoding: 0x80 - 4 = 0x7C
+    // jr at PC=0x100, target=0xFE -> offset = 0xFE - 0x101 = -3
+    // HD61700 encoding: 0x80 - 3 = 0x7D
     const bytes = encodeInstruction('jr', '&H00FE', 0x0100);
     expect(bytes[0]).toBe(0xB7);
-    expect(bytes[1]).toBe(0x7C);  // 0x80 - 4
+    expect(bytes[1]).toBe(0x7D);  // 0x80 - 3
   });
 
   // ── Conditional jump (Kind.JRCC) ──
@@ -135,7 +137,7 @@ describe('opcode encoding', () => {
     // jr z is at index 0xB0 (0xB0 & 7 == 0 == z)
     const bytes = encodeInstruction('jr', 'z,&H0007', 0x0000);
     expect(bytes[0]).toBe(0xB0);
-    expect(bytes[1]).toBe(5);  // target=7, pc+2=2, offset=5
+    expect(bytes[1]).toBe(6);  // target=7, pc+1=1, offset=6
   });
 
   // ── Absolute jump (Kind.JP / Kind.JPCC) ──

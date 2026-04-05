@@ -313,7 +313,13 @@ function isImmediate(s: string): boolean {
 // ─── Encoding helpers ────────────────────────────────────────────────────────
 
 // Encode a 7-bit relative jump offset per HD61700 convention
-function encodeImm7(pc: number, target: number): number {
+// Encode a 7-bit imm7 offset for jr/conditional-jr-style instructions.
+// The `base` argument is the PC value that imm7Arg() will capture as `y` in
+// the emulator (i.e. the PC AFTER the opcode byte has been fetched, BEFORE
+// the offset byte is fetched). For byte-memory code this is instr_addr + 1;
+// for word-memory ROM code this is the instruction's own address.
+function encodeImm7(base: number, target: number): number {
+  const pc = base;
   const offset = (target - pc) & 0xFFFF;
   if (offset === 0) return 0;
   if (offset <= 0x7F) return offset;  // positive
@@ -445,7 +451,7 @@ function tryEncode(
       if ((index & 7) !== cc) return null;
       const target = parseHex(parts[1]!);
       bytes.push(index);
-      bytes.push(encodeImm7(pc + 2, target));
+      bytes.push(encodeImm7(pc + 1, target));
       return new Uint8Array(bytes);
     }
 
@@ -455,7 +461,7 @@ function tryEncode(
       if (!isImmediate(parts[0]!)) return null;
       const target = parseHex(parts[0]!);
       bytes.push(index);
-      bytes.push(encodeImm7(pc + 2, target));
+      bytes.push(encodeImm7(pc + 1, target));
       return new Uint8Array(bytes);
     }
 
@@ -554,7 +560,7 @@ function tryEncode(
       if (hasJr) {
         const jrPart = parts[2]!.trim();
         const jrTarget = parseHex(jrPart.replace(/^jr\s+/i, ''));
-        bytes.push(encodeImm7(pc + bytes.length + 1, jrTarget));
+        bytes.push(encodeImm7(pc + bytes.length, jrTarget));
       }
       return new Uint8Array(bytes);
     }
@@ -580,7 +586,7 @@ function tryEncode(
       if (hasJr) {
         const jrPart = parts[2]!.trim();
         const jrTarget = parseHex(jrPart.replace(/^jr\s+/i, ''));
-        bytes.push(encodeImm7(pc + bytes.length + 1, jrTarget));
+        bytes.push(encodeImm7(pc + bytes.length, jrTarget));
       }
       return new Uint8Array(bytes);
     }
@@ -607,7 +613,7 @@ function tryEncode(
       if (hasJr) {
         const jrPart = parts[1]!.trim();
         const jrTarget = parseHex(jrPart.replace(/^jr\s+/i, ''));
-        bytes.push(encodeImm7(pc + bytes.length + 1, jrTarget));
+        bytes.push(encodeImm7(pc + bytes.length, jrTarget));
       }
       return new Uint8Array(bytes);
     }
@@ -629,7 +635,7 @@ function tryEncode(
       if (hasJr) {
         const jrPart = parts[2]!.trim();
         const jrTarget = parseHex(jrPart.replace(/^jr\s+/i, ''));
-        bytes.push(encodeImm7(pc + bytes.length + 1, jrTarget));
+        bytes.push(encodeImm7(pc + bytes.length, jrTarget));
       }
       return new Uint8Array(bytes);
     }
@@ -731,7 +737,7 @@ function tryEncode(
       if (hasJr) {
         const jrPart = parts[2]!.trim();
         const jrTarget = parseHex(jrPart.replace(/^jr\s+/i, ''));
-        bytes.push(encodeImm7(pc + bytes.length + 1, jrTarget));
+        bytes.push(encodeImm7(pc + bytes.length, jrTarget));
       }
       return new Uint8Array(bytes);
     }
@@ -755,7 +761,7 @@ function tryEncode(
       if (hasJr) {
         const jrPart = parts[2]!.trim();
         const jrTarget = parseHex(jrPart.replace(/^jr\s+/i, ''));
-        bytes.push(encodeImm7(pc + bytes.length + 1, jrTarget));
+        bytes.push(encodeImm7(pc + bytes.length, jrTarget));
       }
       return new Uint8Array(bytes);
     }
@@ -794,7 +800,7 @@ function tryEncode(
       if (hasJr) {
         const jrPart = parts[2]!.trim();
         const jrTarget = parseHex(jrPart.replace(/^jr\s+/i, ''));
-        bytes.push(encodeImm7(pc + bytes.length + 1, jrTarget));
+        bytes.push(encodeImm7(pc + bytes.length, jrTarget));
       }
       return new Uint8Array(bytes);
     }
@@ -1064,7 +1070,7 @@ function tryEncode(
       if (hasJr) {
         const jrPart = parts[3]!.trim();
         const jrTarget = parseHex(jrPart.replace(/^jr\s+/i, ''));
-        bytes.push(encodeImm7(pc + bytes.length + 1, jrTarget));
+        bytes.push(encodeImm7(pc + bytes.length, jrTarget));
       }
       return new Uint8Array(bytes);
     }
@@ -1097,7 +1103,7 @@ function tryEncode(
       if (hasJr) {
         const jrPart = parts[3]!.trim();
         const jrTarget = parseHex(jrPart.replace(/^jr\s+/i, ''));
-        bytes.push(encodeImm7(pc + bytes.length + 1, jrTarget));
+        bytes.push(encodeImm7(pc + bytes.length, jrTarget));
       }
       return new Uint8Array(bytes);
     }
