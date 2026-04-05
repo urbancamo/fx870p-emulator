@@ -18,7 +18,7 @@ import { generate } from './codegen.js';
 import { assemble } from './assembler.js';
 import { formatListing } from './listing.js';
 import type { ListingLine, ListingInput } from './listing.js';
-import { generateLoader, generateHexPayload } from './loader.js';
+import { generateHexPayload } from './loader.js';
 import { encodeInstruction } from './opcodes.js';
 import type { AsmLine } from './asm-types.js';
 
@@ -259,25 +259,21 @@ function main(): void {
   };
   const listing = formatListing(listingInput);
 
-  // 7. Generate GENERIC loader (same loader.bas works for every program)
-  const loader = generateLoader();
-
-  // 8. Write output files to build/compiler/
+  // 7. Write output files to build/compiler/
+  //    (The loader is generic and lives in the BASIC library as MLLOADER.BAS
+  //    — no need to emit it per compile.)
   mkdirSync(OUTPUT_DIR, { recursive: true });
-  const binPath    = outPath(inputPath, '.bin');
-  const hexPath    = outPath(inputPath, '.hex');
-  const lstPath    = outPath(inputPath, '.lst');
-  const symPath    = outPath(inputPath, '.sym');
-  // Generic loader — always named loader.bas, same for all programs
-  const loaderPath = join(OUTPUT_DIR, 'loader.bas');
+  const binPath = outPath(inputPath, '.bin');
+  const hexPath = outPath(inputPath, '.hex');
+  const lstPath = outPath(inputPath, '.lst');
+  const symPath = outPath(inputPath, '.sym');
 
-  writeFileSync(binPath,    assembled.binary);
-  writeFileSync(hexPath,    generateHexPayload(assembled.binary), 'utf8');
-  writeFileSync(lstPath,    listing,  'utf8');
-  writeFileSync(symPath,    JSON.stringify(assembled.symbols, null, 2) + '\n', 'utf8');
-  writeFileSync(loaderPath, loader,   'utf8');
+  writeFileSync(binPath, assembled.binary);
+  writeFileSync(hexPath, generateHexPayload(assembled.binary), 'utf8');
+  writeFileSync(lstPath, listing,  'utf8');
+  writeFileSync(symPath, JSON.stringify(assembled.symbols, null, 2) + '\n', 'utf8');
 
-  // 9. Print summary
+  // 8. Print summary
   const { codeSize, dataSize, variableSize } = assembled;
   const usedBytes = codeSize + dataSize + variableSize;
   const available = WARN_THRESHOLD;
@@ -288,7 +284,6 @@ function main(): void {
     basename(hexPath),
     basename(lstPath),
     basename(symPath),
-    basename(loaderPath),
   ].join(', ');
 
   console.log(`Compiled: ${sourceFile} → ${usedBytes} bytes`);
@@ -297,8 +292,8 @@ function main(): void {
   console.log(`  Output: ${outFiles}`);
   console.log('');
   console.log('To run on the emulator:');
-  console.log(`  1. Load ${basename(loaderPath)} into BASIC (type it or LOAD via COM0)`);
-  console.log(`  2. Type RUN and press EXE`);
+  console.log('  1. Open LIB, load MLLOADER.BAS into P0');
+  console.log('  2. Type RUN and press EXE');
   console.log(`  3. Use the emulator's COM0 SEND button to send ${basename(hexPath)}`);
 
   if (usedBytes > available) {

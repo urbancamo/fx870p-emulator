@@ -1,5 +1,10 @@
 [
   {
+    "file": "MLLOADER.BAS",
+    "name": "ML Loader",
+    "description": "Streams compiled .hex files over COM0 and executes them at &H1CD0. Load this once, RUN it, then SEND any .hex file produced by the compiler."
+  },
+  {
     "file": "LIFE.BAS",
     "name": "Conway's Game of Life",
     "description": "Cellular automaton on a 31x4 toroidal grid with four preset patterns"
