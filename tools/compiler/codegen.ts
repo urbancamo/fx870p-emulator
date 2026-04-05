@@ -118,11 +118,15 @@ class CodeGen {
     // same address used by CosmicV4. BASIC POKE can't reach Bank1 0x0000.
     this.code.push({ mnemonic: 'ORG', operands: '&H1CD0' });
 
-    // 1b. Prologue: select LCD as output device. The loader's OPEN "COM0:.."
-    // leaves OUTDV=8 (comm device) so PRINT routines would route to COM0
-    // instead of the LCD. Calling ROM 0x2991 resets OUTDV=0 (LCD).
-    this.code.push({ comment: 'prologue: select LCD output' });
-    this.emitRomCall(ROM.LCDSEL, 'LCDSEL');
+    // 1b. Prologue: force OUTDV=0 (LCD). The loader's OPEN "COM0:.." leaves
+    // OUTDV=8 (comm device), so PRINT routines would route to COM0 instead
+    // of the LCD. Direct memory write is more reliable than calling ROM
+    // LCDSEL (&H2991), which uses ld $0,$sx with unpredictable SX state.
+    this.code.push({ comment: 'prologue: force OUTDV=0 (LCD)' });
+    this.code.push({ mnemonic: 'ldw', operands: '$2,&H1739', comment: 'OUTDV addr' });
+    this.code.push({ mnemonic: 'pre', operands: 'ix,$2' });
+    this.code.push({ mnemonic: 'ld', operands: '$0,&H00', comment: 'LCD device code' });
+    this.code.push({ mnemonic: 'std', operands: '$0,(ix+&H00)', comment: 'write OUTDV' });
 
     // 2. Code section — one block per BASIC line
     const sortedLineNums = [...program.lines.keys()].sort((a, b) => a - b);
