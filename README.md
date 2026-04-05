@@ -132,8 +132,33 @@ tools/
   compare-traces.mjs  Delphi vs TypeScript trace comparison
   charset-dump.ts     Generate character set markdown (docs/charset.md)
   charset-table.ts    Generate character set HTML table (docs/charset-table.html)
+  compiler/           Casio JIS BASIC → HD61700 machine code compiler (README inside)
+  emu-debugger/       Headless debugger library + CLI (README inside)
 reference/            Documentation and Delphi source
 docs/                 Implementation notes
+```
+
+## Developer Tools
+
+Beyond the browser emulator, this repo ships two Node.js tools for compiling and debugging HD61700 machine code:
+
+### BASIC Compiler — [`tools/compiler/`](tools/compiler/README.md)
+
+Compiles Casio JIS Standard BASIC to HD61700 machine code. Generates an annotated 132-column assembly listing, a raw binary, a symbol table, and a self-loading BASIC program for real hardware. Generated code calls into the existing ROM for PRINT, INPUT, FP math, and string operations (the CosmicV4 pattern) rather than reimplementing the runtime.
+
+```bash
+npx tsx tools/compiler/compile.ts program.bas
+# → build/compiler/program.{bin,lst,sym,loader.bas}
+```
+
+### Headless Debugger — [`tools/emu-debugger/`](tools/emu-debugger/README.md)
+
+Library and CLI for driving the emulator programmatically. Breakpoints, memory watchpoints, instruction tracing, snapshot restore, single-stepping. Designed for debugging compiled binaries and automated regression testing.
+
+```bash
+npm run debug -- run <binary.bin>     # run + show LCD
+npm run debug -- trace <binary.bin>   # log every instruction
+npm run debug -- step <binary.bin>    # interactive single-step
 ```
 
 ## Reference Documents
