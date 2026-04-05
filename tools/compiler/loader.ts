@@ -35,20 +35,22 @@ export function generateLoader(input: LoaderInput): string {
   const lines: string[] = [];
 
   const entryHex = '&H' + entryPoint.toString(16).toUpperCase().padStart(4, '0');
+  // DEFSEG is a segment: effective_addr = DEFSEG * 16 + offset.
+  // For entryPoint at 0x1CD0, DEFSEG = 0x01CD.
+  const segment = Math.floor(entryPoint / 16);
+  const segHex = '&H' + segment.toString(16).toUpperCase().padStart(4, '0');
   lines.push(`10 ' Compiled: ${sourceFile}`);
-  lines.push(`20 ' Size: ${totalSize} bytes`);
-  // Reserve ML area at top of BASIC user RAM (2KB buffer for compiled code)
-  lines.push('30 CLEAR ,-2048');
-  // Set DEFSEG so that POKE offset N writes to absolute address entryPoint+N
-  lines.push(`40 DEFSEG=${entryHex}`);
-  lines.push(`50 FOR I=0 TO ${chunkCount - 1}`);
-  lines.push('60 READ A$');
-  lines.push('70 FOR J=1 TO LEN(A$) STEP 2');
-  lines.push('80 POKE I*24+(J-1)/2,VAL("&H"+MID$(A$,J,2))');
-  lines.push('90 NEXT J');
-  lines.push('100 NEXT I');
-  lines.push(`110 MODE110(${entryHex})`);
-  lines.push('120 END');
+  lines.push(`15 ' Size: ${totalSize} bytes`);
+  lines.push(`20 ' Run CLEAR ,-${totalSize + 100} first to reserve ML area`);
+  lines.push(`30 DEFSEG=${segHex}`);
+  lines.push(`40 FOR I=0 TO ${chunkCount - 1}`);
+  lines.push('50 READ A$');
+  lines.push('60 FOR J=1 TO LEN(A$) STEP 2');
+  lines.push('70 POKE I*24+(J-1)/2,VAL("&H"+MID$(A$,J,2))');
+  lines.push('80 NEXT J');
+  lines.push('90 NEXT I');
+  lines.push(`100 MODE110(${entryHex})`);
+  lines.push('110 END');
 
   // DATA statements starting at line 1000, incrementing by 10
   chunks.forEach((hex, idx) => {
