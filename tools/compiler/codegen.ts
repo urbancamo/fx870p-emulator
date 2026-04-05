@@ -30,6 +30,7 @@ const ROM = {
   CLS:       '&H2ADF',
   BEEP:      '&H33B3',
   KYIN:      '&H03A4',  // Blocking key input — returns keycode in $0
+  LCDSEL:    '&H2991',  // Select LCD as output device (OUTDV=0)
   // ROM addresses for built-in functions (TODO: verify exact addresses)
   SIN:       '&H0000',  // TODO: ROM address for SIN
   COS:       '&H0000',  // TODO: ROM address for COS
@@ -116,6 +117,12 @@ class CodeGen {
     // Origin 0x1CD0 — Bank1 area that's reachable via BASIC POKE/MODE110,
     // same address used by CosmicV4. BASIC POKE can't reach Bank1 0x0000.
     this.code.push({ mnemonic: 'ORG', operands: '&H1CD0' });
+
+    // 1b. Prologue: select LCD as output device. The loader's OPEN "COM0:.."
+    // leaves OUTDV=8 (comm device) so PRINT routines would route to COM0
+    // instead of the LCD. Calling ROM 0x2991 resets OUTDV=0 (LCD).
+    this.code.push({ comment: 'prologue: select LCD output' });
+    this.emitRomCall(ROM.LCDSEL, 'LCDSEL');
 
     // 2. Code section — one block per BASIC line
     const sortedLineNums = [...program.lines.keys()].sort((a, b) => a - b);
