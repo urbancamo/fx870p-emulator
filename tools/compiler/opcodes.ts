@@ -325,7 +325,7 @@ function encodeImm7(base: number, target: number): number {
   if (offset <= 0x7F) return offset;  // positive
   // Negative: offset is like 0xFFxx, we need actual signed offset
   const signed = target - pc;
-  if (signed < 0) return 0x80 - (-signed);  // HD61700: 0x80 - abs(offset)
+  if (signed < 0) return 0x80 + (-signed);  // HD61700: raw=0x80+|offset|, decoder does 0x80-raw
   return offset & 0x7F;
 }
 

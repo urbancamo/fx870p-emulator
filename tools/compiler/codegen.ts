@@ -745,19 +745,15 @@ class CodeGen {
     for (const item of stmt.items) {
       if (item.type === 'expr') {
         if (item.value.type === 'string') {
-          // String literal: load address and call print
+          // String literal: emit character-by-character loop calling OUTCH (&H2AF1)
           const strInfo = this.allocString(item.value.value);
-          this.code.push({
-            mnemonic: 'ldw',
-            operands: `$10,${strInfo.label}`,
-            comment: `PRINT string: "${item.value.value}"`,
-          });
+          this.emitPrintStringLoop(strInfo.label, item.value.value);
         } else {
           // Evaluate expression into FP accumulator
           this.emitExpression(item.value);
+          // Call PRINT ROM handler (&H3EF1) for numeric values
+          this.emitRomCall(ROM.PRINT, 'PRINT value');
         }
-        // Call PRINT ROM handler
-        this.emitRomCall(ROM.PRINT, 'PRINT value');
         trailingSep = false;
       } else if (item.type === 'separator') {
         trailingSep = true;
@@ -776,6 +772,42 @@ class CodeGen {
     if (!trailingSep) {
       this.emitRomCall(ROM.OUTCR, 'OUTCR');
     }
+  }
+
+  // Emit a character loop that prints a NUL-terminated string.
+  // Uses ROM OUTCH (&H2AF1) which expects the character in $16.
+  // Pattern:
+  //   ldw $2,LABEL        ; load string address
+  //   pre ix,$2           ; IX = address
+  //   psr sx,0            ; SX = 0
+  //   L_loop: ldi $16,(ix+$sx)  ; load byte, auto-increment IX
+  //           an  $16,$16       ; test zero (sets Z flag)
+  //           jr  z,L_done
+  //           ldw $2,&H2AF1     ; OUTCH ROM address
+  //           cal ROM_CALL
+  //           jr  L_loop
+  //   L_done:
+  private emitPrintStringLoop(strLabel: string, text: string): void {
+    const n = this.labelIndex++;
+    const loop = `L_PRS${n}`;
+    const done = `L_PRSD${n}`;
+
+    this.code.push({ comment: `PRINT string: "${text}"` });
+    this.code.push({ mnemonic: 'ldw', operands: `$2,${strLabel}` });
+    this.code.push({ mnemonic: 'pre', operands: 'ix,$2' });
+    // Use immediate-offset ldi: ldi $16,(ix+0) loads byte at IX and auto-increments IX
+    this.code.push({ label: loop, mnemonic: 'ldi', operands: '$16,(ix+&H00)' });
+    this.code.push({ mnemonic: 'an', operands: '$16,$16' });
+    this.code.push({ mnemonic: 'jr', operands: `z,${done}` });
+    // Save IX to stack via $4,$5 scratch pair (ROM routines clobber IX)
+    this.code.push({ mnemonic: 'gre', operands: 'ix,$4', comment: 'save IX -> $4,$5' });
+    this.code.push({ mnemonic: 'phsw', operands: '$5', comment: 'push word $4,$5' });
+    this.code.push({ mnemonic: 'ldw', operands: `$2,${ROM.OUTCH}`, comment: 'OUTCH' });
+    this.code.push({ mnemonic: 'cal', operands: 'ROM_CALL' });
+    this.code.push({ mnemonic: 'ppsw', operands: '$4', comment: 'pop word into $4,$5' });
+    this.code.push({ mnemonic: 'pre', operands: 'ix,$4', comment: 'restore IX' });
+    this.code.push({ mnemonic: 'jr', operands: loop });
+    this.code.push({ label: done });
   }
 
   // -------------------------------------------------------------------------

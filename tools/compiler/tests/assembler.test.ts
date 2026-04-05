@@ -125,10 +125,11 @@ describe('opcode encoding', () => {
 
   it('encodes JR (unconditional, negative offset)', () => {
     // jr at PC=0x100, target=0xFE -> offset = 0xFE - 0x101 = -3
-    // HD61700 encoding: 0x80 - 3 = 0x7D
+    // HD61700 encoding: raw = 0x80 + abs(offset) = 0x83
+    // Decoder: 0x80 - 0x83 = -3 ✓
     const bytes = encodeInstruction('jr', '&H00FE', 0x0100);
     expect(bytes[0]).toBe(0xB7);
-    expect(bytes[1]).toBe(0x7D);  // 0x80 - 3
+    expect(bytes[1]).toBe(0x83);
   });
 
   // ── Conditional jump (Kind.JRCC) ──
