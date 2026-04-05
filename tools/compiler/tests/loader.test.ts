@@ -29,7 +29,7 @@ describe('generateLoader (generic)', () => {
 
   it('includes checksum verification', () => {
     const loader = generateLoader();
-    expect(loader).toContain('CHECKSUM ERROR');
+    expect(loader).toContain('CHECKSUM ERR');
     expect(loader).toContain('S=(S+P) MOD 256');
   });
 });
