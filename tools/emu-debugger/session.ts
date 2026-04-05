@@ -10,6 +10,9 @@ import {
 import type { Snapshot } from './snapshot.js';
 import { BreakpointSet, WatchpointSet } from './breakpoints.js';
 import type { WatchKind, ExitResult } from './exit-reasons.js';
+import { TraceBuffer } from './trace.js';
+import type { TraceEntry } from './trace.js';
+import { disOneLine } from '../../src/emulator/disassemble.js';
 import {
   pc as emuPc, ua, ib, flag, ix, iy, iz, sx, sy, sz, ss, us, mr,
   setPc,
@@ -118,6 +121,7 @@ export class EmulatorSession {
   private cycleCount = 0;
   private exitPending: { reason: ExitReason; bp?: number; wp?: WatchpointHit; illOp?: number } | null = null;
   private stopRequested = false;
+  private traceBuffer: TraceBuffer | null = null;
 
   run(options: { maxCycles?: number; maxInstructions?: number; trace?: boolean } = {}): ExitResult {
     const maxCycles = options.maxCycles ?? 10_000_000;
@@ -126,8 +130,23 @@ export class EmulatorSession {
     this.cycleCount = 0;
     this.exitPending = null;
     this.stopRequested = false;
+    this.traceBuffer = options.trace ? new TraceBuffer() : null;
 
     setPcMonitor((curPc) => {
+      if (this.traceBuffer) {
+        try {
+          const line = disOneLine(curPc);
+          const bytes = line.bytes.split(' ').filter(s => s.length > 0).map(h => parseInt(h, 16));
+          this.traceBuffer.push({
+            pc: curPc,
+            bytes,
+            mnemonic: `${line.mnem} ${line.args}`.trim(),
+            cycles: 0,
+          });
+        } catch {
+          this.traceBuffer.push({ pc: curPc, bytes: [], mnemonic: '?', cycles: 0 });
+        }
+      }
       if (this.breakpoints.has(curPc)) {
         this.exitPending = { reason: 'breakpoint', bp: curPc };
       }
@@ -201,7 +220,9 @@ export class EmulatorSession {
     return { rows: [], raw: new Uint8Array(lcdmem) };
   }
 
-  getTrace(): unknown[] { return []; }  // filled in Task 11
+  getTrace(): TraceEntry[] {
+    return this.traceBuffer ? this.traceBuffer.getAll() : [];
+  }
   getInstructionCount(): number { return this.instructionCount; }
   getCycleCount(): number { return this.cycleCount; }
 }
