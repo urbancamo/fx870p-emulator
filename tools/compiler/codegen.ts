@@ -112,7 +112,9 @@ class CodeGen {
 
   generate(program: Program): AsmProgram {
     // 1. ORG directive
-    this.code.push({ mnemonic: 'ORG', operands: '&H0000' });
+    // Origin 0x1CD0 — Bank1 area that's reachable via BASIC POKE/MODE110,
+    // same address used by CosmicV4. BASIC POKE can't reach Bank1 0x0000.
+    this.code.push({ mnemonic: 'ORG', operands: '&H1CD0' });
 
     // 2. Code section — one block per BASIC line
     const sortedLineNums = [...program.lines.keys()].sort((a, b) => a - b);
@@ -202,7 +204,7 @@ class CodeGen {
       }
     }
 
-    return { lines: this.code, origin: 0 };
+    return { lines: this.code, origin: 0x1CD0 };
   }
 
   // -------------------------------------------------------------------------

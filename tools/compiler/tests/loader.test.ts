@@ -43,7 +43,7 @@ describe('loader generator', () => {
       sourceFile: 'TEST.BAS',
       totalSize: 1,
     });
-    expect(loader).toContain('MODE110(256)');
+    expect(loader).toContain('MODE110(&H0100)');
   });
 
   it('splits long binaries into 24-byte DATA lines', () => {

@@ -19,10 +19,10 @@ function labels(basic: string): string[] {
 }
 
 describe('codegen - core', () => {
-  it('emits ORG &H0000', () => {
+  it('emits ORG &H1CD0 (CosmicV4 pattern, reachable via BASIC POKE)', () => {
     const lines = getAsm('10 END');
     expect(lines[0]!.mnemonic).toBe('ORG');
-    expect(lines[0]!.operands).toBe('&H0000');
+    expect(lines[0]!.operands).toBe('&H1CD0');
   });
 
   it('emits labels for BASIC line numbers', () => {
