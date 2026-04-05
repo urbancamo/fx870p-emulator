@@ -25,3 +25,4 @@ dist-ssr
 /.server.pid
 /trace.jsonl
 /emulator-debug.log
+tools/emu-debugger/snapshots/
