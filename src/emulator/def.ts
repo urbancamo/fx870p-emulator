@@ -235,6 +235,15 @@ export function setRamReadMonitor(fn: ((a: number, v: number) => void) | null): 
   _ramReadMonitor = fn;
 }
 
+// Optional monitor — called when an illegal opcode is executed.
+let _illegalOpcodeMonitor: ((opcode: number, pc: number) => void) | null = null;
+export function setIllegalOpcodeMonitor(fn: ((opcode: number, pc: number) => void) | null): void {
+  _illegalOpcodeMonitor = fn;
+}
+export function fireIllegalOpcode(op: number, pcVal: number): void {
+  _illegalOpcodeMonitor?.(op, pcVal);
+}
+
 // Optional monitor — set by debug tooling; called on every RAM write when active.
 // Signature: (address: number, value: number) => void
 let _ramWriteMonitor: ((a: number, v: number) => void) | null = null;
