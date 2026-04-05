@@ -48,7 +48,7 @@ export function generateLoader(): string {
   lines.push('110 IF C<>S THEN LOCATE 0,3:PRINT "CHECKSUM ERR ";C;"!=";S:END');
   lines.push('113 LOCATE 0,3:PRINT "OK. EXE to run...";');
   lines.push('115 K$=INPUT$(1)');
-  lines.push(`120 MODE 110(${entryHex})`);
+  lines.push(`120 MODE110(${entryHex})`);
   lines.push('130 END');
   lines.push("199 ' --- read one byte (2 hex chars) into P ---");
   lines.push('200 A=ASC(INPUT$(1,#1)):B=ASC(INPUT$(1,#1))');
