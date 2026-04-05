@@ -106,7 +106,9 @@ function buildListingLines(
       scanPc += isNaN(n) ? 0 : n;
     } else {
       try {
-        const stubbed = operands.replace(/\b([A-Za-z_][A-Za-z0-9_]*)\b/g, (m) => {
+        // For db, don't stub operands — they contain string literals whose
+        // length determines the byte count; stubbing would mangle the strings.
+        const stubbed = mnemLower === 'db' ? operands : operands.replace(/(?<!&)\b([A-Za-z_][A-Za-z0-9_]*)\b/g, (m) => {
           const known = new Set(['ix','iy','iz','us','ss','ky','sx','sy','sz',
             'pe','pd','ib','ua','ia','ie','tm','z','nc','lz','uz','nz','c','nlz']);
           return known.has(m.toLowerCase()) ? m : '&H0000';

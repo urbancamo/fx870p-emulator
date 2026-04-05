@@ -47,8 +47,10 @@ function escapeRegex(s: string): string {
 function estimateSize(mnemonic: string, operands: string): number {
   const m = mnemonic.toLowerCase();
   if (ASSEMBLER_DIRECTIVES.has(m)) return 0;
-  // Replace any unresolved symbol-like tokens with &H0000 for size estimation
-  const stubbed = stubUnresolved(operands);
+  // For db, don't stub operands — they contain string literals whose length
+  // determines the byte count; stubbing would mangle the strings.
+  // (dw always produces 2 bytes so stubbing is fine for it.)
+  const stubbed = m === 'db' ? operands : stubUnresolved(operands);
   try {
     return encodeInstruction(m, stubbed, 0).length;
   } catch {
@@ -67,8 +69,9 @@ function stubUnresolved(operands: string): string {
     'pe', 'pd', 'ib', 'ua', 'ia', 'ie', 'tm',
     'z', 'nc', 'lz', 'uz', 'nz', 'c', 'nlz',
   ]);
-  // Replace label-like identifiers not starting with $ or & with &H0000
-  return operands.replace(/\b([A-Za-z_][A-Za-z0-9_]*)\b/g, (match) => {
+  // Replace label-like identifiers not preceded by & (to avoid mangling &H hex literals)
+  // and not starting with $ (register names)
+  return operands.replace(/(?<!&)\b([A-Za-z_][A-Za-z0-9_]*)\b/g, (match) => {
     if (knownTokens.has(match.toLowerCase())) return match;
     return '&H0000';
   });

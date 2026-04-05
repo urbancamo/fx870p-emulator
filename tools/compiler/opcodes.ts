@@ -1135,13 +1135,35 @@ function tryEncode(
 function encodeDb(ops: string): Uint8Array {
   ops = ops.trim();
   if (ops.startsWith('"') && ops.endsWith('"')) {
-    // String literal
+    // Pure string literal: db "Hello"
     const str = ops.slice(1, -1);
     const bytes = new Uint8Array(str.length);
     for (let i = 0; i < str.length; i++) {
       bytes[i] = str.charCodeAt(i) & 0xFF;
     }
     return bytes;
+  }
+
+  if (ops.startsWith('"')) {
+    // Mixed format: db "Hello, World!",0  (quoted string followed by byte values)
+    // Find the closing quote — scan for unescaped "
+    const closeIdx = ops.indexOf('"', 1);
+    if (closeIdx > 0) {
+      const str = ops.slice(1, closeIdx);
+      const result: number[] = [];
+      for (let i = 0; i < str.length; i++) {
+        result.push(str.charCodeAt(i) & 0xFF);
+      }
+      // Parse any trailing comma-separated byte values after the closing quote
+      const rest = ops.slice(closeIdx + 1).trim();
+      if (rest.startsWith(',')) {
+        const parts = rest.slice(1).split(',').map(s => s.trim()).filter(s => s.length > 0);
+        for (const part of parts) {
+          result.push(parseHex(part) & 0xFF);
+        }
+      }
+      return new Uint8Array(result);
+    }
   }
 
   // Hex byte list: &H48,&H65,...
