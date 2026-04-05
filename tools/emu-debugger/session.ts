@@ -3,6 +3,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { boot, writeBinaryToRam, readFromRam } from './harness-core.js';
+import { readLcdRow } from '../../tests/emu-harness.js';
 import {
   captureSnapshot, restoreSnapshot, saveSnapshotToFile, loadSnapshotFromFile,
   snapshotExists,
@@ -216,8 +217,8 @@ export class EmulatorSession {
   stop(): void { this.stopRequested = true; }
 
   getLcd(): { rows: string[]; raw: Uint8Array } {
-    // rows filled in Task 12
-    return { rows: [], raw: new Uint8Array(lcdmem) };
+    const rows = [readLcdRow(0), readLcdRow(1), readLcdRow(2), readLcdRow(3)];
+    return { rows, raw: new Uint8Array(lcdmem) };
   }
 
   getTrace(): TraceEntry[] {

@@ -53,3 +53,12 @@ describe('EmulatorSession', () => {
     expect(sess.getCycleCount()).toBeGreaterThan(0);
   }, 30_000);
 });
+
+describe('EmulatorSession LCD', () => {
+  it('returns 4 rows of LCD text', () => {
+    const sess = new EmulatorSession({ mode: 'snapshot' });
+    const lcd = sess.getLcd();
+    expect(lcd.rows).toHaveLength(4);
+    expect(lcd.raw).toBeInstanceOf(Uint8Array);
+  }, 30_000);
+});
