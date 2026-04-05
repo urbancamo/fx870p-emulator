@@ -613,9 +613,9 @@ class CodeGen {
     if (op === '-') {
       // Negate: XOR the sign byte of the BCD accumulator
       this.code.push({
-        mnemonic: 'xrm',
+        mnemonic: 'xr',
         operands: '$10,&H80',
-        comment: 'negate FP value',
+        comment: 'negate FP sign bit',
       });
     } else {
       this.code.push({ comment: 'TODO: NOT operator' });
@@ -1114,16 +1114,15 @@ class CodeGen {
       this.allocVariable(varRef);
       this.code.push({ comment: `READ ${varRef.name}` });
 
-      // Load DATA_PTR into IZ register
-      this.code.push({ mnemonic: 'ldw', operands: '$10,DATA_PTR', comment: 'load DATA_PTR address' });
-      // Load 2-byte word from DATA_PTR location (pointer to current DATA item)
-      this.code.push({ mnemonic: 'ldd', operands: '$10,(DATA_PTR)', comment: 'deref DATA_PTR -> current value' });
-      // Store into variable (simplified: just stores the pointer value; TODO: dereference and copy)
+      // Load DATA_PTR value via IX
+      this.code.push({ mnemonic: 'ldw', operands: '$2,DATA_PTR', comment: 'DATA_PTR address' });
+      this.code.push({ mnemonic: 'pre', operands: 'ix,$2' });
+      this.code.push({ mnemonic: 'psr', operands: 'sx,0' });
+      this.code.push({ mnemonic: 'ldd', operands: '$10,(ix+$sx)', comment: 'load current DATA value via IX' });
+      // Store into variable
       this.emitVariableStore(varRef);
-
-      // Advance DATA_PTR by 2 (word size of the pointer entry)
-      // Advance DATA_PTR by 2 (word size of pointer entry)
-      this.code.push({ comment: 'TODO: increment DATA_PTR by 2 (load, add 2, store via IX)' });
+      // Advance DATA_PTR by 9 (one FP value)
+      this.code.push({ comment: 'TODO: advance DATA_PTR by 9 bytes' });
     }
   }
 

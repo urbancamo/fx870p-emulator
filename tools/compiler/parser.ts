@@ -909,8 +909,10 @@ function parseStat(stream: TokenStream): StatStatement {
 
 function parseDefchr(stream: TokenStream): DefchrStatement {
   stream.consumeKeyword('DEFCHR$');
+  stream.consume(TokenType.LParen);
   const code = parseExpression(stream);
-  stream.consume(TokenType.Comma);
+  stream.consume(TokenType.RParen);
+  stream.consume(TokenType.Eq); // =
   const pattern = parseExpression(stream);
   return { type: 'defchr', code, pattern };
 }

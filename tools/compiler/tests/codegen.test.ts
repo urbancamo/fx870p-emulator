@@ -217,7 +217,7 @@ describe('codegen - expressions (detailed)', () => {
   it('generates unary negation', () => {
     const asm = mnemonics('10 A=-5');
     // Should negate via XOR on sign byte
-    expect(asm.some(l => l.includes('xrm'))).toBe(true);
+    expect(asm.some(l => l.includes('xr'))).toBe(true);
   });
 
   it('allocates variables only once for repeated references', () => {

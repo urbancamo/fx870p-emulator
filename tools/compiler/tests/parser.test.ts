@@ -931,11 +931,11 @@ describe('STAT / STAT CLEAR', () => {
 // ---------------------------------------------------------------------------
 
 describe('DEFCHR$', () => {
-  it('parses DEFCHR$ with code and pattern', () => {
-    const s = firstStmt('10 DEFCHR$ 128,&HFF') as { type: string; code: Expression; pattern: Expression };
+  it('parses DEFCHR$(code)="pattern"', () => {
+    const s = firstStmt('10 DEFCHR$(252)="4050545040"') as { type: string; code: Expression; pattern: Expression };
     expect(s.type).toBe('defchr');
-    expect(s.code).toMatchObject({ type: 'number', value: 128 });
-    expect(s.pattern).toMatchObject({ type: 'hex-literal', value: 255 });
+    expect(s.code).toMatchObject({ type: 'number', value: 252 });
+    expect(s.pattern).toMatchObject({ type: 'string', value: '4050545040' });
   });
 });
 

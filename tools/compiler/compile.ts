@@ -10,7 +10,7 @@
 //   program.sym         — symbol table (JSON)
 //   program.loader.bas  — BASIC loader for real hardware
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname, basename, extname, join } from 'node:path';
 
 import { parse } from './parser.js';
@@ -25,11 +25,11 @@ import type { AsmLine } from './asm-types.js';
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const WARN_THRESHOLD = 4096;
+const OUTPUT_DIR = resolve(import.meta.dirname ?? dirname(import.meta.url.replace('file://', '')), '../../build/compiler');
 
-function changeExt(filePath: string, newExt: string): string {
-  const dir = dirname(filePath);
-  const base = basename(filePath, extname(filePath));
-  return join(dir, base + newExt);
+function outPath(inputFile: string, newExt: string): string {
+  const base = basename(inputFile, extname(inputFile));
+  return join(OUTPUT_DIR, base + newExt);
 }
 
 /** Format current date as "YYYY-MM-DD HH:MM" */
@@ -266,11 +266,12 @@ function main(): void {
     totalSize,
   });
 
-  // 8. Write output files (same directory as input, changed extensions)
-  const binPath    = changeExt(inputPath, '.bin');
-  const lstPath    = changeExt(inputPath, '.lst');
-  const symPath    = changeExt(inputPath, '.sym');
-  const loaderPath = changeExt(inputPath, '.loader.bas');
+  // 8. Write output files to build/compiler/
+  mkdirSync(OUTPUT_DIR, { recursive: true });
+  const binPath    = outPath(inputPath, '.bin');
+  const lstPath    = outPath(inputPath, '.lst');
+  const symPath    = outPath(inputPath, '.sym');
+  const loaderPath = outPath(inputPath, '.loader.bas');
 
   writeFileSync(binPath,    assembled.binary);
   writeFileSync(lstPath,    listing,  'utf8');
