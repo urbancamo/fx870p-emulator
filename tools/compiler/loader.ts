@@ -40,7 +40,7 @@ export function generateLoader(input: LoaderInput): string {
   const segment = Math.floor(entryPoint / 16);
   const segHex = '&H' + segment.toString(16).toUpperCase().padStart(4, '0');
   lines.push(`10 ' Compiled: ${sourceFile}`);
-  lines.push(`15 ' Size: ${totalSize} bytes — loads to &H1CD0 (SAVE/LOAD buffer)`);
+  lines.push(`15 ' Size: ${totalSize} bytes`);
   lines.push(`30 DEFSEG=${segHex}`);
   lines.push(`40 FOR I=0 TO ${chunkCount - 1}`);
   lines.push('50 READ A$');
