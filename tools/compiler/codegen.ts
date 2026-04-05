@@ -790,6 +790,9 @@ class CodeGen {
     this.emitPrintStringLoop(promptInfo.label, '[EXE]');
     // Wait for any key
     this.emitRomCall(ROM.KYIN, 'wait for key');
+    // Switch UA to Bank 0 so the subsequent rtn lands at MODE110's return
+    // dispatcher at Bank0:&H5313 (CosmicV4 exit pattern).
+    this.code.push({ mnemonic: 'pst', operands: 'ua,&H54', comment: 'return to BASIC (Bank 0)' });
   }
 
   // Emit a character loop that prints a NUL-terminated string.
