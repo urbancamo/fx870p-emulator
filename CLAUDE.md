@@ -159,6 +159,32 @@ Generated code calls ROM routines (Bank0) for PRINT, INPUT, FP math, string oper
 - Some complex programs fail at assembly stage due to remaining addressing mode edge cases
 - ROM addresses for many builtin functions (SIN, COS, etc.) are placeholders (&H0000) — need to be filled in from ROM annotations
 
+## Headless Emulator Debugger
+
+Debug compiled BASIC binaries and explore the FX-870P emulator programmatically.
+
+### Usage
+
+```bash
+npm run debug -- run <binary.bin>       # run with exit reason + LCD
+npm run debug -- trace <binary.bin>     # log every instruction
+npm run debug -- step <binary.bin>      # interactive single-step
+```
+
+Key flags: `--break 0xADDR`, `--watch 0xADDR:w`, `--dump-regs`, `--max-cycles N`, `--boot` (slow but fresh state), `--raw` (no boot).
+
+Library usage (from tests):
+```typescript
+import { EmulatorSession } from './tools/emu-debugger/session.js';
+const sess = new EmulatorSession({ mode: 'snapshot' });
+sess.loadBinary(0x0000, bytes);
+sess.setEntry(0x0000);
+const result = sess.run({ maxCycles: 1_000_000 });
+console.log(result.reason, sess.getLcd().rows);
+```
+
+Snapshots auto-generated on first run; stored in `tools/emu-debugger/snapshots/` (gitignored). Design spec: `docs/superpowers/specs/2026-04-05-emu-debugger-design.md`.
+
 ## Coding of The Sorcerers Cave
 
 Sorcerers Cave is a very ambitious Casio BASIC. Refer to the following documentation when unsure of how to implement bug fixes or enhancements:
