@@ -297,6 +297,11 @@ function main(): void {
   console.log(`  Code: ${codeSize} bytes  Data: ${dataSize} bytes  Variables: ${variableSize} bytes`);
   console.log(`  Available: ${available} bytes  Used: ${usedPct}%`);
   console.log(`  Output: ${outFiles}`);
+  console.log('');
+  console.log('To run on the emulator:');
+  console.log(`  1. Load ${basename(loaderPath)} into BASIC (type it or LOAD via COM0)`);
+  console.log(`  2. Type RUN and press EXE`);
+  console.log(`  3. Use the emulator's COM0 SEND button to send ${basename(binPath)}`);
 
   if (usedBytes > available) {
     console.warn(`WARNING: output exceeds ${available} bytes (${usedBytes - available} bytes over)`);
