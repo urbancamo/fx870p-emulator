@@ -638,7 +638,7 @@ class CodeGen {
       operands: `$2,${romAddr}`,
       comment: `TODO: ROM address for ${name}`,
     });
-    this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+    this.code.push({ mnemonic: 'cal', operands: 'ROM_CALL' });
   }
 
   private builtinRomAddr(name: string): string {
@@ -706,7 +706,7 @@ class CodeGen {
       comment,
     });
     this.code.push({
-      mnemonic: 'jr',
+      mnemonic: 'cal',
       operands: 'ROM_CALL',
     });
   }
@@ -1212,7 +1212,7 @@ class CodeGen {
       operands: `$2,${ROM.LOCATE}`,
       comment: 'TODO: ROM address for LOCATE',
     });
-    this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+    this.code.push({ mnemonic: 'cal', operands: 'ROM_CALL' });
   }
 
   // -------------------------------------------------------------------------
@@ -1227,7 +1227,7 @@ class CodeGen {
       operands: `$2,${ROM.ANGLE}`,
       comment: 'TODO: ROM address for ANGLE',
     });
-    this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+    this.code.push({ mnemonic: 'cal', operands: 'ROM_CALL' });
   }
 
   // -------------------------------------------------------------------------
@@ -1344,7 +1344,7 @@ class CodeGen {
       operands: `$2,${ROM.FILE_OPEN}`,
       comment: 'TODO: ROM address for OPEN',
     });
-    this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+    this.code.push({ mnemonic: 'cal', operands: 'ROM_CALL' });
   }
 
   private emitClose(stmt: CloseStatement): void {
@@ -1359,7 +1359,7 @@ class CodeGen {
       operands: `$2,${ROM.FILE_CLOSE}`,
       comment: 'TODO: ROM address for CLOSE',
     });
-    this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+    this.code.push({ mnemonic: 'cal', operands: 'ROM_CALL' });
   }
 
   private emitPrintFile(stmt: PrintFileStatement): void {
@@ -1376,7 +1376,7 @@ class CodeGen {
           operands: `$2,${ROM.FILE_PRINT}`,
           comment: 'TODO: ROM address for PRINT#',
         });
-        this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+        this.code.push({ mnemonic: 'cal', operands: 'ROM_CALL' });
       }
     }
   }
@@ -1391,7 +1391,7 @@ class CodeGen {
         operands: `$2,${ROM.FILE_INPUT}`,
         comment: 'TODO: ROM address for INPUT#',
       });
-      this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+      this.code.push({ mnemonic: 'cal', operands: 'ROM_CALL' });
       this.emitVariableStore(varRef);
     }
   }
@@ -1405,7 +1405,7 @@ class CodeGen {
       operands: `$2,${ROM.FILE_INPUT}`,
       comment: 'TODO: ROM address for LINE INPUT#',
     });
-    this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+    this.code.push({ mnemonic: 'cal', operands: 'ROM_CALL' });
     this.emitVariableStore(stmt.variable);
   }
 
@@ -1421,7 +1421,7 @@ class CodeGen {
         operands: `$2,${ROM.FILE_WRITE}`,
         comment: 'TODO: ROM address for WRITE#',
       });
-      this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+      this.code.push({ mnemonic: 'cal', operands: 'ROM_CALL' });
     }
   }
 
@@ -1438,7 +1438,7 @@ class CodeGen {
         operands: `$2,${ROM.STAT_ADD}`,
         comment: 'TODO: ROM address for STAT data entry',
       });
-      this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+      this.code.push({ mnemonic: 'cal', operands: 'ROM_CALL' });
     }
   }
 
@@ -1449,7 +1449,7 @@ class CodeGen {
       operands: `$2,${ROM.STAT_CLEAR}`,
       comment: 'TODO: ROM address for STAT CLEAR',
     });
-    this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+    this.code.push({ mnemonic: 'cal', operands: 'ROM_CALL' });
   }
 
   // -------------------------------------------------------------------------
@@ -1467,7 +1467,7 @@ class CodeGen {
       operands: `$2,${ROM.DEFCHR}`,
       comment: 'TODO: ROM address for DEFCHR$',
     });
-    this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+    this.code.push({ mnemonic: 'cal', operands: 'ROM_CALL' });
   }
 
   // -------------------------------------------------------------------------
@@ -1482,7 +1482,7 @@ class CodeGen {
       operands: `$2,${ROM.CHAIN}`,
       comment: 'TODO: ROM address for CHAIN',
     });
-    this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+    this.code.push({ mnemonic: 'cal', operands: 'ROM_CALL' });
   }
 
   // -------------------------------------------------------------------------
@@ -1504,7 +1504,7 @@ class CodeGen {
       operands: `$2,${ROM.MODE}`,
       comment: 'TODO: ROM address for MODE',
     });
-    this.code.push({ mnemonic: 'jr', operands: 'ROM_CALL' });
+    this.code.push({ mnemonic: 'cal', operands: 'ROM_CALL' });
   }
 
   // -------------------------------------------------------------------------
