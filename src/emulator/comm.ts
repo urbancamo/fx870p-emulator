@@ -33,28 +33,20 @@ export function getStream(): readonly CommStreamEntry[] { return streamBuffer; }
 export function clearStream(): void { streamBuffer.length = 0; }
 
 // Load raw file bytes into the TX queue.
-// Text mode (default): normalizes lone LF → CR+LF; appends 0x1A EOF if absent.
-// Binary mode: sends raw bytes unchanged (for compiled ML binaries, etc.).
-export function loadFileBytes(raw: Uint8Array, binary: boolean = false): void {
+// Normalizes lone LF → CR+LF; appends 0x1A EOF if absent.
+export function loadFileBytes(raw: Uint8Array): void {
   rxQueue = [];
-  if (binary) {
-    // Raw passthrough — no normalization, no EOF marker
-    for (let i = 0; i < raw.length; i++) {
-      rxQueue.push(raw[i]!);
+  for (let i = 0; i < raw.length; i++) {
+    const b = raw[i];
+    // Normalize bare LF to CR+LF (skip if already preceded by CR)
+    if (b === 0x0A && (i === 0 || raw[i - 1] !== 0x0D)) {
+      rxQueue.push(0x0D);
     }
-  } else {
-    for (let i = 0; i < raw.length; i++) {
-      const b = raw[i];
-      // Normalize bare LF to CR+LF (skip if already preceded by CR)
-      if (b === 0x0A && (i === 0 || raw[i - 1] !== 0x0D)) {
-        rxQueue.push(0x0D);
-      }
-      rxQueue.push(b);
-    }
-    // Ensure file ends with 0x1A (Ctrl-Z / EOF)
-    if (rxQueue.length === 0 || rxQueue[rxQueue.length - 1] !== 0x1A) {
-      rxQueue.push(0x1A);
-    }
+    rxQueue.push(b);
+  }
+  // Ensure file ends with 0x1A (Ctrl-Z / EOF)
+  if (rxQueue.length === 0 || rxQueue[rxQueue.length - 1] !== 0x1A) {
+    rxQueue.push(0x1A);
   }
   sending        = true;
   suspend        = false;

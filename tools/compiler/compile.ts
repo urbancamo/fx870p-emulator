@@ -18,7 +18,7 @@ import { generate } from './codegen.js';
 import { assemble } from './assembler.js';
 import { formatListing } from './listing.js';
 import type { ListingLine, ListingInput } from './listing.js';
-import { generateLoader } from './loader.js';
+import { generateLoader, generateHexPayload } from './loader.js';
 import { encodeInstruction } from './opcodes.js';
 import type { AsmLine } from './asm-types.js';
 
@@ -271,11 +271,13 @@ function main(): void {
   // 8. Write output files to build/compiler/
   mkdirSync(OUTPUT_DIR, { recursive: true });
   const binPath    = outPath(inputPath, '.bin');
+  const hexPath    = outPath(inputPath, '.hex');
   const lstPath    = outPath(inputPath, '.lst');
   const symPath    = outPath(inputPath, '.sym');
   const loaderPath = outPath(inputPath, '.loader.bas');
 
   writeFileSync(binPath,    assembled.binary);
+  writeFileSync(hexPath,    generateHexPayload(assembled.binary), 'utf8');
   writeFileSync(lstPath,    listing,  'utf8');
   writeFileSync(symPath,    JSON.stringify(assembled.symbols, null, 2) + '\n', 'utf8');
   writeFileSync(loaderPath, loader,   'utf8');
@@ -288,6 +290,7 @@ function main(): void {
 
   const outFiles = [
     basename(binPath),
+    basename(hexPath),
     basename(lstPath),
     basename(symPath),
     basename(loaderPath),
@@ -301,7 +304,7 @@ function main(): void {
   console.log('To run on the emulator:');
   console.log(`  1. Load ${basename(loaderPath)} into BASIC (type it or LOAD via COM0)`);
   console.log(`  2. Type RUN and press EXE`);
-  console.log(`  3. Use the emulator's COM0 SEND button to send ${basename(binPath)}`);
+  console.log(`  3. Use the emulator's COM0 SEND button to send ${basename(hexPath)}`);
 
   if (usedBytes > available) {
     console.warn(`WARNING: output exceeds ${available} bytes (${usedBytes - available} bytes over)`);

@@ -1,6 +1,6 @@
 // tools/compiler/tests/loader.test.ts
 import { describe, it, expect } from 'vitest';
-import { generateLoader } from '../loader.js';
+import { generateLoader, generateHexPayload } from '../loader.js';
 
 describe('loader generator', () => {
   it('generates valid streaming BASIC program', () => {
@@ -35,7 +35,7 @@ describe('loader generator', () => {
       sourceFile: 'TEST.BAS',
       totalSize: 1,
     });
-    expect(loader).toContain('DEFSEG=&H01CD');  // 0x1CD0 / 16 = 0x01CD
+    expect(loader).toContain('DEFSEG=&H01CD');
   });
 
   it('calls MODE110 with entry point', () => {
@@ -58,21 +58,44 @@ describe('loader generator', () => {
     expect(loader).toContain('FOR I=0 TO 70');
   });
 
-  it('does not include DATA statements (streaming loader)', () => {
+  it('includes checksum verification', () => {
     const loader = generateLoader({
-      binary: new Uint8Array(100).fill(0xAA),
+      binary: new Uint8Array(10),
       entryPoint: 0,
       sourceFile: 'TEST.BAS',
-      totalSize: 100,
+      totalSize: 10,
     });
-    // Streaming loader has no DATA statements — binary comes over serial
-    expect(loader).not.toContain('DATA ');
+    expect(loader).toContain('CHECKSUM ERROR');
+    expect(loader).toContain('S=(S+P) MOD 256');
   });
 
   it('loader size is constant regardless of binary size', () => {
     const small = generateLoader({ binary: new Uint8Array(10), entryPoint: 0, sourceFile: 'S.BAS', totalSize: 10 });
     const large = generateLoader({ binary: new Uint8Array(10000), entryPoint: 0, sourceFile: 'L.BAS', totalSize: 10000 });
-    // Line counts must be the same
     expect(small.split('\n').length).toBe(large.split('\n').length);
+  });
+});
+
+describe('generateHexPayload', () => {
+  it('encodes bytes as uppercase hex', () => {
+    const payload = generateHexPayload(new Uint8Array([0x48, 0x65, 0x6C]));
+    // 0x48 + 0x65 + 0x6C = 0x119 → checksum = 0x19
+    expect(payload).toBe('48656C19');
+  });
+
+  it('empty binary produces just checksum (00)', () => {
+    const payload = generateHexPayload(new Uint8Array([]));
+    expect(payload).toBe('00');
+  });
+
+  it('checksum wraps at 256', () => {
+    const payload = generateHexPayload(new Uint8Array([0xFF, 0x01]));
+    // 0xFF + 0x01 = 0x100 → checksum = 0x00
+    expect(payload).toBe('FF0100');
+  });
+
+  it('payload length is 2*N + 2', () => {
+    const payload = generateHexPayload(new Uint8Array(50));
+    expect(payload.length).toBe(102);  // 50 * 2 + 2 checksum
   });
 });

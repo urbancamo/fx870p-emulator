@@ -133,16 +133,13 @@ async function onFileSelected(e: Event): Promise<void> {
   input.value = '';
 
   const raw = new Uint8Array(await file.arrayBuffer());
-  // .bin files are raw binary payloads (e.g. compiled ML) — skip CRLF
-  // normalization and EOF marker so bytes reach the target unchanged.
-  const isBinary = file.name.toLowerCase().endsWith('.bin');
   totalBytes.value   = raw.length;
   bytesSentRef.value = 0;
   fileName.value     = file.name;
-  status.value       = `Sending: ${file.name}${isBinary ? ' (binary)' : ''}`;
+  status.value       = `Sending: ${file.name}`;
   clearOutput();
   outputLines.value  = [];
-  loadFileBytes(raw, isBinary);
+  loadFileBytes(raw);
 }
 
 function onStop(): void {
@@ -423,7 +420,7 @@ function h(n: number): string { return n.toString(16).padStart(2, '0').toUpperCa
     <input
       ref="fileInput"
       type="file"
-      accept=".bas,.txt,.prg,.bin"
+      accept=".bas,.txt,.prg,.hex"
       style="display: none"
       @change="onFileSelected"
     />
