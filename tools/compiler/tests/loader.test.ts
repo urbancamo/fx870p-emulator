@@ -24,7 +24,8 @@ describe('generateLoader (generic)', () => {
   it('sets DEFSEG=&H01CD for entry point &H1CD0', () => {
     const loader = generateLoader();
     expect(loader).toContain('DEFSEG=&H01CD');
-    expect(loader).toContain('MODE110(&H1CD0)');
+    expect(loader).toContain('EX=&H1CD0');  // MODE110 needs a variable, not a literal
+    expect(loader).toContain('MODE110(EX)');
   });
 
   it('includes checksum verification', () => {
