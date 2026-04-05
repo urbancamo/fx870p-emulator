@@ -9,6 +9,7 @@ npm run dev          # dev server on http://localhost:3007/fx870p-emulator/ (wit
 npm run build        # vue-tsc type-check + vite build → dist/
 npm run preview      # serve the production build locally
 npm run dis          # run the CLI disassembler: npx tsx tools/dis.ts <romfile> [start] [end]
+npm run compile      # compile BASIC to HD61700 machine code: npx tsx tools/compiler/compile.ts <file.bas>
 npm test             # run vitest test suite (headless emulator tests)
 ```
 
@@ -116,6 +117,47 @@ The `subBcd` bug caused all BCD floating-point results to have the exponent off 
 - use the ' apostrophe character for comments.
 - break code up into re-usable subroutines where required.
 - subroutines by convention are located on line numbers starting with a multiple of 100.
+
+## BASIC Compiler
+
+TypeScript compiler that translates Casio JIS Standard BASIC into HD61700 machine code.
+
+### Pipeline
+
+```
+BASIC source → Lexer → Parser → AST → Code Generator → Assembly text → Assembler → Binary + Listing
+```
+
+### Modules (under `tools/compiler/`)
+
+| Module | Purpose |
+|--------|---------|
+| `lexer.ts` | Tokenize Casio JIS BASIC (keywords, operators, literals) |
+| `parser.ts` | Recursive descent parser → typed AST |
+| `ast.ts` | AST type definitions |
+| `codegen.ts` | BASIC AST → annotated HD61700 assembly |
+| `opcodes.ts` | HD61700 instruction encoding tables (reversed from disassembler) |
+| `assembler.ts` | Two-pass assembler: label resolution + binary emission |
+| `listing.ts` | 132-column listing formatter |
+| `loader.ts` | Generate BASIC loader program for real hardware (MODE110-based) |
+| `compile.ts` | CLI entry point |
+
+### Usage
+
+```bash
+npx tsx tools/compiler/compile.ts program.bas
+# Outputs: program.bin, program.lst, program.sym, program.loader.bas
+```
+
+### Design
+
+Generated code calls ROM routines (Bank0) for PRINT, INPUT, FP math, string operations. The ROM call wrapper uses `PST UA,&H54` to bank-switch, matching the CosmicV4 pattern. Variables stored as 9-byte BCD floating-point in RAM. Design spec: `docs/superpowers/specs/2026-04-04-basic-compiler-design.md`.
+
+### Known Limitations
+
+- BCD floating-point constant encoding is simplified (uses integer load, not full BCD conversion)
+- Some complex programs fail at assembly stage due to remaining addressing mode edge cases
+- ROM addresses for many builtin functions (SIN, COS, etc.) are placeholders (&H0000) — need to be filled in from ROM annotations
 
 ## Coding of The Sorcerers Cave
 
