@@ -33,7 +33,8 @@ export function generateLoader(): string {
   lines.push("15 ' Protocol: 4-char size hex, payload, 2-char checksum");
   lines.push(`20 DEFSEG=${segHex}`);
   lines.push('25 S=0');
-  lines.push('30 OPEN "COM0:6,N,8,1,N,N,N,N,N" FOR INPUT AS #1');
+  lines.push('27 CLS:PRINT "Ready to load hex stream.":PRINT "Send .hex via COM0..."');
+  lines.push('30 OPEN "COM0:6,E,8,1,N,N,N,N,N" FOR INPUT AS #1');
   lines.push('35 GOSUB 200:N=P*256:GOSUB 200:N=N+P');
   lines.push('40 FOR I=0 TO N-1');
   lines.push('50 GOSUB 200:POKE I,P:S=(S+P) MOD 256');
@@ -41,6 +42,8 @@ export function generateLoader(): string {
   lines.push('95 GOSUB 200:C=P');
   lines.push('107 CLOSE');
   lines.push('110 IF C<>S THEN PRINT "CHECKSUM ERROR":END');
+  lines.push('113 PRINT "Loaded ";N;" bytes OK.":PRINT "Press EXE to run...";');
+  lines.push('115 K$=INPUT$(1)');
   lines.push(`120 MODE110(${entryHex})`);
   lines.push('130 END');
   lines.push("199 ' --- read one byte (2 hex chars) into P ---");
