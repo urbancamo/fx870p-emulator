@@ -10,6 +10,7 @@
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
     "compile": "tsx tools/compiler/compile.ts",
+    "debug": "tsx tools/emu-debugger/cli.ts",
     "dis": "tsx tools/dis.ts",
     "test": "vitest run"
   },

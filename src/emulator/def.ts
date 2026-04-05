@@ -220,11 +220,28 @@ export function srcRead(address: number): number {
       // byteIdx = (offset + (address - first)) << memorg
       // offset accounts for where in the file this region's data begins
       const byteIdx = (m.offset + (address - m.first)) << m.memorg;
-      return m.data[byteIdx] ?? 0xFF;
+      const val = m.data[byteIdx] ?? 0xFF;
+      if (m.writable) _ramReadMonitor?.(address, val);
+      return val;
     }
   }
   srcorg = 0;
   return 0xFF;
+}
+
+// Optional monitor — set by debug tooling; called on every RAM read when active.
+let _ramReadMonitor: ((a: number, v: number) => void) | null = null;
+export function setRamReadMonitor(fn: ((a: number, v: number) => void) | null): void {
+  _ramReadMonitor = fn;
+}
+
+// Optional monitor — called when an illegal opcode is executed.
+let _illegalOpcodeMonitor: ((opcode: number, pc: number) => void) | null = null;
+export function setIllegalOpcodeMonitor(fn: ((opcode: number, pc: number) => void) | null): void {
+  _illegalOpcodeMonitor = fn;
+}
+export function fireIllegalOpcode(op: number, pcVal: number): void {
+  _illegalOpcodeMonitor?.(op, pcVal);
 }
 
 // Optional monitor — set by debug tooling; called on every RAM write when active.

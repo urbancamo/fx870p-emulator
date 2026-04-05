@@ -11,6 +11,7 @@ import {
   opcode, opindex, opforg, cycles, iserv,
   setCycles, setOpindex,
   addr18, srcRead, dstWrite, fetchByte, fetchOpcode,
+  fireIllegalOpcode,
 } from './def.js';
 import { setLcdctrl, lcdTransfer, lcdSync, lcdInit } from './lcd.js';
 import { readKy } from './keyboard.js';
@@ -280,6 +281,7 @@ function logicOp(x1: number, x2: number): number {
 
 export function illComm(): void {
   setCycles(cycles + 3);
+  fireIllegalOpcode(opcode[0] ?? 0, pc);
 }
 
 export function ld_02(): void {
