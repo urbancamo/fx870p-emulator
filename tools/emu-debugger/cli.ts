@@ -1,5 +1,6 @@
 // tools/emu-debugger/cli.ts
 import { readFileSync } from 'node:fs';
+import * as readline from 'node:readline';
 import { EmulatorSession } from './session.js';
 import { formatExitResult } from './exit-reasons.js';
 import type { SessionMode } from './session.js';
@@ -188,7 +189,49 @@ function traceCommand(args: ParsedArgs): void {
   process.exit(0);
 }
 
-function main(): void {
+async function stepCommand(args: ParsedArgs): Promise<void> {
+  if (!args.binary) {
+    console.error('Usage: debug step <binary> [options]');
+    process.exit(1);
+  }
+  const bytes = new Uint8Array(readFileSync(args.binary));
+  const sess = new EmulatorSession({ mode: args.mode });
+  sess.loadBinary(args.loadAddr, bytes);
+  sess.setEntry(args.entry);
+  for (const bp of args.breakpoints) sess.addBreakpoint(bp);
+  for (const wp of args.watchpoints) sess.addWatchpoint(wp.addr, wp.kind);
+
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const ask = (q: string) => new Promise<string>(r => rl.question(q, r));
+
+  console.log(`emu-debugger: stepping ${args.binary} — Enter=step, r N=run N, q=quit`);
+  let stepsLeft = 0;
+  while (true) {
+    if (stepsLeft <= 0) {
+      const line = (await ask('(debug) ')).trim();
+      if (line === 'q') break;
+      if (line.startsWith('r ')) {
+        stepsLeft = parseInt(line.slice(2), 10) || 1;
+      } else {
+        stepsLeft = 1;
+      }
+    }
+    const result = sess.step();
+    stepsLeft--;
+    const regs = sess.getRegisters();
+    console.log(`PC=${formatHex(regs.pc, 4)}  cycles=${result.cyclesExecuted}  instr=${result.instructionsExecuted}`);
+    if (result.reason !== 'max-instructions') {
+      console.log('');
+      console.log('── Exit ──────────────────────────────────────');
+      console.log(formatExitResult(result));
+      break;
+    }
+  }
+  rl.close();
+  process.exit(0);
+}
+
+async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   if (!args.command) {
     console.error('Usage: npx tsx tools/emu-debugger/cli.ts <run|trace|step> <binary> [options]');
@@ -197,10 +240,7 @@ function main(): void {
   switch (args.command) {
     case 'run': runCommand(args); break;
     case 'trace': traceCommand(args); break;
-    case 'step':
-      console.error('step command: implemented in Task 15');
-      process.exit(1);
-      break;
+    case 'step': await stepCommand(args); break;
     default:
       console.error(`Unknown command: ${args.command}`);
       process.exit(1);
