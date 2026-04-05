@@ -29,6 +29,7 @@ const ROM = {
   OUTCH:     '&H2AF1',
   CLS:       '&H2ADF',
   BEEP:      '&H33B3',
+  KYIN:      '&H03A4',  // Blocking key input — returns keycode in $0
   // ROM addresses for built-in functions (TODO: verify exact addresses)
   SIN:       '&H0000',  // TODO: ROM address for SIN
   COS:       '&H0000',  // TODO: ROM address for COS
@@ -231,7 +232,10 @@ class CodeGen {
         break;
 
       case 'end':
-        // END, STOP, CONT all return to caller for now
+        // Before returning to BASIC (which clears the LCD when redrawing its
+        // prompt), emit OUTCR + "[EXE]" prompt + wait for keypress. This lets
+        // the user see the program's output before BASIC clobbers it.
+        this.emitPauseAtEnd();
         this.code.push({ mnemonic: 'rtn', comment: stmt.kind.toUpperCase() });
         break;
 
@@ -774,6 +778,18 @@ class CodeGen {
     if (!trailingSep) {
       this.emitRomCall(ROM.OUTCR, 'OUTCR');
     }
+  }
+
+  // Emit a pause-at-end sequence: newline, "[EXE]" prompt, wait for keypress.
+  // Called before the program's final rtn so the user can read the output
+  // before BASIC redraws its prompt and clears the LCD.
+  private emitPauseAtEnd(): void {
+    this.code.push({ comment: 'pause before return' });
+    // Print "[EXE]" prompt on the current line (PRINT already emitted OUTCR)
+    const promptInfo = this.allocString('[EXE]');
+    this.emitPrintStringLoop(promptInfo.label, '[EXE]');
+    // Wait for any key
+    this.emitRomCall(ROM.KYIN, 'wait for key');
   }
 
   // Emit a character loop that prints a NUL-terminated string.
