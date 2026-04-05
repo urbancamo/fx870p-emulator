@@ -2,14 +2,9 @@
 import { describe, it, expect } from 'vitest';
 import { generateLoader, generateHexPayload } from '../loader.js';
 
-describe('loader generator', () => {
+describe('generateLoader (generic)', () => {
   it('generates valid streaming BASIC program', () => {
-    const loader = generateLoader({
-      binary: new Uint8Array([0xCE, 0xEE]),
-      entryPoint: 0,
-      sourceFile: 'TEST.BAS',
-      totalSize: 2,
-    });
+    const loader = generateLoader();
     expect(loader).toContain('MODE110');
     expect(loader).toContain('OPEN "COM0:');
     expect(loader).toContain('INPUT$(1,#1)');
@@ -17,85 +12,58 @@ describe('loader generator', () => {
     expect(loader).toContain('CLOSE');
   });
 
-  it('includes header comments', () => {
-    const loader = generateLoader({
-      binary: new Uint8Array([0xCE]),
-      entryPoint: 0,
-      sourceFile: 'TEST.BAS',
-      totalSize: 1,
-    });
-    expect(loader).toContain('Streaming loader for: TEST.BAS');
-    expect(loader).toContain('Size: 1 bytes');
+  it('is truly generic — no size/source baked in', () => {
+    const loader = generateLoader();
+    // Should read size from payload via GOSUB, not a fixed FOR limit
+    expect(loader).toContain('GOSUB 200');
+    expect(loader).toContain('N=P*256');  // size assembly from hex bytes
+    // No hardcoded byte count in the main loop
+    expect(loader).toContain('FOR I=0 TO N-1');
   });
 
-  it('sets DEFSEG to entryPoint / 16', () => {
-    const loader = generateLoader({
-      binary: new Uint8Array([0xCE]),
-      entryPoint: 0x1CD0,
-      sourceFile: 'TEST.BAS',
-      totalSize: 1,
-    });
+  it('sets DEFSEG=&H01CD for entry point &H1CD0', () => {
+    const loader = generateLoader();
     expect(loader).toContain('DEFSEG=&H01CD');
-  });
-
-  it('calls MODE110 with entry point', () => {
-    const loader = generateLoader({
-      binary: new Uint8Array([0xCE]),
-      entryPoint: 0x0100,
-      sourceFile: 'TEST.BAS',
-      totalSize: 1,
-    });
-    expect(loader).toContain('MODE110(&H0100)');
-  });
-
-  it('generates FOR loop for totalSize bytes', () => {
-    const loader = generateLoader({
-      binary: new Uint8Array(71),
-      entryPoint: 0,
-      sourceFile: 'TEST.BAS',
-      totalSize: 71,
-    });
-    expect(loader).toContain('FOR I=0 TO 70');
+    expect(loader).toContain('MODE110(&H1CD0)');
   });
 
   it('includes checksum verification', () => {
-    const loader = generateLoader({
-      binary: new Uint8Array(10),
-      entryPoint: 0,
-      sourceFile: 'TEST.BAS',
-      totalSize: 10,
-    });
+    const loader = generateLoader();
     expect(loader).toContain('CHECKSUM ERROR');
     expect(loader).toContain('S=(S+P) MOD 256');
-  });
-
-  it('loader size is constant regardless of binary size', () => {
-    const small = generateLoader({ binary: new Uint8Array(10), entryPoint: 0, sourceFile: 'S.BAS', totalSize: 10 });
-    const large = generateLoader({ binary: new Uint8Array(10000), entryPoint: 0, sourceFile: 'L.BAS', totalSize: 10000 });
-    expect(small.split('\n').length).toBe(large.split('\n').length);
   });
 });
 
 describe('generateHexPayload', () => {
-  it('encodes bytes as uppercase hex', () => {
+  it('encodes size prefix + bytes + checksum', () => {
     const payload = generateHexPayload(new Uint8Array([0x48, 0x65, 0x6C]));
-    // 0x48 + 0x65 + 0x6C = 0x119 → checksum = 0x19
-    expect(payload).toBe('48656C19');
+    // Size=3 → 0003, bytes=48 65 6C, checksum = 0x119 & 0xFF = 0x19
+    expect(payload).toBe('000348656C19');
   });
 
-  it('empty binary produces just checksum (00)', () => {
+  it('empty binary produces size=0000 + checksum=00', () => {
     const payload = generateHexPayload(new Uint8Array([]));
-    expect(payload).toBe('00');
+    expect(payload).toBe('000000');
   });
 
   it('checksum wraps at 256', () => {
     const payload = generateHexPayload(new Uint8Array([0xFF, 0x01]));
-    // 0xFF + 0x01 = 0x100 → checksum = 0x00
-    expect(payload).toBe('FF0100');
+    // Size=2 → 0002, bytes=FF 01, checksum = 0x100 & 0xFF = 0x00
+    expect(payload).toBe('0002FF0100');
   });
 
-  it('payload length is 2*N + 2', () => {
+  it('size prefix is big-endian', () => {
+    const binary = new Uint8Array(258);  // 0x0102
+    const payload = generateHexPayload(binary);
+    expect(payload.substring(0, 4)).toBe('0102');
+  });
+
+  it('total length is 4 + 2*N + 2', () => {
     const payload = generateHexPayload(new Uint8Array(50));
-    expect(payload.length).toBe(102);  // 50 * 2 + 2 checksum
+    expect(payload.length).toBe(4 + 100 + 2);
+  });
+
+  it('rejects binaries over 65535 bytes', () => {
+    expect(() => generateHexPayload(new Uint8Array(65536))).toThrow(/too large/);
   });
 });

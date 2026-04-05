@@ -259,14 +259,8 @@ function main(): void {
   };
   const listing = formatListing(listingInput);
 
-  // 7. Generate loader
-  const totalSize = assembled.binary.length;
-  const loader = generateLoader({
-    binary: assembled.binary,
-    entryPoint: asmProgram.origin,
-    sourceFile,
-    totalSize,
-  });
+  // 7. Generate GENERIC loader (same loader.bas works for every program)
+  const loader = generateLoader();
 
   // 8. Write output files to build/compiler/
   mkdirSync(OUTPUT_DIR, { recursive: true });
@@ -274,7 +268,8 @@ function main(): void {
   const hexPath    = outPath(inputPath, '.hex');
   const lstPath    = outPath(inputPath, '.lst');
   const symPath    = outPath(inputPath, '.sym');
-  const loaderPath = outPath(inputPath, '.loader.bas');
+  // Generic loader — always named loader.bas, same for all programs
+  const loaderPath = join(OUTPUT_DIR, 'loader.bas');
 
   writeFileSync(binPath,    assembled.binary);
   writeFileSync(hexPath,    generateHexPayload(assembled.binary), 'utf8');
