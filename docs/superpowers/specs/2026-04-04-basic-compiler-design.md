@@ -1,8 +1,11 @@
 # FX-870P BASIC Compiler — Design Specification
 
-> Created: 2026-04-04
-> Status: Approved
-> Approach: TypeScript compiler with assembly IR and integrated assembler
+```
+Created:  2026-04-04
+Status:   Approved
+Approach: TypeScript compiler with assembly IR 
+          and integrated assembler
+```
 
 ## Overview
 
@@ -16,13 +19,13 @@ BASIC source → Lexer → Parser → AST → Code Generator → Assembly text �
 
 Five modules under `tools/compiler/`:
 
-| Module | Input | Output | Responsibility |
-|--------|-------|--------|----------------|
-| `lexer.ts` | BASIC source text | Token stream | Tokenize Casio JIS BASIC |
-| `parser.ts` | Token stream | AST | Build typed AST with Casio-specific syntax |
-| `codegen.ts` | AST | Assembly text (annotated) | Emit HD61700 assembly; ROM call orchestration |
-| `assembler.ts` | Assembly text | Binary + listing + symbol table | Two-pass assembly; instruction encoding |
-| `loader.ts` | Binary + config | BASIC loader program | MODE110-based loader for real hardware |
+| Module         | Input             | Output                          | Responsibility                                |
+|----------------|-------------------|---------------------------------|-----------------------------------------------|
+| `lexer.ts`     | BASIC source text | Token stream                    | Tokenize Casio JIS BASIC                      |
+| `parser.ts`    | Token stream      | AST                             | Build typed AST with Casio-specific syntax    |
+| `codegen.ts`   | AST               | Assembly text (annotated)       | Emit HD61700 assembly; ROM call orchestration |
+| `assembler.ts` | Assembly text     | Binary + listing + symbol table | Two-pass assembly; instruction encoding       |
+| `loader.ts`    | Binary + config   | BASIC loader program            | MODE110-based loader for real hardware        |
 
 Entry point: `tools/compiler/compile.ts` — CLI tool that runs the full pipeline.
 
@@ -185,51 +188,51 @@ ROM_CALL:
 
 ### Key ROM Entry Points
 
-| ROM Address | Function | Purpose |
-|-------------|----------|---------|
-| 0x2ADF | CLS | Clear screen |
-| 0x3EF1 | PRINT | Print handler |
-| 0x3DEE | INPUT | Keyboard input handler |
-| 0x112F | EXPRW | Evaluate numeric expression |
-| 0x11D2 | — | Evaluate string expression |
-| 0x1088 | SIKI | Core expression evaluator |
-| 0x2F5D | — | Parse variable name/type |
-| 0x05DA | — | FP addition |
-| 0x0607 | — | FP multiplication |
-| 0x05D4 | — | FP subtraction |
-| 0x16BD | — | Integer division |
-| 0x03A4 | KYIN | Key input |
-| 0x191D | INKEY | INKEY$ function |
-| 0x33B3 | BEEP | Sound generation |
-| 0x2AF1 | — | Output character ($16) |
-| 0x2AE8 | OUTCR | Output CR-LF |
-| 0x0E95 | — | String function dispatch |
+| ROM Address | Function | Purpose                     |
+|-------------|----------|-----------------------------|
+| 0x2ADF      | CLS      | Clear screen                |
+| 0x3EF1      | PRINT    | Print handler               |
+| 0x3DEE      | INPUT    | Keyboard input handler      |
+| 0x112F      | EXPRW    | Evaluate numeric expression |
+| 0x11D2      | —        | Evaluate string expression  |
+| 0x1088      | SIKI     | Core expression evaluator   |
+| 0x2F5D      | —        | Parse variable name/type    |
+| 0x05DA      | —        | FP addition                 |
+| 0x0607      | —        | FP multiplication           |
+| 0x05D4      | —        | FP subtraction              |
+| 0x16BD      | —        | Integer division            |
+| 0x03A4      | KYIN     | Key input                   |
+| 0x191D      | INKEY    | INKEY$ function             |
+| 0x33B3      | BEEP     | Sound generation            |
+| 0x2AF1      | —        | Output character ($16)      |
+| 0x2AE8      | OUTCR    | Output CR-LF                |
+| 0x0E95      | —        | String function dispatch    |
 
 ### Code Generation Per BASIC Construct
 
-| BASIC | Assembly Strategy |
-|-------|-------------------|
-| `LET A = expr` | Evaluate expr → FP accumulator ($10-$18), store to variable's RAM address |
-| `PRINT expr` | Evaluate expr, call ROM 0x3EF1 |
-| `INPUT A` | Call ROM 0x3DEE, store result to variable |
-| `A + B` | Load A → FP acc, push, load B, call ROM 0x05DA |
-| `SIN(x)` | Evaluate x → FP acc, call ROM SIN entry |
-| `IF cond THEN` | Evaluate cond, test Z flag, conditional JR over THEN block |
-| `GOTO 100` | `JP L100` |
-| `GOSUB 100` | `CAL L100` / `RTN` |
-| `FOR I=1 TO 10` | Init counter in RAM, loop top label, compare + JR to after NEXT |
-| `A$ = "hello"` | Store literal in data section, set $15/$16 addr + $17 length |
-| `PEEK(addr)` | Direct memory read instruction |
-| `POKE addr, val` | Direct memory write instruction |
+| BASIC            | Assembly Strategy                                                         |
+|------------------|---------------------------------------------------------------------------|
+| `LET A = expr`   | Evaluate expr → FP accumulator ($10-$18), store to variable's RAM address |
+| `PRINT expr`     | Evaluate expr, call ROM 0x3EF1                                            |
+| `INPUT A`        | Call ROM 0x3DEE, store result to variable                                 |
+| `A + B`          | Load A → FP acc, push, load B, call ROM 0x05DA                            |
+| `SIN(x)`         | Evaluate x → FP acc, call ROM SIN entry                                   |
+| `IF cond THEN`   | Evaluate cond, test Z flag, conditional JR over THEN block                |
+| `GOTO 100`       | `JP L100`                                                                 |
+| `GOSUB 100`      | `CAL L100` / `RTN`                                                        |
+| `FOR I=1 TO 10`  | Init counter in RAM, loop top label, compare + JR to after NEXT           |
+| `A$ = "hello"`   | Store literal in data section, set $15/$16 addr + $17 length              |
+| `PEEK(addr)`     | Direct memory read instruction                                            |
+| `POKE addr, val` | Direct memory write instruction                                           |
 
 ### Register Allocation
 
-| Registers | Purpose |
-|-----------|---------|
-| $0-$9 | Scratch / function arguments |
-| $10-$18 | FP accumulator (ROM convention) |
-| $19-$24 | Compiler temporaries (expression eval stack) |
-| $25-$31 | Reserved (SX=$31, SY=$30, SZ default) |
+| Registers | Purpose                                      |
+|-----------|----------------------------------------------|
+| $0-$9     | Scratch / function arguments                 |
+| $10-$18   | FP accumulator (ROM convention)              |
+| $19-$24   | Compiler temporaries (expression eval stack) |
+| $25-$31   | Reserved (SX=$31, SY=$30, SZ default)        |
 
 ### Memory Layout of Compiled Program
 
@@ -263,10 +266,10 @@ A focused TypeScript assembler for the compiler's output. Not a general-purpose 
 
 ### Two-Pass Assembly
 
-| Pass | Purpose |
-|------|---------|
+| Pass   | Purpose                                                             |
+|--------|---------------------------------------------------------------------|
 | Pass 1 | Parse all lines, collect label addresses, compute instruction sizes |
-| Pass 2 | Emit binary, resolve label references, format listing |
+| Pass 2 | Emit binary, resolve label references, format listing               |
 
 ### Input Format
 
@@ -332,13 +335,13 @@ Addr  Hex Code         Label        Assembly                         Comment
 
 Column layout:
 
-| Column | Width | Content |
-|--------|-------|---------|
-| 1-5 | 5 | Address (hex) |
-| 7-22 | 16 | Machine code bytes (hex, space-separated) |
-| 24-35 | 12 | Label |
-| 37-68 | 32 | Assembly instruction |
-| 70-132 | 40+ | Comment (BASIC source headers + auto-generated) |
+| Column | Width | Content                                         |
+|--------|-------|-------------------------------------------------|
+| 1-5    | 5     | Address (hex)                                   |
+| 7-22   | 16    | Machine code bytes (hex, space-separated)       |
+| 24-35  | 12    | Label                                           |
+| 37-68  | 32    | Assembly instruction                            |
+| 70-132 | 40+   | Comment (BASIC source headers + auto-generated) |
 
 Features:
 - `; === BASIC Line N: <source> ===` headers before each generated block
