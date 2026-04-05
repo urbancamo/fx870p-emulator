@@ -5,7 +5,7 @@ import { generateLoader, generateHexPayload } from '../loader.js';
 describe('generateLoader (generic)', () => {
   it('generates valid streaming BASIC program', () => {
     const loader = generateLoader();
-    expect(loader).toContain('MODE110');
+    expect(loader).toContain('MODE 110');  // space is required — tokenizer needs it
     expect(loader).toContain('OPEN "COM0:');
     expect(loader).toContain('INPUT$(1,#1)');
     expect(loader).toContain('POKE');
@@ -24,7 +24,7 @@ describe('generateLoader (generic)', () => {
   it('sets DEFSEG=&H01CD for entry point &H1CD0', () => {
     const loader = generateLoader();
     expect(loader).toContain('DEFSEG=&H01CD');
-    expect(loader).toContain('MODE110(&H1CD0)');
+    expect(loader).toContain('MODE 110(&H1CD0)');
   });
 
   it('includes checksum verification', () => {
