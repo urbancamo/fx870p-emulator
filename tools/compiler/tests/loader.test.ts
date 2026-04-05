@@ -26,14 +26,14 @@ describe('loader generator', () => {
     expect(loader).toContain('Size: 1 bytes');
   });
 
-  it('encodes binary as hex DATA statements', () => {
+  it('encodes binary as decimal DATA statements', () => {
     const loader = generateLoader({
       binary: new Uint8Array([0x48, 0x65, 0x6C]),
       entryPoint: 0,
       sourceFile: 'TEST.BAS',
       totalSize: 3,
     });
-    expect(loader).toContain('48656C');
+    expect(loader).toContain('72,101,108');  // 0x48, 0x65, 0x6C in decimal
   });
 
   it('calls MODE110 with entry point', () => {
@@ -46,11 +46,11 @@ describe('loader generator', () => {
     expect(loader).toContain('MODE110(&H0100)');
   });
 
-  it('splits long binaries into 24-byte DATA lines', () => {
+  it('splits long binaries into 12-byte DATA lines', () => {
     const binary = new Uint8Array(50);
     binary.fill(0xAA);
     const loader = generateLoader({ binary, entryPoint: 0, sourceFile: 'TEST.BAS', totalSize: 50 });
     const dataLines = loader.split('\n').filter(l => l.includes('DATA'));
-    expect(dataLines.length).toBe(3); // 24 + 24 + 2
+    expect(dataLines.length).toBe(5); // 12+12+12+12+2
   });
 });

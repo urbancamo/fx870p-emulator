@@ -23,37 +23,41 @@ function toHexString(bytes: Uint8Array): string {
 export function generateLoader(input: LoaderInput): string {
   const { binary, entryPoint, sourceFile, totalSize } = input;
 
-  // Split binary into 24-byte chunks for DATA statements
-  const chunks: string[] = [];
+  // Hex chunks (legacy path — still used downstream) and decimal numeric DATA
+  // (primary path — avoids VAL("&H...") which is unreliable on some models)
+  const hexChunks: string[] = [];
   for (let offset = 0; offset < binary.length; offset += BYTES_PER_DATA_LINE) {
-    chunks.push(toHexString(binary.slice(offset, offset + BYTES_PER_DATA_LINE)));
+    hexChunks.push(toHexString(binary.slice(offset, offset + BYTES_PER_DATA_LINE)));
+  }
+  void hexChunks;
+
+  // 12 decimal bytes per DATA line (keeps lines under 70 chars)
+  const BYTES_PER_DEC_LINE = 12;
+  const decLines: string[] = [];
+  for (let offset = 0; offset < binary.length; offset += BYTES_PER_DEC_LINE) {
+    const slice = Array.from(binary.slice(offset, offset + BYTES_PER_DEC_LINE));
+    decLines.push(slice.join(','));
   }
 
-  const chunkCount = chunks.length;
-
-  // Line number counter — preamble uses lines 10–110, DATA starts at 1000
   const lines: string[] = [];
-
   const entryHex = '&H' + entryPoint.toString(16).toUpperCase().padStart(4, '0');
-  // DEFSEG is a segment: effective_addr = DEFSEG * 16 + offset.
-  // For entryPoint at 0x1CD0, DEFSEG = 0x01CD.
+  // DEFSEG * 16 = effective PEEK/POKE base address.
   const segment = Math.floor(entryPoint / 16);
   const segHex = '&H' + segment.toString(16).toUpperCase().padStart(4, '0');
+
   lines.push(`10 ' Compiled: ${sourceFile}`);
   lines.push(`15 ' Size: ${totalSize} bytes`);
   lines.push(`30 DEFSEG=${segHex}`);
-  lines.push(`40 FOR I=0 TO ${chunkCount - 1}`);
-  lines.push('50 READ A$');
-  lines.push('60 FOR J=1 TO LEN(A$) STEP 2');
-  lines.push('70 POKE I*24+(J-1)/2,VAL("&H"+MID$(A$,J,2))');
-  lines.push('80 NEXT J');
-  lines.push('90 NEXT I');
-  lines.push(`100 MODE110(${entryHex})`);
-  lines.push('110 END');
+  lines.push(`40 FOR I=0 TO ${totalSize - 1}`);
+  lines.push('50 READ B');
+  lines.push('60 POKE I,B');
+  lines.push('70 NEXT I');
+  lines.push(`80 MODE110(${entryHex})`);
+  lines.push('90 END');
 
-  // DATA statements starting at line 1000, incrementing by 10
-  chunks.forEach((hex, idx) => {
-    lines.push(`${1000 + idx * 10} DATA "${hex}"`);
+  // DATA statements of decimal bytes (avoid VAL/&H)
+  decLines.forEach((csv, idx) => {
+    lines.push(`${1000 + idx * 10} DATA ${csv}`);
   });
 
   return lines.join('\n') + '\n';
