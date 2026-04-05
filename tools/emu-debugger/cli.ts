@@ -151,6 +151,43 @@ function runCommand(args: ParsedArgs): void {
   process.exit(0);
 }
 
+function traceCommand(args: ParsedArgs): void {
+  if (!args.binary) {
+    console.error('Usage: debug trace <binary> [options]');
+    process.exit(1);
+  }
+  const bytes = new Uint8Array(readFileSync(args.binary));
+  if (!args.quiet) {
+    console.log(`emu-debugger: tracing ${args.binary} (${bytes.length} bytes)`);
+  }
+
+  const sess = new EmulatorSession({ mode: args.mode });
+  sess.loadBinary(args.loadAddr, bytes);
+  sess.setEntry(args.entry);
+  for (const bp of args.breakpoints) sess.addBreakpoint(bp);
+  for (const wp of args.watchpoints) sess.addWatchpoint(wp.addr, wp.kind);
+
+  const result = sess.run({
+    maxCycles: args.maxCycles,
+    maxInstructions: args.maxInstructions,
+    trace: true,
+  });
+
+  console.log('');
+  console.log('  PC    Bytes            Instruction           ');
+  console.log('  ----  ---------------  ----------------------');
+  for (const entry of sess.getTrace()) {
+    const pc = formatHex(entry.pc, 4);
+    const bytesStr = entry.bytes.map((b: number) => formatHex(b, 2)).join(' ').padEnd(15);
+    console.log(`  ${pc}  ${bytesStr}  ${entry.mnemonic}`);
+  }
+
+  console.log('');
+  console.log('── Exit ──────────────────────────────────────');
+  console.log(formatExitResult(result));
+  process.exit(0);
+}
+
 function main(): void {
   const args = parseArgs(process.argv.slice(2));
   if (!args.command) {
@@ -159,10 +196,7 @@ function main(): void {
   }
   switch (args.command) {
     case 'run': runCommand(args); break;
-    case 'trace':
-      console.error('trace command: implemented in Task 14');
-      process.exit(1);
-      break;
+    case 'trace': traceCommand(args); break;
     case 'step':
       console.error('step command: implemented in Task 15');
       process.exit(1);
