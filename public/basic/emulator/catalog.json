@@ -35,6 +35,11 @@
     "description": "Puzzle from '101 BASIC Computer Games' — flip all X to O, but some positions are linked"
   },
   {
+    "file": "MONSTER.BAS",
+    "name": "Monster Chase",
+    "description": "Number-guessing game with a twist — guess 1-20 before the monster catches you, ported from the PB-700"
+  },
+  {
     "file": "POKER.BAS",
     "name": "Draw Poker",
     "description": "Five-card draw poker from '101 BASIC Computer Games' — bet, draw, and bluff against the AI"
