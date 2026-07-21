@@ -56,12 +56,14 @@ static int put_byte(int serfd, unsigned char b, const send_opts *o, int *paused)
 
     if (poll_incoming(serfd, o->honor_xonxoff, paused, o->verbose) < 0) return -1;
     if (wait_unpaused(serfd, o->honor_xonxoff, paused, o->verbose) < 0) return -1;
-    /* A 1-byte write cannot be partial on success; retry on EINTR or a
-     * spurious 0 return until the byte is actually written. */
+    /* A 1-byte write cannot be partial on success; retry on EINTR only.
+     * A 0 return from a 1-byte tty write is off-contract: fail fast
+     * rather than risk an unbounded spin. */
     for (;;) {
         w = write(serfd, &b, 1);
         if (w == 1) break;
-        if (w < 0 && errno != EINTR) return -1;
+        if (w < 0 && errno == EINTR) continue;
+        return -1;
     }
     /* EINVAL: ptys on some OSes */
     for (;;) {
