@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Casio FX-870P Serial Comms Deep Dive — ROM Analysis</title>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', sequence: { mirrorActors: false } });
+</script>
+<style>
+  :root {
+    --ink: #1a1d21; --paper: #fdfcf9; --accent: #8a4b08; --accent2: #0b5d69;
+    --code-bg: #f4f1ea; --border: #d8d2c4; --warn-bg: #fdf3e0; --ok-bg: #eef6ee;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 1rem 4rem; color: var(--ink); background: var(--paper);
+    font: 16px/1.6 Georgia, 'Times New Roman', serif;
+  }
+  main { max-width: 62rem; margin: 0 auto; }
+  h1, h2, h3 { font-family: 'Gill Sans', 'Trebuchet MS', sans-serif; line-height: 1.25; }
+  h1 { font-size: 2rem; margin: 2.2rem 0 0.2rem; }
+  h2 { font-size: 1.5rem; margin-top: 3rem; border-bottom: 3px solid var(--accent); padding-bottom: 0.3rem; }
+  h3 { font-size: 1.15rem; margin-top: 2rem; color: var(--accent2); }
+  .subtitle { color: #666; font-style: italic; margin-bottom: 2rem; }
+  table { border-collapse: collapse; margin: 1rem 0; width: 100%; font-size: 0.92rem; }
+  th, td { border: 1px solid var(--border); padding: 0.4rem 0.7rem; text-align: left; vertical-align: top; }
+  th { background: var(--code-bg); font-family: 'Gill Sans', 'Trebuchet MS', sans-serif; }
+  .tablewrap { overflow-x: auto; }
+  code, pre { font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 0.85rem; }
+  code { background: var(--code-bg); padding: 0.1rem 0.3rem; border-radius: 3px; }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border); border-left: 4px solid var(--accent);
+    padding: 0.9rem 1.1rem; overflow-x: auto; line-height: 1.45; border-radius: 4px;
+  }
+  pre .a { color: #7a3b00; font-weight: bold; }        /* addresses */
+  pre .c { color: #35682d; }                            /* comments */
+  pre .hi { background: #ffe9a8; display: inline-block; width: 100%; }
+  .answer { background: var(--ok-bg); border: 1px solid #b5cfb5; border-radius: 6px; padding: 0.8rem 1.1rem; margin: 1rem 0; }
+  .answer b:first-child { color: #1c5e20; }
+  .caution { background: var(--warn-bg); border: 1px solid #e0c48c; border-radius: 6px; padding: 0.8rem 1.1rem; margin: 1rem 0; }
+  .mermaid { background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 0.8rem; margin: 1.2rem 0; overflow-x: auto; }
+  .frame { display: flex; margin: 1.2rem 0; overflow-x: auto; font-family: Menlo, Consolas, monospace; font-size: 0.75rem; text-align: center; }
+  .frame div { border: 1px solid #555; border-left: none; padding: 0.5rem 0.35rem; min-width: 3.2rem; }
+  .frame div:first-child { border-left: 1px solid #555; }
+  .frame .idle { background: #dfe9df; }
+  .frame .start { background: #f6d9b0; }
+  .frame .data { background: #dbe7f2; }
+  .frame .par { background: #ead9f0; }
+  .frame .stop { background: #f6d9b0; }
+  .toc { background: var(--code-bg); border-radius: 6px; padding: 1rem 2rem; }
+  .toc a { color: var(--accent2); }
+  footer { margin-top: 4rem; color: #777; font-size: 0.85rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+  .qref { font-size: 0.8rem; color: #777; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Casio FX-870P Serial Comms Deep Dive</h1>
+<p class="subtitle">How the ROM drives the RS-232C port: control lines, flow control, and timing — reverse-engineered from the HD61700 ROM disassembly. July 2026.</p>
+
+<div class="toc">
+<b>Contents</b>
+<ol>
+  <li><a href="#answers">Answers at a glance</a></li>
+  <li><a href="#arch">Hardware architecture — how the CPU reaches the serial port</a></li>
+  <li><a href="#open">The <code>OPEN "COM0:"</code> string and its parser (ROM 0x4EBD)</a></li>
+  <li><a href="#lines">RS-232C control-line usage (CTS / DSR / DCD / RTS / DTR)</a></li>
+  <li><a href="#xonxoff">XON/XOFF — sent and honoured (ROM 0x83B9 / 0x8590 / 0x85FB)</a></li>
+  <li><a href="#timing">Timing: hardware framing, polls, and deliberate delays</a></li>
+  <li><a href="#tokenize">Line-end BASIC tokenization delays and how the buffer absorbs them</a></li>
+  <li><a href="#routines">ROM routine reference</a></li>
+  <li><a href="#corrections">Corrections to earlier annotations &amp; emulator gaps</a></li>
+  <li><a href="#practical">Practical recommendations for a reliable link</a></li>
+</ol>
+</div>
+
+<h2 id="answers">1. Answers at a glance</h2>
+
+<div class="tablewrap"><table>
+<tr><th>Question</th><th>Answer</th><th>Evidence</th></tr>
+<tr>
+  <td><b>No hardware flow control?</b></td>
+  <td><b>Default: yes</b> — CS/DS/CD all default to <code>N</code>, so out of the box no hardware line gates the data path. But hardware flow control is fully implemented and selectable.</td>
+  <td>Default open string <code>COM0:2,E,8,1,N,N,N,B,N</code> (FX-850P manual, part 9); parser 0x4EBD stores flags that the driver genuinely tests.</td>
+</tr>
+<tr>
+  <td><b>Uses the CTS line?</b></td>
+  <td><b>Yes, on transmit, when <code>CS=C</code></b>. Before every byte the ROM busy-waits until CTS is asserted. CTS is also re-checked before the ROM emits an XOFF of its own.</td>
+  <td>0x8662 reads modem-status reg 0x0006, masks bit 2 (CTS); caller 0x85FB spins at 0x860A. XOFF path re-check at 0x8433.</td>
+</tr>
+<tr>
+  <td><b>Uses the RTS line?</b></td>
+  <td><b>Not dynamically.</b> RTS (DB-25 pin 4) and DTR (pin 20) are outputs on the connector, but no ROM code was found toggling them per-byte or per-buffer state. They behave as statically asserted "interface powered" signals. Receive-side throttling is done with XOFF, not by dropping RTS.</td>
+  <td>Exhaustive search of the driver block 0x8314–0x86C2 shows writes only to gate-array regs 2/3/4/5/7; no RTS/DTR bit appears in the RX buffer-full path (which sends XOFF instead).</td>
+</tr>
+<tr>
+  <td><b>Other RS-232C lines?</b></td>
+  <td><b>DSR and DCD, both as receive/send qualifiers.</b> <code>DS=D</code>: transmit waits for DSR, and a byte received while DSR is off is rejected ("Not ready" → NR error). <code>CD=C</code>: a byte received while carrier is off is rejected the same way. Also SI/SO (0x0F/0x0E) code shifting when <code>Code=S</code> with 7 data bits.</td>
+  <td>TX gate 0x8662/0x866F masks CTS+DSR (0x0C); RX ISR 0x83E4–0x83ED masks DSR+DCD (0x18) → "Not ready" at 0x8392. SI/SO at 0x83F4 (RX) and 0x861D (TX).</td>
+</tr>
+<tr>
+  <td><b>Honours the RS-232C protocol or its own timing?</b></td>
+  <td><b>Genuine RS-232C.</b> Framing (start bit, 7/8 data, optional parity, 1–2 stop bits) and the bit clock are generated by a dedicated gate-array UART; the CPU never bit-bangs. Standard asynchronous start-stop, full duplex. The speed digit is written as a raw 3-bit code to the gate array, which derives the baud clock in hardware.</td>
+  <td>UART regs memory-mapped at bank 3 offsets 0–7; RSOPN 0x84EC programs regs 3/4/5; baud code shifted into reg 0x0004 at 0x8500–0x8507. RX completion raises interrupt INT1.</td>
+</tr>
+<tr>
+  <td><b>Delays in sending / receiving?</b></td>
+  <td><b>TX:</b> polls the TX-ready status bit before each byte (with a timeout and a double-read debounce) — so the ROM sends back-to-back at full line rate, no artificial inter-character gap. A fixed ≈3&nbsp;ms delay exists only when (re)programming the UART registers, and a baud-scaled drain delay runs at CLOSE. <b>RX:</b> interrupt-driven — each received byte is buffered from the INT1 ISR with no polling delay.</td>
+  <td>TX-ready wait 0x8678 (timeout 0x0890 loops; consistency check 0x868A–0x8690); 3&nbsp;ms loop 0x8335; baud-scaled delay 0x86A3; ISR entry 0x83B9 via INT1 vector.</td>
+</tr>
+<tr>
+  <td><b>Delays processing BASIC tokens at line end?</b></td>
+  <td><b>Yes — and the driver is built for them.</b> Tokenization after each received CR happens at task level while the ISR keeps filling a <b>256-byte ring buffer</b>. If tokenization is slow, the count climbs; at <b>192 bytes (75%)</b> the ISR transmits XOFF; when the consumer drains it below <b>32 bytes</b> an XON goes out. With <code>Busy=N</code> the same stall instead ends in a hard buffer-overflow (BV error).</td>
+  <td>Thresholds at 0x8429 (<code>sbc $3,&amp;HC0</code>) and 0x859B (<code>sbc $1,&amp;H20</code>); overflow latch 0x8424 → RS4=0x01.</td>
+</tr>
+<tr>
+  <td><b>XON/XOFF honoured? Which direction?</b></td>
+  <td><b>Both directions, when <code>Busy=B</code> (the default).</b> <i>As receiver</i> it sends XOFF/XON on the 192/32-byte thresholds. <i>As transmitter</i> it consumes incoming 0x11/0x13 (they never reach the buffer), latches a suspend flag, and pauses before the next byte until XON arrives. The pause is checked per byte — a byte already started completes.</td>
+  <td>Send: 0x8442–0x8447 (XOFF), 0x85B7–0x85C0 (XON). Honour: ISR 0x840C/0x8411 → RS2 bit1; PRTRS gate 0x8611–0x8614.</td>
+</tr>
+</table></div>
+
+<h2 id="arch">2. Hardware architecture — how the CPU reaches the serial port</h2>
+
+<p>The FX-870P's serial port is <b>not</b> bit-banged through the HD61700's general-purpose Port&nbsp;D (that port is the Centronics printer interface — strobe on bit&nbsp;3, busy on bit&nbsp;5). Instead a dedicated <b>gate-array UART</b> sits in the memory map: physical addresses <code>0x30000–0x30007</code> (bank&nbsp;3, offsets 0–7). The ROM reaches it with the standard bank-switch idiom — <code>pst&nbsp;ua,&amp;HF4</code> to point IX/IZ at bank&nbsp;3, ordinary <code>ld/st</code> to the low offsets, then <code>pst&nbsp;ua,&amp;H54</code> to restore bank&nbsp;1 (RAM).</p>
+
+<div class="mermaid">
+flowchart LR
+  subgraph CPU["HD61700 CPU"]
+    ROM["ROM driver code<br/>0x8314–0x86C2"]
+    ISR["INT1 ISR 0x83B9"]
+  end
+  subgraph GA["Gate-array UART (bank 3)"]
+    R2["0x0002 data<br/>(RX read / TX write)"]
+    R3["0x0003 status+format<br/>bit0 = TX ready"]
+    R45["0x0004/0x0005<br/>baud code + strobe"]
+    R6["0x0006 modem status<br/>bit2 CTS · bit3 DSR · bit4 DCD"]
+  end
+  subgraph CONN["DB-25 connector"]
+    TXD["pin 2 TXD →"]
+    RXD["pin 3 RXD ←"]
+    RTS["pin 4 RTS → (static)"]
+    CTS["pin 5 CTS ←"]
+    DSR["pin 6 DSR ←"]
+    DCD["pin 8 DCD ←"]
+    DTR["pin 20 DTR → (static)"]
+  end
+  ROM -- "pst ua,&amp;HF4 + st/ld" --> R2
+  ROM --> R3
+  ROM --> R45
+  ROM --> R6
+  GA -- "RX complete" --> INT1((INT1)) --> ISR
+  R2 --- TXD
+  RXD --- R2
+  CTS --- R6
+  DSR --- R6
+  DCD --- R6
+</div>
+
+<p>Key consequences:</p>
+<ul>
+  <li>Framing, bit timing and parity generation/checking are done <b>in hardware</b>. The CPU's only timing duties are polling TX-ready and servicing INT1.</li>
+  <li>The modem-status inputs CTS/DSR/DCD are readable by software at register <code>0x0006</code> (bits 2/3/4) — this is what makes real hardware handshaking possible even though the <i>emulators</i> don't model those lines.</li>
+  <li>Receive is fully interrupt-driven: RX-complete raises INT1, vectored via ROM0 <code>0x0032</code> → <code>jp &amp;H0D77</code> → dispatch <code>0D83: jp &amp;H83B9</code>.</li>
+</ul>
+
+<h3>RAM system variables (base 0x1554)</h3>
+<div class="tablewrap"><table>
+<tr><th>Address</th><th>Name</th><th>Contents</th></tr>
+<tr><td><code>0x1554</code></td><td>RS1</td><td>Line format: baud code (bits 7–5), parity (bits 1–2), data bits (bit 3), stop bits (bit 4)</td></tr>
+<tr><td><code>0x1555</code></td><td>RS2</td><td>Runtime state: bit 0 = SI/SO shift state, <b>bit 1 = "remote sent XOFF — suspend our TX"</b></td></tr>
+<tr><td><code>0x1556</code></td><td>RS3</td><td>Flow-control config: bit 0 = SI/SO enable, bit 1 = XON/XOFF enable, bit 2 = CS(CTS), bit 3 = DS(DSR), bit 4 = CD(DCD), <b>bit 6 = "we sent XOFF" latch</b></td></tr>
+<tr><td><code>0x1557</code></td><td>RS4</td><td>Receive error status: 0x01 overflow, 0x02 parity/overrun, 0x04 framing, 0x08 not-ready</td></tr>
+<tr><td><code>0x1558</code></td><td>INTCK</td><td>"Data received" flag set by the ISR</td></tr>
+<tr><td><code>0x1559</code></td><td>RXCNT</td><td>Byte count in the receive ring buffer</td></tr>
+<tr><td><code>0x155A</code>…</td><td>—</td><td>Ring-buffer pointers, then ~256 bytes of buffer data</td></tr>
+<tr><td><code>0x173E/0x173F</code></td><td>—</td><td>Descriptor copies of RS1/RS3 (defaults for the next OPEN)</td></tr>
+</table></div>
+
+<h2 id="open">3. The <code>OPEN "COM0:"</code> string and its parser</h2>
+
+<p>Syntax (FX-850P owner's manual, part 9): <code>COM0:Speed,Parity,Data,Stop,CS,DS,CD,Busy,Code</code> — default <code>COM0:2,E,8,1,N,N,N,B,N</code>.</p>
+
+<div class="tablewrap"><table>
+<tr><th>#</th><th>Field</th><th>Values</th><th>Default</th><th>Stored as</th></tr>
+<tr><td>1</td><td>Speed</td><td>1=150 · 2=300 · 3=600 · 4=1200 · 5=2400 · 6=4800 baud</td><td>2 (300)</td><td>RS1 bits 7–5</td></tr>
+<tr><td>2</td><td>Parity</td><td>N / E / O</td><td>E</td><td>RS1 bits 1–2</td></tr>
+<tr><td>3</td><td>Data bits</td><td>7 / 8</td><td>8</td><td>RS1 bit 3</td></tr>
+<tr><td>4</td><td>Stop bits</td><td>1 / 2</td><td>1</td><td>RS1 bit 4</td></tr>
+<tr><td>5</td><td>CS (CTS)</td><td>C = wait for CTS before sending · N = ignore</td><td>N</td><td>RS3 bit 2</td></tr>
+<tr><td>6</td><td>DS (DSR)</td><td>D = wait on send, NR error on receive if off · N</td><td>N</td><td>RS3 bit 3</td></tr>
+<tr><td>7</td><td>CD (DCD)</td><td>C = NR error on receive if carrier off · N</td><td>N</td><td>RS3 bit 4</td></tr>
+<tr><td>8</td><td>Busy</td><td><b>B = XON/XOFF flow control</b> · N = none</td><td><b>B</b></td><td>RS3 bit 1</td></tr>
+<tr><td>9</td><td>Code</td><td>S = SI/SO shift codes (7-bit data only) · N</td><td>N</td><td>RS3 bit 0</td></tr>
+</table></div>
+
+<p>The parser lives at <b>0x4EBD</b> in ROM1 (reached when the device-name matcher recognises <code>COM0:</code> as device type 2 from the table at 0x14A4). It accumulates RS1 in <code>$12</code> and RS3 in <code>$13</code>. The five letter-flags all use one helper (0x4F4E) taking a set-letter, a clear-letter (<code>'N'</code>) and a bit mask:</p>
+
+<pre><span class="a">4F19:</span>  ld   $4,&amp;H4E       <span class="c">; $4 = 'N' — clear-letter routes result to RS3</span>
+<span class="a">4F1C:</span>  ldw  $2,&amp;H43FB     <span class="c">; CS  : set-letter 'C', mask 0xFB → RS3 bit 2</span>
+<span class="a">4F20:</span>  cal  &amp;H4F4E
+<span class="a">4F23:</span>  ldw  $2,&amp;H44F7     <span class="c">; DS  : set-letter 'D', mask 0xF7 → RS3 bit 3</span>
+<span class="a">4F27:</span>  cal  &amp;H4F4E
+<span class="a">4F2A:</span>  ldw  $2,&amp;H43EF     <span class="c">; CD  : set-letter 'C', mask 0xEF → RS3 bit 4</span>
+<span class="a">4F2E:</span>  cal  &amp;H4F4E
+<span class="a">4F31:</span>  ldw  $2,&amp;H42FD     <span class="c">; Busy: set-letter 'B', mask 0xFD → RS3 bit 1 (XON/XOFF)</span>
+<span class="a">4F35:</span>  cal  &amp;H4F4E
+<span class="a">4F38:</span>  ldw  $2,&amp;H53FE     <span class="c">; Code: set-letter 'S', mask 0xFE → RS3 bit 0 (SI/SO)</span>
+<span class="a">4F3C:</span>  cal  &amp;H4F4E</pre>
+
+<p>At OPEN the results are committed: RS1/RS3 to the descriptor copy at 0x173E/0x173F (<code>84AE: pre ix,&amp;H173E … stw $12,(ix+$sx)</code>) and the live set RS1–RS4 to 0x1554–0x1557 (<code>84B4: pre ix,&amp;H1554 … stm $11,(ix+$sx),4</code>). Then <b>RSOPN (0x84EC)</b> programs the gate array: the baud field is rotated down to bits 0–2 and written to register 0x0004 — <i>there is no ROM baud table; the gate array decodes the 3-bit code itself</i>:</p>
+
+<pre><span class="a">84FD:</span>  ld   $3,$11        <span class="c">; RS1</span>
+<span class="a">8500:</span>  did  $3
+<span class="a">8502:</span>  bid  $3            <span class="c">; baud code now in bits 0–2</span>
+<span class="a">8504:</span>  ld   $4,&amp;H08
+<span class="a">8507:</span>  cal  &amp;H8328        <span class="c">; write gate-array regs 0x0004/0x0005 (strobe+latch, ≈3 ms delay)</span></pre>
+
+<h2 id="lines">4. RS-232C control-line usage</h2>
+
+<p>The DB-25 exposes RTS/DTR as outputs and CTS/DSR/DCD as inputs. <b>Every parsed handshake flag is genuinely consulted by the driver — none are parsed-and-ignored.</b> Each line gates a different direction:</p>
+
+<div class="mermaid">
+flowchart TD
+  subgraph TX["Transmit path (PRTRS 0x85FB, per byte)"]
+    T1["CTS asserted?<br/>(only if CS=C)"] -->|no| TW["busy-wait 0x85FD<br/>(BRK/power still checked)"]
+    T1 -->|yes| T2["DSR asserted?<br/>(only if DS=D)"]
+    T2 -->|no| TW
+    T2 -->|yes| T3["Remote XOFF latched?<br/>(RS2 bit1, only if Busy=B)"]
+    T3 -->|yes| TW
+    T3 -->|no| T4["SI/SO shift if Code=S"] --> T5["wait TX-ready (0x8678)<br/>write data reg 0x0002"]
+  end
+  subgraph RX["Receive path (ISR 0x83B9, per byte)"]
+    R1["DSR asserted?<br/>(only if DS=D)"] -->|no| RN["reject byte:<br/>RS4=0x08 'Not ready' → NR error"]
+    R1 -->|yes| R2["DCD asserted?<br/>(only if CD=C)"]
+    R2 -->|no| RN
+    R2 -->|yes| R3["XON/XOFF byte? consume it<br/>else store in ring buffer"]
+  end
+</div>
+
+<h3>Transmit gate — annotated listing</h3>
+<p>The "is the other end ready?" check reads modem-status register 0x0006, inverts the active-low CTS/DSR bits, masks them with the <i>enabled</i> flags from RS3, and returns non-zero if any enabled line is de-asserted:</p>
+
+<pre><span class="a">8662:</span>  pre  iz,&amp;H0002
+<span class="a">8666:</span>  ld   $0,(iz+&amp;H04)  <span class="c">; read modem status reg (0x0006)</span>
+<span class="a">8669:</span>  xr   $0,&amp;H0C       <span class="c">; invert CTS (bit2), DSR (bit3)</span>
+<span class="a">866C:</span>  an   $0,$4         <span class="c">; $4 = RS3 — keep only ENABLED handshakes</span>
+<span class="a">866F:</span>  anc  $0,&amp;H0C       <span class="c">; CTS, DSR   → Z set only when all enabled lines ready</span>
+
+<span class="c">; caller PRTRS (0x85FB): spin until ready, then check software flow control</span>
+<span class="a">8604:</span>  ldm  $2,(ix+$sx),3 <span class="c">; $2=RS1  $3=RS2  $4=RS3</span>
+<span class="a">8607:</span>  cal  &amp;H8662        <span class="c">; other end ready to receive?</span>
+<span class="a">860A:</span>  jr   nz,&amp;H85FD     <span class="c">; *** busy-wait on CTS/DSR ***</span>
+<span class="a">860C:</span>  anc  $4,&amp;H02       <span class="c">; XON/XOFF enabled?</span>
+<span class="a">860F:</span>  jr   z,&amp;H8616      <span class="c">; no → transmit</span>
+<span class="a">8611:</span>  anc  $3,&amp;H02       <span class="c">; RS2 bit1: remote sent XOFF?</span>
+<span class="a">8614:</span>  jr   nz,&amp;H85FD     <span class="c">; *** paused until ISR clears it on XON ***</span></pre>
+
+<h3>Receive gate — annotated listing</h3>
+<pre><span class="a">83E4:</span>  xr   $0,&amp;H1C       <span class="c">; invert DCD (bit4), DSR (bit3), CTS (bit2)</span>
+<span class="a">83E7:</span>  an   $0,$5         <span class="c">; $5 = RS3 — keep only enabled handshakes</span>
+<span class="a">83EA:</span>  anc  $0,&amp;H18       <span class="c">; DSR + DCD only (CTS is not a receive qualifier)</span>
+<span class="a">83ED:</span>  jr   nz,&amp;H8392     <span class="c">; → "Not ready": RS4 = 0x08, byte discarded → NR error</span></pre>
+
+<div class="caution"><b>RTS/DTR:</b> no code in the driver block manipulates an RTS or DTR output bit — in particular the buffer-full path sends XOFF rather than dropping RTS. Treat RTS/DTR as statically asserted "port open" indicators. A PC-side interface must therefore not wait for RTS transitions as flow control; use XON/XOFF (or wire the PC's RTS to the Casio's CTS and open with <code>CS=C</code> to let the <i>PC</i> throttle the <i>Casio</i>).</div>
+
+<h2 id="xonxoff">5. XON/XOFF — sent and honoured</h2>
+
+<p>With <code>Busy=B</code> (the default) the ROM implements symmetric software flow control around its 256-byte receive ring buffer. Two independent state bits keep the directions separate: <b>RS3 bit 6</b> = "we sent XOFF" (protecting our buffer), <b>RS2 bit 1</b> = "remote sent us XOFF" (pausing our transmitter).</p>
+
+<div class="mermaid">
+stateDiagram-v2
+  direction LR
+  state "Receiver side (RS3 bit6)" as R {
+    [*] --> Flowing
+    Flowing --> Throttled : RXCNT reaches 192 (75%)<br/>→ transmit XOFF (0x13)
+    Throttled --> Flowing : RSGET drains RXCNT below 32<br/>→ transmit XON (0x11)
+  }
+  state "Transmitter side (RS2 bit1)" as T {
+    [*] --> Sending
+    Sending --> Suspended : XOFF (0x13) received<br/>(consumed by ISR, not buffered)
+    Suspended --> Sending : XON (0x11) received
+  }
+</div>
+
+<h3>Sending XOFF — in the receive ISR, after storing each byte</h3>
+<pre><span class="a">8420:</span>  ad   $3,$sy        <span class="c">; RXCNT++</span>
+<span class="a">8424:</span>  jp   c,&amp;H839E      <span class="c">; 256-byte wrap → hard overflow, RS4=0x01 (BV error)</span>
+<span class="a">8429:</span>  sbc  $3,&amp;HC0       <span class="c">; is the buffer 75% full? (192 bytes)</span>
+<span class="a">842C:</span>  jr   c,&amp;H844D      <span class="c">; not yet → done</span>
+<span class="a">842E:</span>  anc  $5,&amp;H40       <span class="c">; XOFF already in progress?</span>
+<span class="a">8431:</span>  jr   nz,&amp;H844D     <span class="c">; yes → don't send twice</span>
+<span class="a">8433:</span>  anc  $0,&amp;H0C       <span class="c">; CTS/DSR still asserted? (don't jam the line)</span>
+<span class="a">8436:</span>  jr   nz,&amp;H844D
+<span class="a">8438:</span>  ld   $0,(iz+$sy)   <span class="c">; verify TX-ready (double-read: status may glitch)</span>
+<span class="hi"><span class="a">8442:</span>  ld   $0,&amp;H13       <span class="c">; XOFF code</span></span>
+<span class="hi"><span class="a">8445:</span>  std  $0,(iz+$sx)   <span class="c">; (0x0002) ← 0x13 — transmit XOFF</span></span>
+<span class="a">8447:</span>  or   $5,&amp;H40       <span class="c">; latch "XOFF in progress" (RS3 bit6)</span></pre>
+
+<h3>Sending XON — in RSGET, after removing each byte</h3>
+<pre><span class="a">8597:</span>  sb   (ix+$sx),$30  <span class="c">; RXCNT--</span>
+<span class="a">859B:</span>  sbc  $1,&amp;H20       <span class="c">; fewer than 32 bytes left?</span>
+<span class="a">859E:</span>  rtn  nc            <span class="c">; still ≥32 → nothing to do</span>
+<span class="a">85A2:</span>  anc  $4,&amp;H02       <span class="c">; XON/XOFF enabled?</span>
+<span class="a">85A6:</span>  anc  $4,&amp;H40       <span class="c">; did WE send XOFF earlier?</span>
+<span class="a">85B2:</span>  cal  &amp;H8662        <span class="c">; wait until remote ready (CTS/DSR)</span>
+<span class="hi"><span class="a">85B7:</span>  ld   $0,&amp;H11       <span class="c">; XON code</span></span>
+<span class="hi"><span class="a">85BA:</span>  cal  &amp;H865C        <span class="c">; NTX0: transmit 0x11</span></span>
+<span class="a">85C0:</span>  sb   (ix+$sx),$0   <span class="c">; clear "XOFF in progress"</span></pre>
+
+<h3>Honouring received XON/XOFF — in the ISR, before buffering</h3>
+<pre><span class="a">8407:</span>  anc  $5,&amp;H02       <span class="c">; XON/XOFF enabled?</span>
+<span class="a">840C:</span>  sbc  $1,&amp;H11       <span class="c">; XON — resume transmission</span>
+<span class="a">840F:</span>  jr   z,&amp;H8472
+<span class="a">8411:</span>  sbc  $1,&amp;H13       <span class="c">; XOFF — suspend transmission</span>
+<span class="a">8414:</span>  jr   z,&amp;H846E
+   <span class="c">…</span>
+<span class="a">846E:</span>  or   $4,&amp;H02, jr &amp;H845E   <span class="c">; XOFF → set RS2 bit1 (TX suspended)</span>
+<span class="a">8472:</span>  an   $4,&amp;HFD, jr &amp;H845E   <span class="c">; XON  → clear RS2 bit1 (TX resumes)</span>
+<span class="a">845E:</span>  st   $4,(ix+$sy)          <span class="c">; note: 0x11/0x13 are CONSUMED, never buffered</span></pre>
+
+<p class="qref">Consequence: with <code>Busy=B</code> the link is <b>not 8-bit-clean</b> — binary payloads containing 0x11/0x13 are swallowed by the ISR. Binary transfers must either hex-encode (as the project's ML loader does) or open with <code>Busy=N</code> and pace the sender.</p>
+
+<h2 id="timing">6. Timing: hardware framing, polls, and deliberate delays</h2>
+
+<h3>Character framing (hardware-generated)</h3>
+<p>One character at the default <code>2,E,8,1</code> (300 baud, even parity, 8 data, 1 stop) occupies 11 bit-times ≈ 36.7 ms; at 4800 baud ≈ 2.3 ms:</p>
+
+<div class="frame">
+  <div class="idle">idle<br/>mark</div>
+  <div class="start">START<br/>space</div>
+  <div class="data">D0</div><div class="data">D1</div><div class="data">D2</div><div class="data">D3</div>
+  <div class="data">D4</div><div class="data">D5</div><div class="data">D6</div><div class="data">D7</div>
+  <div class="par">PARITY<br/>even</div>
+  <div class="stop">STOP<br/>mark</div>
+  <div class="idle">idle /<br/>next start</div>
+</div>
+
+<h3>Where the ROM inserts time</h3>
+<div class="tablewrap"><table>
+<tr><th>Where</th><th>Address</th><th>Nature</th><th>Duration</th></tr>
+<tr><td>Before each transmitted byte</td><td>0x8678</td><td>Poll TX-ready (status 0x0003 bit 0), with timeout counter 0x0890 and a double-read consistency check (the status bit can glitch mid-read)</td><td>Until the previous frame clears — i.e. exactly one character time when streaming; effectively zero inter-character gap is added</td></tr>
+<tr><td>Programming the UART regs</td><td>0x8335 (inside 0x8328)</td><td>Fixed down-count loop after strobing regs 0x0004/0x0005</td><td>≈3 ms (only at OPEN / mode change)</td></tr>
+<tr><td>At CLOSE (RSCLO 0x8563)</td><td>0x86A3</td><td>Nested down-counters scaled by the baud field of RS1 — lets the last frame drain the shift register before the gate array is reset</td><td>Baud-dependent (a few character times)</td></tr>
+<tr><td>Receive</td><td>0x83B9</td><td>None — interrupt-driven; the ISR runs on RX-complete and returns</td><td>—</td></tr>
+</table></div>
+
+<h3>Byte-transmit sequence</h3>
+<div class="mermaid">
+sequenceDiagram
+  participant B as BASIC (PRINT#/SAVE)
+  participant P as PRTRS 0x85FB
+  participant G as Gate-array UART
+  participant L as RS-232C line
+  B->>P: byte to send
+  loop until ready
+    P->>G: read modem status 0x0006
+    Note over P: CS=C? wait CTS · DS=D? wait DSR
+    P->>P: RS2 bit1 set? (remote XOFF) → keep waiting
+  end
+  P->>G: poll status 0x0003 bit0 (TX ready, timeout + double-read)
+  P->>G: write data reg 0x0002
+  G->>L: start + data + parity + stop (hardware framing)
+  Note over G,L: CPU is free during shift-out —<br/>next byte queued as soon as TX-ready re-asserts
+</div>
+
+<h2 id="tokenize">7. Line-end BASIC tokenization delays</h2>
+
+<p>During <code>LOAD "COM0:…"</code> the interpreter reads a line up to CR, then <b>tokenizes and stores it</b> before reading on. Tokenization runs at task level with interrupts enabled, so incoming bytes keep landing in the ring buffer. The 256-byte buffer with the 192-byte XOFF threshold is precisely the mechanism that absorbs these stalls:</p>
+
+<div class="mermaid">
+sequenceDiagram
+  participant PC as Sender (PC)
+  participant ISR as INT1 ISR 0x83B9
+  participant BUF as Ring buffer (0x1559 count)
+  participant BAS as BASIC tokenizer
+  PC->>ISR: "100 FOR I=0 TO N-1" + CR
+  ISR->>BUF: store bytes (count rises)
+  BUF->>BAS: RSGET drains line up to CR
+  Note over BAS: tokenize + insert program line<br/>(long lines / renumber → slow)
+  PC->>ISR: next line bytes keep arriving
+  ISR->>BUF: count climbs during tokenization
+  alt count reaches 192 (Busy=B)
+    ISR->>PC: XOFF (0x13)
+    Note over PC: sender pauses
+    BAS->>BUF: tokenization done, RSGET drains
+    BUF-->>ISR: count drops below 32
+    ISR->>PC: XON (0x11) via RSGET
+    Note over PC: sender resumes
+  else Busy=N and count wraps 256
+    ISR->>BUF: RS4 = 0x01 (overflow)
+    Note over BAS: LOAD aborts with BV error
+  end
+</div>
+
+<p><b>Headroom arithmetic:</b> from an empty buffer the sender can stream 192 bytes before XOFF is triggered — at 4800 baud (≈2.3 ms/char with parity) that is ≈440 ms of continuous tokenization the Casio can hide without ever throttling; at 300 baud ≈7 s. This is why short BASIC lines load reliably even without flow control, while long dense lines at 4800 baud with <code>Busy=N</code> are exactly the case that produces BV errors. (The project's own MLLOADER hit this failure mode: its per-byte <code>INPUT #1</code> parsing was slow enough to overrun without XON/XOFF.)</p>
+
+<h2 id="routines">8. ROM routine reference</h2>
+
+<div class="tablewrap"><table>
+<tr><th>Address</th><th>Name</th><th>Role</th></tr>
+<tr><td><code>0x4E43</code></td><td>descriptor front-end</td><td>Pulls the device string; device-name match via table 0x149E (COM0 entry at 0x14A4, type 2)</td></tr>
+<tr><td><code>0x4EBD</code></td><td>COM0 parser</td><td>Parses the 9 fields into RS1 ($12) / RS3 ($13); helper 0x4F4E per letter-flag; speed via 0x4F83</td></tr>
+<tr><td><code>0x84EC</code></td><td>RSOPN</td><td>Open: programs gate-array regs 0x0003/0x0004/0x0005, clears buffer counters, enables INT1 (via 0x0174, IE bit 7)</td></tr>
+<tr><td><code>0x8563</code></td><td>RSCLO</td><td>Close: baud-scaled drain delay (0x86A3), disables INT1 (0x0179), resets gate array</td></tr>
+<tr><td><code>0x83B9</code></td><td>INT1 ISR</td><td>The only reader of the RX data register. Error checks → DSR/DCD gate → XON/XOFF consume → SI/SO → buffer store → XOFF threshold</td></tr>
+<tr><td><code>0x8590</code></td><td>RSGET</td><td>Consumer for INPUT#/LOAD: pulls from ring buffer (blocking helper 0x85D0), XON on low-water, raises BV/PO/FR/NR errors from RS4</td></tr>
+<tr><td><code>0x85FB</code></td><td>PRTRS</td><td>Full transmit for PRINT#/SAVE: CTS/DSR gate → XOFF-suspend gate → SI/SO → NTX0</td></tr>
+<tr><td><code>0x865C</code></td><td>NTX0</td><td>Low-level "put byte on the wire": wait 0x8678 then write 0x0002</td></tr>
+<tr><td><code>0x8662</code></td><td>ready check</td><td>Modem-status test: enabled CTS/DSR asserted?</td></tr>
+<tr><td><code>0x8678</code></td><td>TX-ready wait</td><td>Poll status bit 0 with timeout (0x0890) and double-read debounce</td></tr>
+<tr><td><code>0x8328</code></td><td>reg writer</td><td>Strobe/latch sequence into 0x0004/0x0005 with ≈3 ms delay (0x8335)</td></tr>
+<tr><td><code>0x86A3</code></td><td>baud delay</td><td>Nested delay loops scaled by the RS1 baud field</td></tr>
+<tr><td><code>0x0032→0x0D77→0x0D83</code></td><td>INT1 vector</td><td>ROM0 interrupt vector chain dispatching to 0x83B9</td></tr>
+</table></div>
+
+<h2 id="corrections">9. Corrections to earlier annotations &amp; emulator gaps</h2>
+
+<div class="caution">
+<p><b>Corrections to <code>reference/fx870p-rom-annotations.md</code>:</b> the label "COM0_Driver 0x1FB0" is a mislabel — 0x1FB0 is the interactive <i>"Ready" main loop</i> (it prints Ready and stores itself as the restart vector); the driver-registration machinery it participates in concerns <i>device-table presence</i>, not data transfer. Likewise "0x2ADF RS-232C receive stub" actually displays character 0x0C (CLS) on the current output device. The real serial driver is the 0x8314–0x86C2 block documented here.</p>
+<p><b>Documentation fix needed in <code>MLLOADER.md</code>:</b> it attributes overruns to "the 64-char UART buffer". The buffer is 256 bytes; the manual's figure of 64 is the <i>remaining headroom</i> when XOFF fires (256 − 192). The overrun explanation (slow per-byte BASIC parsing without XON/XOFF back-pressure) stands.</p>
+<p><b>Emulator gap:</b> both this emulator and the Delphi reference model only the byte stream + host-side XON/XOFF. Gate-array register 0x0006's CTS/DSR/DCD bits are not emulated (register 6 is used only for the cassette carrier bit), so <code>CS=C</code>/<code>DS=D</code>/<code>CD=C</code> opens that would work on real hardware will hang or NR-error differently in emulation. Anyone building a physical interface should test handshake modes on real hardware.</p>
+</div>
+
+<h2 id="practical">10. Practical recommendations for a reliable link</h2>
+<ul>
+  <li><b>Prefer XON/XOFF (<code>Busy=B</code>, the default).</b> It is honoured in both directions with generous thresholds and is the only flow control the receive path can initiate.</li>
+  <li><b>Text/hex payloads only when Busy=B</b> — 0x11/0x13 are consumed by the ISR. Hex-encode binaries (as MLLOADER does) or use <code>Busy=N</code> with sender-side pacing.</li>
+  <li><b>Hardware option:</b> wire PC RTS→Casio CTS and open with <code>CS=C</code> to let the PC throttle the Casio's transmitter. Do <i>not</i> rely on the Casio's RTS/DTR for flow control — they are static.</li>
+  <li><b>The PC side must honour XOFF within 64 characters</b> (the post-XOFF headroom). At 4800 baud that is ≈150 ms — trivial for hardware UART FIFOs, but beware large OS-level write buffers that keep draining after the application pauses.</li>
+  <li><b>4800 baud (<code>6</code>) is safe with flow control on;</b> the manual's advice to stay ≤2400 applies to unthrottled links.</li>
+  <li><b>No inter-character delay is needed on receive from the Casio</b> — its ISR keeps up at line rate; conversely when sending to the Casio during LOAD, either honour XOFF or budget for tokenization stalls at line ends.</li>
+</ul>
+
+<footer>
+Sources: ROM1 disassembly <code>reference/ROM Disassembly/fx870_r1/rom1a.src</code> (driver block lines ~12550–12982, parser ~6999–7178), <code>rom1c.src</code> (device table), <code>fx870_r0/rom0.src</code> (INT1 vector); FX-850P Owner's Manual parts 7 &amp; 9 (COM0 fields, DB-25 pinout); emulator <code>src/emulator/port.ts</code>/<code>comm.ts</code> and Delphi reference <code>reference/fx870_es/</code> (emulation model). All quoted disassembly verified against the listing. Diagrams render via mermaid (CDN); an internet connection is required for diagram rendering.
+</footer>
+
+</main>
+</body>
+</html>
