@@ -4,7 +4,7 @@ import { tokenizeProgram, parseListingText } from '../../../src/emulator/tokeniz
 import { parseSource, emitProgram, emitLine } from '../scan.js';
 import { findRefs } from '../refs.js';
 import { runPipeline, defaultOptions, lastRenameMap } from '../passes.js';
-import { programBytes } from '../bytes.js';
+import { programBytes, trueSourceBytes } from '../bytes.js';
 import { buildListing } from '../listing.js';
 
 const PROGRAMS = ['STREK.BAS', 'SORCERER.BAS'];
@@ -56,6 +56,18 @@ for (const name of PROGRAMS) {
       const reparsed = parseListingText(emitProgram(lines));
       const stream = tokenizeProgram(reparsed);
       expect(programBytes(lines)).toBe(stream.length);
+    });
+
+    it('reported source baseline is the true raw file size, not the parsed model', () => {
+      // The "before" figure crunch.ts reports must come from tokenizing the
+      // RAW file text (Ctrl-Z EOF marker stripped), not programBytes(original)
+      // -- the parsed model already normalizes comments/edge-spaces and so
+      // under-reports the real on-disk source size.
+      const eof = src.indexOf('\x1a');
+      const clean = eof === -1 ? src : src.slice(0, eof);
+      const expected = tokenizeProgram(parseListingText(clean)).length;
+      expect(trueSourceBytes(src)).toBe(expected);
+      if (name === 'STREK.BAS') expect(trueSourceBytes(src)).toBe(14548);
     });
   });
 }

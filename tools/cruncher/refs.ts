@@ -42,9 +42,19 @@ export function findRefs(lines: CrunchLine[]): LineRef[] {
               // scanning for further comma-separated targets. Single-target
               // keywords have nothing to recover into, so they still stop here.
               if (!LIST_KEYWORDS.has(word)) break;
+              if (t[k] === ',') {
+                // Empty list entry (e.g. "ON A GOTO 100,,300" -- the FX-850P
+                // manual makes each destination optional; an empty slot means
+                // fall-through, not "end of list"). There's nothing to consume
+                // here: leave i pointing at this comma so the next iteration's
+                // `!first` branch consumes it and advances to the next entry.
+                i = k;
+                first = false;
+                continue;
+              }
               let e = k;
               while (e < t.length && t[e] !== ',') e++;
-              if (e === k) break;            // malformed empty entry - stop safely
+              if (e === k) break;            // genuine end of list (no comma follows)
               i = e;
               first = false;
               continue;

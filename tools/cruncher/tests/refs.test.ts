@@ -32,6 +32,11 @@ describe('findRefs', () => {
     expect(refsOf('10 ON A GOTO #3,100,200\n')).toEqual(['GOTO:100', 'GOTO:200']);
     expect(refsOf('10 GOTO #7\n')).toEqual([]);
   });
+  it('handles empty ON..GOTO list slots (legal fall-through syntax)', () => {
+    expect(refsOf('10 ON A GOTO 100,,300\n')).toEqual(['GOTO:100', 'GOTO:300']);
+    expect(refsOf('10 ON A GOTO ,,100\n')).toEqual(['GOTO:100']);
+    expect(refsOf('10 ON A GOTO 100,,\n')).toEqual(['GOTO:100']);
+  });
 });
 
 describe('targetSet / findWarnings', () => {
