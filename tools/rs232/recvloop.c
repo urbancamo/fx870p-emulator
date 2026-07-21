@@ -91,6 +91,8 @@ int recv_stream(int serfd, int outfd, const recv_opts *o)
                     if (o->text_mode && b == 0x1A) { done = 1; break; }
                     ring_put(&r, b);
                     total++;
+                    if (o->verbose && (total % 256) == 0)
+                        fprintf(stderr, "fxrecv: %ld bytes received\n", total);
                 }
             }
         } else if (!done && polled) {
