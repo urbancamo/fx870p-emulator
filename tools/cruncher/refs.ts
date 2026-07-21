@@ -35,7 +35,20 @@ export function findRefs(lines: CrunchLine[]): LineRef[] {
             }
             let d = k;
             while (d < t.length && /[0-9]/.test(t[d])) d++;
-            if (d === k) break;              // no number here
+            if (d === k) {
+              // Not a bare line number (e.g. "#3" program-area entry). GOTO/GOSUB
+              // lists may mix these with line numbers, so skip over this entry's
+              // characters (entries can't contain commas or colons) and keep
+              // scanning for further comma-separated targets. Single-target
+              // keywords have nothing to recover into, so they still stop here.
+              if (!LIST_KEYWORDS.has(word)) break;
+              let e = k;
+              while (e < t.length && t[e] !== ',') e++;
+              if (e === k) break;            // malformed empty entry - stop safely
+              i = e;
+              first = false;
+              continue;
+            }
             out.push({ fromNum: line.num, target: parseInt(t.slice(k, d), 10), kind: word });
             i = d;
             first = false;
@@ -61,6 +74,10 @@ export function findWarnings(lines: CrunchLine[]): string[] {
         if (seg.code && /\bERL\b/i.test(seg.text)) {
           warnings.push(
             `line ${line.num}: ERL comparison couples logic to line numbers - left untouched`);
+        }
+        if (seg.code && /\bRESTORE\s*\(/i.test(seg.text)) {
+          warnings.push(
+            `line ${line.num}: computed RESTORE target - referenced line cannot be statically protected`);
         }
       }
     }

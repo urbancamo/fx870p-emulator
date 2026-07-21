@@ -27,6 +27,11 @@ describe('findRefs', () => {
   it('ignores numbers inside strings', () => {
     expect(refsOf('10 PRINT "GOTO 999"\n')).toEqual([]);
   });
+  it('skips non-numeric ON..GOTO entries but keeps later targets', () => {
+    expect(refsOf('10 ON A GOTO 100,#3,400\n')).toEqual(['GOTO:100', 'GOTO:400']);
+    expect(refsOf('10 ON A GOTO #3,100,200\n')).toEqual(['GOTO:100', 'GOTO:200']);
+    expect(refsOf('10 GOTO #7\n')).toEqual([]);
+  });
 });
 
 describe('targetSet / findWarnings', () => {
@@ -38,5 +43,9 @@ describe('targetSet / findWarnings', () => {
     const w = findWarnings(parseSource('10 IF ERL=270 THEN 20\n20 GOTO 999\n'));
     expect(w.some(x => x.includes('ERL') && x.includes('10'))).toBe(true);
     expect(w.some(x => x.includes('999'))).toBe(true);
+  });
+  it('warns on computed RESTORE targets', () => {
+    const w = findWarnings(parseSource('10 RESTORE (100)\n'));
+    expect(w.some(x => x.includes('computed RESTORE'))).toBe(true);
   });
 });
