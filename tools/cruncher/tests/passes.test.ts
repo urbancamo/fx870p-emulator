@@ -51,4 +51,8 @@ describe('passRewrites', () => {
     const out = passRewrites(parseSource('10 LETTER=1\n'), opts);
     expect(out[0].stmts).toEqual(['LETTER=1']);
   });
+  it('strips LET after THEN and ELSE', () => {
+    const out = passRewrites(parseSource('10 IF A THEN LET B=1 ELSE LET C=2\n'), opts);
+    expect(out[0].stmts[0]).toBe('IF A THEN B=1 ELSE C=2');
+  });
 });

@@ -1,4 +1,4 @@
-import { CrunchLine, codeSegments, headKeyword } from './scan.js';
+import { CrunchLine, codeSegments } from './scan.js';
 import { targetSet } from './refs.js';
 import { programBytes } from './bytes.js';
 
@@ -52,6 +52,8 @@ export function passRewrites(lines: CrunchLine[], opts: CrunchOptions): CrunchLi
       let s = mapCode(stmt, c => c.replace(/\b(THEN|ELSE)\s+GOTO\s*(?=\d)/gi,
         (_, kw: string) => kw.toUpperCase() + ' '));
       s = mapCode(s, c => c.replace(/(^|:)\s*LET\b\s*/gi, '$1'));
+      s = mapCode(s, c => c.replace(/\b(THEN|ELSE)\s+LET\b\s*/gi,
+        (_, kw: string) => kw.toUpperCase() + ' '));
       return s;
     });
     const changed = stmts.some((s, i) => s !== line.stmts[i]);
