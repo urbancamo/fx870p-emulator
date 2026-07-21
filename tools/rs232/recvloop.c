@@ -43,9 +43,10 @@ int recv_stream(int serfd, int outfd, const recv_opts *o)
         fd_set rfds, wfds;
         struct timeval tv;
         int maxfd = serfd;
+        int polled = 0;
 
         FD_ZERO(&rfds); FD_ZERO(&wfds);
-        if (!done && r.count < RING_SIZE - 8) FD_SET(serfd, &rfds);
+        if (!done && r.count < RING_SIZE) { FD_SET(serfd, &rfds); polled = 1; }
         if (r.count > 0) {
             FD_SET(outfd, &wfds);
             if (outfd > maxfd) maxfd = outfd;
@@ -59,10 +60,14 @@ int recv_stream(int serfd, int outfd, const recv_opts *o)
         if (FD_ISSET(serfd, &rfds)) {
             unsigned char in[256], dec[256];
             ssize_t n;
+            size_t room = RING_SIZE - r.count;
+            size_t want = room < sizeof in ? room : sizeof in;
             /* Retry on EINTR (consistent with sendloop's EINTR policy)
-             * rather than treating a signal interruption as a read error. */
+             * rather than treating a signal interruption as a read error.
+             * Cap the read at the ring's free space so ring_put() (which
+             * has no bounds check of its own) can never overrun. */
             for (;;) {
-                n = read(serfd, in, sizeof in);
+                n = read(serfd, in, want);
                 if (n < 0 && errno == EINTR) continue;
                 break;
             }
@@ -80,7 +85,10 @@ int recv_stream(int serfd, int outfd, const recv_opts *o)
                     total++;
                 }
             }
-        } else if (!done) {
+        } else if (!done && polled) {
+            /* Only count idle time when serfd was actually polled and
+             * produced nothing; a full ring skips polling serfd, and
+             * that backpressure must not be mistaken for idleness. */
             idle_ms += 100;
             if (o->idle_timeout_s > 0 && idle_ms >= o->idle_timeout_s * 1000) {
                 if (o->verbose)
