@@ -141,7 +141,7 @@ docs/                 Implementation notes
 
 ## Developer Tools
 
-Beyond the browser emulator, this repo ships two Node.js tools for compiling and debugging HD61700 machine code, plus a pair of POSIX C utilities for transferring programs to real hardware:
+Beyond the browser emulator, this repo ships three Node.js tools for compiling, compressing, and debugging Casio BASIC and HD61700 machine code, plus a pair of POSIX C utilities for transferring programs to real hardware:
 
 ### BASIC Compiler — [`tools/compiler/`](tools/compiler/README.md)
 
@@ -160,6 +160,15 @@ Library and CLI for driving the emulator programmatically. Breakpoints, memory w
 npm run debug -- run <binary.bin>     # run + show LCD
 npm run debug -- trace <binary.bin>   # log every instruction
 npm run debug -- step <binary.bin>    # interactive single-step
+```
+
+### BASIC Cruncher — [`tools/cruncher/`](tools/cruncher/)
+
+Shrinks a Casio JIS BASIC program's stored size (typically 8–29% on the bundled library) without renumbering: reference-aware comment removal, `THEN GOTO`/`LET` rewrites, space stripping, DATA grouping, line merging, and optional variable renaming at `--level 2`. Byte counts come from the emulator's own tokenizer, so the reported savings are exact — see [how BASIC tokens are stored](docs/basic-token-storage.md) for the storage model that drives the strategy. Produces a crunched `.min.BAS` plus a 132-column before/after listing with per-pass statistics.
+
+```bash
+npm run crunch -- PROGRAM.BAS              # → PROGRAM.min.BAS + PROGRAM.crunch.lst
+npm run crunch -- PROGRAM.BAS --level 2    # adds variable renaming / NEXT stripping
 ```
 
 ### RS-232C transfer utilities — [`tools/rs232/`](tools/rs232/README.md)
