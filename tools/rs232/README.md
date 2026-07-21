@@ -160,6 +160,11 @@ printf 'HELLO\n' | ./build/bin/fxsend -C 0 -L 0 -b &
 | Received text is garbled or has wrong characters      | Parity mismatch between the two ends                                          | Confirm `-c` matches exactly what the calculator's `LOAD`/`SAVE` string specifies, field for field, especially the parity (`E`/`O`/`N`) and data-bit count |
 | Nothing is received at all                            | Wrong device node, or TX/RX not crossed                                       | On macOS use the `/dev/cu.usbserial-*` node, not `/dev/tty.usbserial-*` (the `tty` variant blocks open waiting for carrier detect); double-check TXD/RXD are crossed between the calculator and the adapter, not wired straight through |
 
+## Hardware verification
+
+Verified against a real FX-870P over an FTDI USB-to-RS-232 adapter (July 2026):
+program transfer in both directions works without issues.
+
 ## See also
 
 - [`../../docs/serial-comms-deep-dive.html`](../../docs/serial-comms-deep-dive.html) — full ROM
