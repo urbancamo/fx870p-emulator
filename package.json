@@ -12,6 +12,7 @@
     "compile": "tsx tools/compiler/compile.ts",
     "debug": "tsx tools/emu-debugger/cli.ts",
     "dis": "tsx tools/dis.ts",
+    "crunch": "tsx tools/cruncher/crunch.ts",
     "test": "vitest run"
   },
   "dependencies": {

@@ -73,7 +73,13 @@ export function codeSegments(s: string): { code: boolean; text: string }[] {
 }
 
 export function parseSource(src: string): CrunchLine[] {
-  return parseListingText(src).map(({ num, text }) => {
+  // Programs captured via serial transfer end with a trailing Ctrl-Z (0x1A)
+  // EOF marker (see comm.ts's SAVE/AppendEof handling) -- it's not a program
+  // line, so drop it and anything after before handing off to the tokenizer's
+  // strict line parser.
+  const eof = src.indexOf('\x1a');
+  const clean = eof === -1 ? src : src.slice(0, eof);
+  return parseListingText(clean).map(({ num, text }) => {
     const { stmts, comment } = splitBody(text);
     return { num, stmts, comment, origins: [num], notes: [] };
   });
@@ -87,5 +93,14 @@ export function emitLine(l: CrunchLine): string {
 }
 
 export function emitProgram(lines: CrunchLine[]): string {
-  return lines.map(l => (`${l.num} ` + emitLine(l)).trimEnd()).join('\n') + '\n';
+  // A truly empty body (e.g. a comment-only jump target with its comment
+  // stripped, see passComments) can't round-trip through parseListingText:
+  // it trims the whole line before requiring line-number + whitespace + rest,
+  // so "100" with nothing after it fails to parse back at all. A single ':'
+  // (empty statement separator -- a no-op in this dialect) keeps the line
+  // parseable while staying byte-neutral: emitLine still rejoins to ''.
+  return lines.map(l => {
+    const body = emitLine(l);
+    return body === '' ? `${l.num} :` : `${l.num} ${body}`.trimEnd();
+  }).join('\n') + '\n';
 }
