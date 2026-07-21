@@ -92,15 +92,21 @@ export function emitLine(l: CrunchLine): string {
   return s;
 }
 
+// A truly empty body (e.g. a comment-only jump target with its comment
+// stripped, see passComments) can't round-trip through parseListingText:
+// it trims the whole line before requiring line-number + whitespace + rest,
+// so "100" with nothing after it fails to parse back at all. A single ':'
+// (empty statement separator -- a no-op in this dialect) keeps the line
+// parseable while staying byte-neutral: emitLine still rejoins to ''.
+// This is the single source of truth for what actually lands in the file --
+// bytes.ts's programBytes must count these bytes too, not emitLine's ideal
+// (and sometimes empty) form, or reported sizes would understate the real
+// on-disk/on-device size.
+export function emitBodyForFile(l: CrunchLine): string {
+  const body = emitLine(l);
+  return body === '' ? ':' : body;
+}
+
 export function emitProgram(lines: CrunchLine[]): string {
-  // A truly empty body (e.g. a comment-only jump target with its comment
-  // stripped, see passComments) can't round-trip through parseListingText:
-  // it trims the whole line before requiring line-number + whitespace + rest,
-  // so "100" with nothing after it fails to parse back at all. A single ':'
-  // (empty statement separator -- a no-op in this dialect) keeps the line
-  // parseable while staying byte-neutral: emitLine still rejoins to ''.
-  return lines.map(l => {
-    const body = emitLine(l);
-    return body === '' ? `${l.num} :` : `${l.num} ${body}`.trimEnd();
-  }).join('\n') + '\n';
+  return lines.map(l => `${l.num} ${emitBodyForFile(l)}`.trimEnd()).join('\n') + '\n';
 }

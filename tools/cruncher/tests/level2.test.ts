@@ -6,13 +6,17 @@ const l2 = (src: string) =>
   passLevel2(parseSource(src), { ...defaultOptions(), level: 2 as const });
 
 describe('passLevel2 renaming', () => {
-  it('renames multi-char variables to shortest free names, keyed with $', () => {
+  it('renames multi-char variables to shortest free names, but leaves NAME$ untouched', () => {
+    // NAME$ tokenizes as the bare keyword NAME followed by a stray '$' byte
+    // (not a single identifier), so it must never be renamed -- see
+    // isReservedToken's comment in passes.ts.
     const out = l2('10 SCORE=1:TOTAL=SCORE+1:PRINT NAME$\n');
     const s = out[0].stmts.join(':');
     expect(s).not.toMatch(/SCORE|TOTAL/);
     expect(s).toMatch(/[A-Z]=1:[A-Z]=[A-Z]\+1/);
-    expect(s).toMatch(/PRINT [A-Z]\$/);
-    expect([...lastRenameMap().keys()].sort()).toEqual(['NAME$', 'SCORE', 'TOTAL']);
+    expect(s).toContain('PRINT NAME$');
+    expect([...lastRenameMap().keys()].sort()).toEqual(['SCORE', 'TOTAL']);
+    expect(lastRenameMap().has('NAME$')).toBe(false);
   });
   it('never renames inside strings or keywords, never collides with used names', () => {
     const out = l2('10 A=1:COUNT=2:PRINT "COUNT"\n');

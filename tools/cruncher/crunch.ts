@@ -46,10 +46,11 @@ const warnings = findWarnings(original);
 const { lines, snapshots } = runPipeline(original, opts);
 
 // verify: reference graph closes
-const finalWarnings = [...warnings, ...findWarnings(lines).filter(w => w.includes('nonexistent'))];
-const dangling = findWarnings(lines).filter(w => w.includes('nonexistent'));
+const resultWarnings = findWarnings(lines);
+const dangling = resultWarnings.filter(w => w.includes('nonexistent'));
+const finalWarnings = [...warnings, ...dangling];
 if (dangling.length > 0) {
-  console.error('ERROR: crunched program has dangling line references:');
+  console.error('ERROR: program contains dangling line references (present in the source):');
   for (const d of dangling) console.error('  ' + d);
   process.exit(2);
 }

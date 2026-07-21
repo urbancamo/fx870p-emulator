@@ -88,18 +88,19 @@ export function buildListing(args: {
   const out: string[] = [];
   let page = 0;
   let rowOnPage = PAGE_ROWS; // force header on first row
+  const clamp = (s: string) => s.length > width ? s.slice(0, width) : s;
   const emitHeader = () => {
     page++;
     if (page > 1) out.push('\f');
-    out.push(
-      `Casio BASIC Cruncher V1.0  ${args.sourceName.padEnd(40)} ${stamp}   Page ${String(page).padStart(3)}`);
-    out.push(`Source -> Optimized   Level ${args.opts.level}  (${passNames})`);
+    out.push(clamp(
+      `Casio BASIC Cruncher V1.0  ${args.sourceName.padEnd(40)} ${stamp}   Page ${String(page).padStart(3)}`));
+    out.push(clamp(`Source -> Optimized   Level ${args.opts.level}  (${passNames})`));
     out.push('');
     rowOnPage = 3;
   };
   const push = (s: string) => {
     if (rowOnPage >= PAGE_ROWS) emitHeader();
-    out.push(s.length > width ? s.slice(0, width) : s);
+    out.push(clamp(s));
     rowOnPage++;
   };
   push(`  OLD  SOURCE${' '.repeat(col - 6)} |   NEW  OPTIMIZED`);

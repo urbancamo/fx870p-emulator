@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { tokenizeProgram, parseListingText } from '../../../src/emulator/tokenize.js';
 import { parseSource, emitProgram, emitLine } from '../scan.js';
 import { findRefs } from '../refs.js';
-import { runPipeline, defaultOptions } from '../passes.js';
+import { runPipeline, defaultOptions, lastRenameMap } from '../passes.js';
 import { programBytes } from '../bytes.js';
 import { buildListing } from '../listing.js';
 
@@ -48,5 +48,40 @@ for (const name of PROGRAMS) {
       expect(lst).toContain(String(before));
       expect(lst).toContain(String(after));
     });
+
+    it('reported byte count equals real re-tokenized file bytes', () => {
+      // programBytes must reflect exactly what emitProgram writes to disk
+      // (including the ':' placeholder body used for empty-body lines), not
+      // an idealised emitLine() value that never appears in the file.
+      const reparsed = parseListingText(emitProgram(lines));
+      const stream = tokenizeProgram(reparsed);
+      expect(programBytes(lines)).toBe(stream.length);
+    });
   });
 }
+
+describe('acceptance: reserved-base rename guard', () => {
+  it('level 2 over STREK.BAS never mangles INPUT$', () => {
+    const src = readFileSync('public/basic/emulator/STREK.BAS', 'latin1');
+    const original = parseSource(src);
+    const { lines } = runPipeline(original, { ...defaultOptions(), level: 2 });
+    const emitted = emitProgram(lines);
+    expect(emitted).toContain('INPUT$(');
+    expect(lastRenameMap().has('INPUT$')).toBe(false);
+    expect(/=[A-Z][0-9]?\$\(1\)/.test(emitted)).toBe(false);
+  });
+});
+
+describe('acceptance: listing width clamp', () => {
+  it('header rows and body rows never exceed the requested width', () => {
+    const src = '10 PRINT "HELLO WORLD, THIS IS A REASONABLY LONG LINE OF BASIC CODE FOR TESTING"\n20 GOTO 10\n';
+    const original = parseSource(src);
+    const { lines, snapshots } = runPipeline(original, defaultOptions());
+    const lst = buildListing({
+      sourceName: 'SMALL.BAS', original, result: lines, snapshots,
+      warnings: [], renames: new Map(), opts: defaultOptions(), width: 80,
+      now: new Date('2026-07-21T12:00:00Z'),
+    });
+    for (const row of lst.split('\n')) expect(row.length).toBeLessThanOrEqual(80);
+  });
+});

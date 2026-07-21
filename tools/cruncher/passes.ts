@@ -181,29 +181,34 @@ const RESERVED = new Set<string>(
     .filter((w): w is string => typeof w === 'string' && /^[A-Z]/.test(w))
     .map(w => w.toUpperCase()));
 
-// Reserved-ness is checked against the FULL matched identifier (with its
-// trailing '$' still attached, if any) -- never against the dollar-stripped
-// base. That matters for two distinct reasons:
-//  - Builtin string functions tokenize as a single unit that includes the
-//    '$' (MID$, LEFT$, RIGHT$, CHR$, STR$, HEX$, INKEY$, CALC$, DMS$ are
-//    listed in the prefix tables with the '$' already attached) -- a user
-//    identifier only collides with these if the '$' matches too.
-//  - Conversely, the real tokenizer (see matchKeyword's word-boundary check
-//    in tokenize.ts) does NOT treat a trailing '$' as continuing a keyword
-//    match for keywords that don't themselves end in '$': "NAME$" or "PI$"
-//    tokenize as the bare keyword (NAME/PI) followed by a stray '$' byte,
-//    NOT as a blocked identifier. So a base-only match (stripping the '$'
-//    first) would wrongly treat e.g. "NAME$" as colliding with the NAME
-//    statement keyword, when in this dialect it never did to begin with.
-//
-// A handful of keywords also tokenize with a trailing '#' (WRITE#, RAN#)
-// that IDENT_RE never captures (it only ever captures a trailing '$', never
-// '#', since no user variable can end in '#'). Without the extra `id + '#'`
-// check, source text like "RAN#" or "WRITE#" would be seen as the bare
-// identifiers RAN / WRITE, which aren't themselves in RESERVED (only
-// "RAN#"/"WRITE#" are) -- silently renaming them would corrupt the keyword.
+// Reserved-ness is checked against the full matched identifier, its
+// trailing-'$'-stripped base, AND the full identifier with a trailing '#'
+// appended:
+//  - RESERVED.has(id) catches builtins that tokenize as a single unit
+//    including the '$' (MID$, LEFT$, RIGHT$, CHR$, STR$, HEX$, INKEY$,
+//    CALC$, DMS$ are listed in the prefix tables with the '$' already
+//    attached) as well as bare keywords.
+//  - RESERVED.has(base) catches builtins whose token-table entry omits the
+//    trailing '$' even though the source always spells it with one -- e.g.
+//    the INPUT$ function is stored in the prefix tables as bare 'INPUT', so
+//    without this check the identifier INPUT$ slips through the census and
+//    level 2 renames it into garbage (K$=INPUT$(1) becomes K$=A$(1), calling
+//    a function that no longer exists). This deliberately re-blocks renaming
+//    of NAME$-style user identifiers too: the real tokenizer (see
+//    matchKeyword's word-boundary check in tokenize.ts) treats "NAME$" as
+//    the bare keyword NAME followed by a stray '$' byte, not as a single
+//    identifier -- since the token table can't distinguish that case from
+//    INPUT$'s, leaving NAME$ untouched is the only safe choice.
+//  - RESERVED.has(id + '#') catches keywords that tokenize with a trailing
+//    '#' (WRITE#, RAN#) that IDENT_RE never captures (it only ever captures
+//    a trailing '$', never '#', since no user variable can end in '#').
+//    Without this check, source text like "RAN#" or "WRITE#" would be seen
+//    as the bare identifiers RAN / WRITE, which aren't themselves in
+//    RESERVED (only "RAN#"/"WRITE#" are) -- silently renaming them would
+//    corrupt the keyword.
 function isReservedToken(id: string): boolean {
-  return RESERVED.has(id) || RESERVED.has(id + '#');
+  const base = id.endsWith('$') ? id.slice(0, -1) : id;
+  return RESERVED.has(id) || RESERVED.has(base) || RESERVED.has(id + '#');
 }
 
 let renameMap = new Map<string, string>();
