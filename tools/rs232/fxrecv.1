@@ -1,0 +1,68 @@
+.TH FXRECV 1 "July 2026" "fx870p-emulator" "User Commands"
+.SH NAME
+fxrecv \- receive a program from a Casio FX-870P / VX-4 over RS-232C
+.SH SYNOPSIS
+.B fxrecv
+.RB [ \-f
+.IR file ]
+.RB [ \-d
+.IR device ]
+.RB [ \-c
+.IR commstring ]
+.RB [ \-t
+.IR seconds ]
+.RB [ \-b ]
+.RB [ \-v ]
+.SH DESCRIPTION
+.B fxrecv
+captures a program saved from a Casio FX-870P or VX-4 with
+.B SAVE \(dqCOM0:...\(dq
+(or output printed with
+.BR "PRINT #" ).
+With no
+.B \-f
+option the data is written to standard output. In the default text
+mode CR bytes are dropped (CR/LF becomes LF) and the transfer ends at
+the calculator's EOF byte (0x1A), which is not written.
+.PP
+If the internal buffer fills faster than the output can drain,
+.B fxrecv
+transmits XOFF to the calculator and XON when space is available,
+mirroring the ROM's own flow control.
+.SH OPTIONS
+.TP
+.BI \-f " file"
+Write to
+.IR file .
+.TP
+.BI \-d " device"
+Serial device; defaults to
+.BR FXPORT .
+.TP
+.BI \-c " commstring"
+Calculator communication string, as in
+.BR fxsend (1).
+Default
+.BR 2,E,8,1,N,N,N,B,N .
+.TP
+.BI \-t " seconds"
+End the transfer after this many seconds of line silence. Default 0
+(wait for EOF) in text mode; 5 in binary mode, which has no EOF
+marker.
+.TP
+.B \-b
+Binary mode: keep CR bytes and do not stop at 0x1A.
+.TP
+.B \-v
+Report progress and flow-control events on standard error.
+.SH EXIT STATUS
+0 on success (EOF or idle timeout), 1 on usage errors, 2 on I/O errors.
+.SH EXAMPLES
+.nf
+fxrecv \-d /dev/cu.usbserial\-A50285BI \-c 6,N,8,1,N,N,N,B,N \-f SAVED.BAS
+.fi
+.PP
+On the calculator:
+.B SAVE \(dqCOM0:6,N,8,1,N,N,N,B,N\(dq
+.SH SEE ALSO
+.BR fxsend (1)

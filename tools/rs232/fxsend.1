@@ -1,0 +1,91 @@
+.TH FXSEND 1 "July 2026" "fx870p-emulator" "User Commands"
+.SH NAME
+fxsend \- send a program to a Casio FX-870P / VX-4 over RS-232C
+.SH SYNOPSIS
+.B fxsend
+.RB [ \-f
+.IR file ]
+.RB [ \-d
+.IR device ]
+.RB [ \-c
+.IR commstring ]
+.RB [ \-C
+.IR char_ms ]
+.RB [ \-L
+.IR line_ms ]
+.RB [ \-b ]
+.RB [ \-v ]
+.SH DESCRIPTION
+.B fxsend
+streams a BASIC program (or arbitrary text) to a Casio FX-870P or VX-4
+pocket computer over a serial line. The calculator should be running
+.B LOAD \(dqCOM0:...\(dq
+with a matching communication string.
+.PP
+With no
+.B \-f
+option the program is read from standard input, so it can be used in
+pipelines. In the default text mode, bare line feeds are converted to
+CR/LF pairs and a terminating EOF byte (0x1A) is appended if missing.
+.PP
+Flow control follows the calculator's ROM behaviour: when the
+calculator transmits XOFF (its 256-byte receive buffer is 75% full),
+.B fxsend
+pauses within one character time and resumes on XON. Each byte is
+drained to the wire before the next is queued, so an XOFF is never
+answered with more than one in-flight character (the calculator
+guarantees 64 bytes of headroom).
+.SH OPTIONS
+.TP
+.BI \-f " file"
+Read from
+.I file
+instead of standard input.
+.TP
+.BI \-d " device"
+Serial device (e.g. /dev/cu.usbserial-XXXX on macOS,
+/dev/ttyUSB0 on Linux). Defaults to the
+.B FXPORT
+environment variable.
+.TP
+.BI \-c " commstring"
+Communication parameters in the calculator's own syntax:
+.IR speed,parity,data,stop,CS,DS,CD,busy,code ,
+optionally prefixed with
+.BR COM0: .
+Speed 1=150 up to 6=4800 baud. Empty or omitted trailing fields keep
+their defaults. The default is the calculator's power-on default,
+.BR 2,E,8,1,N,N,N,B,N .
+.TP
+.BI \-C " ms"
+Delay after every character (default 5). May be 0 when XON/XOFF
+(busy=B) is enabled.
+.TP
+.BI \-L " ms"
+Additional delay after each line (default 100). Covers the
+calculator's per-line BASIC tokenization stall during LOAD.
+.TP
+.B \-b
+Binary mode: no newline conversion and no EOF byte. Note that with
+busy=B the calculator consumes bytes 0x11/0x13 as flow control, so
+binary data must avoid them (hex-encode instead).
+.TP
+.B \-v
+Report progress and flow-control events on standard error.
+.SH EXIT STATUS
+0 on success, 1 on usage errors, 2 on I/O errors.
+.SH EXAMPLES
+Send a program at 4800 baud, no parity:
+.PP
+.nf
+fxsend \-d /dev/cu.usbserial\-A50285BI \-c 6,N,8,1,N,N,N,B,N \-f SORCERER.BAS
+.fi
+.PP
+On the calculator first enter:
+.B LOAD \(dqCOM0:6,N,8,1,N,N,N,B,N\(dq
+.SH SEE ALSO
+.BR fxrecv (1)
+.SH HISTORY
+The flow-control behaviour implemented here was reverse-engineered
+from the FX-870P ROM; see docs/serial-comms-deep-dive.html in the
+fx870p-emulator repository.

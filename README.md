@@ -161,6 +161,15 @@ npm run debug -- trace <binary.bin>   # log every instruction
 npm run debug -- step <binary.bin>    # interactive single-step
 ```
 
+### RS-232C transfer utilities — [`tools/rs232/`](tools/rs232/README.md)
+
+`fxsend`/`fxrecv` for real FX-870P/VX-4 hardware — POSIX C command-line utilities that LOAD/SAVE BASIC programs over a genuine RS-232C serial link, with flow control and timing reverse-engineered from the ROM's own driver.
+
+```bash
+./fxsend -c 6,N,8,1,N,N,N,B,N -f SORCERER.BAS
+./fxrecv -c 6,N,8,1,N,N,N,B,N -f SAVED.BAS
+```
+
 ## Reference Documents
 
 | Document                                                                    | Description                                        |
