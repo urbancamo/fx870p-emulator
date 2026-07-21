@@ -105,6 +105,11 @@
     "description": "HP-style reverse polish notation calculator with 4-level stack — add, subtract, multiply, divide"
   },
   {
+    "file": "JAMONCITO.BAS",
+    "name": "Jamoncito FX",
+    "description": "Amateur radio QSO logger by EI3LH — log up to 50 contacts with software clock, CSV export via floppy/RS-232, and printer support"
+  },
+  {
     "file": "SORCERER.BAS",
     "name": "Sorcerer's Cave",
     "description": "Board game adaptation — explore a labyrinth, recruit creatures, fight monsters, collect treasure, and escape alive. Run CLEAR 11000,17000 before RUN"
