@@ -134,13 +134,14 @@ tools/
   charset-table.ts    Generate character set HTML table (docs/charset-table.html)
   compiler/           Casio JIS BASIC → HD61700 machine code compiler (README inside)
   emu-debugger/       Headless debugger library + CLI (README inside)
+  rs232/              fxsend/fxrecv serial transfer utilities in C (README inside)
 reference/            Documentation and Delphi source
 docs/                 Implementation notes
 ```
 
 ## Developer Tools
 
-Beyond the browser emulator, this repo ships two Node.js tools for compiling and debugging HD61700 machine code:
+Beyond the browser emulator, this repo ships two Node.js tools for compiling and debugging HD61700 machine code, plus a pair of POSIX C utilities for transferring programs to real hardware:
 
 ### BASIC Compiler — [`tools/compiler/`](tools/compiler/README.md)
 
