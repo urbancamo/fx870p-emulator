@@ -145,7 +145,7 @@ export function passMerge(lines: CrunchLine[], opts: CrunchOptions): CrunchLine[
         pred.stmts.push(...next.stmts);
         pred.comment = next.comment;
         pred.origins.push(...next.origins);
-        pred.notes.push(`merged line ${next.num}`);
+        pred.notes.push(...next.notes, `merged line ${next.num}`);
         out.splice(i + 1, 1);
         continue; // try to chain further merges into pred
       }
