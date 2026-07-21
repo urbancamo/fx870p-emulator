@@ -18,7 +18,10 @@ static int poll_incoming(int serfd, int honor, int *paused, int verbose)
     for (;;) {
         ssize_t n = read(serfd, &b, 1);
         if (n == 0) return 0;
-        if (n < 0) return (errno == EAGAIN || errno == EWOULDBLOCK) ? 0 : -1;
+        if (n < 0) {
+            if (errno == EINTR) continue;
+            return (errno == EAGAIN || errno == EWOULDBLOCK) ? 0 : -1;
+        }
         if (honor && b == 0x13) {
             *paused = 1;
             if (verbose) fprintf(stderr, "fxsend: XOFF received, pausing\n");
@@ -49,10 +52,24 @@ static int wait_unpaused(int serfd, int honor, int *paused, int verbose)
 
 static int put_byte(int serfd, unsigned char b, const send_opts *o, int *paused)
 {
+    ssize_t w;
+
     if (poll_incoming(serfd, o->honor_xonxoff, paused, o->verbose) < 0) return -1;
     if (wait_unpaused(serfd, o->honor_xonxoff, paused, o->verbose) < 0) return -1;
-    if (write(serfd, &b, 1) != 1) return -1;
-    if (tcdrain(serfd) < 0 && errno != EINVAL) return -1; /* EINVAL: ptys on some OSes */
+    /* A 1-byte write cannot be partial on success; retry on EINTR or a
+     * spurious 0 return until the byte is actually written. */
+    for (;;) {
+        w = write(serfd, &b, 1);
+        if (w == 1) break;
+        if (w < 0 && errno != EINTR) return -1;
+    }
+    /* EINVAL: ptys on some OSes */
+    for (;;) {
+        if (tcdrain(serfd) == 0) break;
+        if (errno == EINTR) continue;
+        if (errno == EINVAL) break;
+        return -1;
+    }
     if (o->char_delay_ms > 0) msleep(o->char_delay_ms);
     if (b == 0x0A && o->line_delay_ms > 0) msleep(o->line_delay_ms);
     return 0;
@@ -74,8 +91,11 @@ int send_stream(int serfd, int infd, const send_opts *o)
     /* Serial fd must be non-blocking for poll_incoming. */
     fcntl(serfd, F_SETFL, fcntl(serfd, F_GETFL, 0) | O_NONBLOCK);
 
-    while ((n = read(infd, inbuf, sizeof inbuf)) > 0) {
+    for (;;) {
         ssize_t i;
+        n = read(infd, inbuf, sizeof inbuf);
+        if (n < 0 && errno == EINTR) continue;
+        if (n <= 0) break;
         for (i = 0; i < n; i++) {
             unsigned char b = inbuf[i];
             /* Text mode: bare LF becomes CR LF */
