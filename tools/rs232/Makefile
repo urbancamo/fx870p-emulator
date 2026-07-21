@@ -1,9 +1,12 @@
 # RS-232C utilities for the Casio FX-870P / VX-4.
-# POSIX make + c89-friendly. Override CC/CFLAGS for odd platforms:
+# POSIX make + c89-friendly. Macros use plain '=', not the GNU-only '?=',
+# so this also builds under native/strict make (e.g. Tru64) -- command-line
+# overrides like `make CC=cc` still win over these '=' assignments.
+# Override CC/CFLAGS for odd platforms:
 #   Tru64:  make CC=cc CFLAGS="-O"
-CC      ?= cc
-CFLAGS  ?= -O2 -Wall -Wextra
-PREFIX  ?= /usr/local
+CC      = cc
+CFLAGS  = -O2 -Wall -Wextra
+PREFIX  = /usr/local
 
 CORE_OBJS = commstr.o siso.o serial.o sendloop.o recvloop.o
 

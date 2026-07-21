@@ -29,15 +29,22 @@ int recv_stream(int serfd, int outfd, const recv_opts *o)
     ring r;
     siso_state ss;
     int throttled = 0, done = 0;
+    int rc = 0;
     long total = 0;
     int idle_ms = 0;
     int high = o->test_highwater ? o->test_highwater : HIGH_WATER;
     int low  = o->test_lowwater  ? o->test_lowwater  : LOW_WATER;
+    int saved_ofl;
 
     memset(&r, 0, sizeof r);
     siso_init(&ss);
     fcntl(serfd, F_SETFL, fcntl(serfd, F_GETFL, 0) | O_NONBLOCK);
-    fcntl(outfd, F_SETFL, fcntl(outfd, F_GETFL, 0) | O_NONBLOCK);
+    /* outfd may be a terminal (e.g. stdout) whose O_NONBLOCK flag is
+     * shared via the open file description with the invoking shell;
+     * save it here and restore it on every exit path below so we never
+     * leave the user's tty in non-blocking mode. */
+    saved_ofl = fcntl(outfd, F_GETFL, 0);
+    fcntl(outfd, F_SETFL, saved_ofl | O_NONBLOCK);
 
     while (!done || r.count > 0) {
         fd_set rfds, wfds;
@@ -54,7 +61,8 @@ int recv_stream(int serfd, int outfd, const recv_opts *o)
         tv.tv_sec = 0; tv.tv_usec = 100000;   /* 100 ms tick for idle timer */
         if (select(maxfd + 1, &rfds, &wfds, NULL, &tv) < 0) {
             if (errno == EINTR) continue;
-            return -1;
+            rc = -1;
+            break;
         }
 
         if (FD_ISSET(serfd, &rfds)) {
@@ -71,7 +79,7 @@ int recv_stream(int serfd, int outfd, const recv_opts *o)
                 if (n < 0 && errno == EINTR) continue;
                 break;
             }
-            if (n < 0 && errno != EAGAIN) return -1;
+            if (n < 0 && errno != EAGAIN) { rc = -1; break; }
             if (n > 0) {
                 size_t m, i;
                 idle_ms = 0;
@@ -107,7 +115,7 @@ int recv_stream(int serfd, int outfd, const recv_opts *o)
                 if (n < 0 && errno == EINTR) continue;
                 break;
             }
-            if (n < 0 && errno != EAGAIN) return -1;
+            if (n < 0 && errno != EAGAIN) { rc = -1; break; }
             if (n > 0) {
                 r.tail = (r.tail + (size_t)n) % RING_SIZE;
                 r.count -= (size_t)n;
@@ -142,6 +150,8 @@ int recv_stream(int serfd, int outfd, const recv_opts *o)
             }
         }
     }
-    if (o->verbose) fprintf(stderr, "fxrecv: done, %ld bytes\n", total);
-    return 0;
+    fcntl(outfd, F_SETFL, saved_ofl);
+    if (rc == 0 && o->verbose)
+        fprintf(stderr, "fxrecv: done, %ld bytes\n", total);
+    return rc;
 }

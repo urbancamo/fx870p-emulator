@@ -88,6 +88,23 @@ int main(void)
     n = run_send(master, serfd, "10 A\r\n\x1a", &o, cap, sizeof cap - 1);
     CHECK(n == 7 && memcmp(cap, "10 A\r\n\x1a", 7) == 0);
 
+    /* SISO text mode end-to-end: a high-bit byte shifts the link into SO
+     * mode; the following low-bit byte unshifts it (SI) before that byte
+     * goes out. CR injection encodes the raw 0x0D/0x0A same as any other
+     * byte, so they arrive unshifted here. The trailing EOF marker (0x1A)
+     * must also pass through siso_encode: previously it bypassed encoding
+     * entirely, so a byte left shifted from prior data made the
+     * calculator decode it as 0x9A and LOAD would hang. */
+    memset(&o, 0, sizeof o);
+    o.text_mode = 1; o.use_siso = 1; o.honor_xonxoff = 0;
+    {
+        static const unsigned char expect[] =
+            { 'A', 0x0E, 0x41, 0x0F, 0x0D, 0x0A, 0x1A };
+        n = run_send(master, serfd, "A\xc1\n", &o, cap, sizeof cap - 1);
+        CHECK(n == (int)sizeof expect);
+        CHECK(memcmp(cap, expect, sizeof expect) == 0);
+    }
+
     /* Binary mode: no conversion, no EOF append */
     memset(&o, 0, sizeof o);
     n = run_send(master, serfd, "A\nB", &o, cap, sizeof cap - 1);

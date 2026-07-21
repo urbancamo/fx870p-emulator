@@ -120,7 +120,7 @@ int main(void)
         /* drain the pipe -> engine should emit XON */
         {
             unsigned char drain[4096];
-            int sawxon = 0, k;
+            int sawxon = 0;
             while (read(p[0], drain, sizeof drain) > 0) {
                 while (timed_read(master, &b, 1, 20) == 1)
                     if (b == 0x11) { sawxon = 1; break; }

@@ -107,7 +107,6 @@ int send_stream(int serfd, int infd, const send_opts *o)
                                           : (enc[0] = cr, (size_t)1);
                 for (k = 0; k < m; k++)
                     if (put_byte(serfd, enc[k], o, &paused) < 0) return -1;
-                last_sent = 0x0D;
             }
             {
                 size_t k, m = o->use_siso ? siso_encode(&ss, &b, 1, enc)
@@ -125,7 +124,11 @@ int send_stream(int serfd, int infd, const send_opts *o)
     if (n < 0) return -1;
 
     if (o->text_mode && last_sent != 0x1A) {
-        if (put_byte(serfd, 0x1A, o, &paused) < 0) return -1;
+        unsigned char eof = 0x1A;
+        size_t k, m = o->use_siso ? siso_encode(&ss, &eof, 1, enc)
+                                  : (enc[0] = eof, (size_t)1);
+        for (k = 0; k < m; k++)
+            if (put_byte(serfd, enc[k], o, &paused) < 0) return -1;
         total++;
     }
     if (o->verbose) fprintf(stderr, "fxsend: done, %ld bytes\n", total);
