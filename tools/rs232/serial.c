@@ -30,7 +30,7 @@ int serial_open(const char *dev, const comm_params *p, char *err, size_t errlen)
 
     if (sp == B0) { snprintf(err, errlen, "unsupported baud %d", p->baud); return -1; }
 
-    fd = open(dev, O_RDWR | O_NOCTTY);
+    fd = open(dev, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (fd < 0) { snprintf(err, errlen, "%s: %s", dev, strerror(errno)); return -1; }
 
     if (tcgetattr(fd, &t) < 0) {
@@ -58,6 +58,13 @@ int serial_open(const char *dev, const comm_params *p, char *err, size_t errlen)
     if (tcsetattr(fd, TCSANOW, &t) < 0) {
         snprintf(err, errlen, "tcsetattr: %s", strerror(errno));
         close(fd); return -1;
+    }
+
+    /* Now that CLOCAL is set, clear O_NONBLOCK to avoid carrier-wait hang
+     * on real serial devices where DCD may be deasserted. */
+    {
+        int flags = fcntl(fd, F_GETFL, 0);
+        fcntl(fd, F_SETFL, flags & ~O_NONBLOCK);
     }
 
 #ifdef TIOCMBIS
