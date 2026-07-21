@@ -32,15 +32,23 @@ Example: a 3-byte binary `48 65 6C` encodes as `000348656C19`:
 ## COM0 Settings
 
 ```
-OPEN "COM0:6,E,8,1,N,N,N,N,N" FOR INPUT AS #1
+OPEN "COM0:6,E,8,1,N,N,N,B,N" FOR INPUT AS #1
 ```
 
-| Field | Meaning             |
-|-------|---------------------|
-| 6     | 150 baud            |
-| E     | Even parity         |
-| 8     | 8 data bits         |
-| 1     | 1 stop bit          |
+| Field | Meaning                                |
+|-------|----------------------------------------|
+| 6     | 4800 baud                              |
+| E     | Even parity                            |
+| 8     | 8 data bits                            |
+| 1     | 1 stop bit                             |
+| N,N,N | CS/DS/CD unused                        |
+| B     | XON/XOFF flow control (required)       |
+| N     | SI/SO code system unused               |
+
+`Busy=B` is **required**: the line-based `INPUT #1,A$` loop (line 850) takes long enough per
+iteration that the 64-char UART buffer fills before BASIC drains it. Without XON/XOFF
+back-pressure this produces `BV error` (buffer overflow) part-way through the transfer.
+The Casio BASIC default for `Busy` is `B`, so this just matches the default explicitly.
 
 ## Target Address
 
@@ -52,7 +60,7 @@ The final line uses a variable for the execution address:
 
 ```basic
 117 EX=&H1CD0
-120 MODE110(EX)
+120 MODE110(EX):END
 ```
 
 Directly passing a hex literal (`MODE110(&H1CD0)`) produces a SN error — Casio BASIC's MODE command parser requires a variable argument. This matches CosmicV4's convention.

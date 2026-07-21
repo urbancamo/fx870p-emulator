@@ -75,16 +75,22 @@ export function generateHexPayload(binary: Uint8Array): string {
   if (size > 0xFFFF) {
     throw new Error(`Binary too large (${size} bytes, max 65535)`);
   }
-  let out = '';
-  // Size prefix: 16-bit big-endian = high byte, low byte
-  out += ((size >> 8) & 0xFF).toString(16).toUpperCase().padStart(2, '0');
-  out += (size & 0xFF).toString(16).toUpperCase().padStart(2, '0');
-  // Payload bytes + checksum
+  // Line-delimited hex (CR terminator per line) so Casio BASIC's
+  // LINE INPUT #1 can read one field at a time:
+  //   line 1: 4-char size (big-endian)
+  //   lines 2..N+1: 2-char hex byte
+  //   line N+2: 2-char checksum
+  const CR = '\r';
+  const lines: string[] = [];
+  lines.push(
+    ((size >> 8) & 0xFF).toString(16).toUpperCase().padStart(2, '0') +
+    (size & 0xFF).toString(16).toUpperCase().padStart(2, '0')
+  );
   let checksum = 0;
   for (let i = 0; i < size; i++) {
-    out += binary[i]!.toString(16).toUpperCase().padStart(2, '0');
+    lines.push(binary[i]!.toString(16).toUpperCase().padStart(2, '0'));
     checksum = (checksum + binary[i]!) & 0xFF;
   }
-  out += checksum.toString(16).toUpperCase().padStart(2, '0');
-  return out;
+  lines.push(checksum.toString(16).toUpperCase().padStart(2, '0'));
+  return lines.join(CR) + CR;
 }
