@@ -1,7 +1,7 @@
 // CLI: crunch a Casio JIS BASIC program to its minimal stored form.
 //   npx tsx tools/cruncher/crunch.ts PROGRAM.BAS [-o out.bas] [-l out.lst]
 //     [--level 1|2] [--keep-comments] [--no-merge] [--no-spaces-strip]
-//     [--no-rewrites] [--width N]
+//     [--no-rewrites] [--no-data-group] [--width N]
 import { readFileSync, writeFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import { parseSource, emitProgram } from './scan.js';
@@ -12,7 +12,8 @@ import { trueSourceBytes } from './bytes.js';
 
 function usage(): never {
   console.error('usage: crunch.ts PROGRAM.BAS [-o out.bas] [-l out.lst] [--level 1|2]');
-  console.error('       [--keep-comments] [--no-merge] [--no-spaces-strip] [--no-rewrites] [--width N]');
+  console.error('       [--keep-comments] [--no-merge] [--no-spaces-strip] [--no-rewrites]');
+  console.error('       [--no-data-group] [--width N]');
   process.exit(1);
 }
 
@@ -31,6 +32,7 @@ for (let i = 0; i < argv.length; i++) {
   else if (a === '--no-merge') opts.noMerge = true;
   else if (a === '--no-spaces-strip') opts.noSpaces = true;
   else if (a === '--no-rewrites') opts.noRewrites = true;
+  else if (a === '--no-data-group') opts.noDataGroup = true;
   else if (a === '--width') { width = Number(argv[++i]); if (!(width >= 80)) usage(); }
   else if (a.startsWith('-')) usage();
   else if (input === null) input = a;

@@ -165,7 +165,8 @@ Shrinks a Casio JIS BASIC program's stored size without renumbering: strips comm
 
 ```bash
 npm run crunch -- PROGRAM.BAS [-o out.bas] [-l out.lst] [--level 1|2]
-  [--keep-comments] [--no-merge] [--no-spaces-strip] [--no-rewrites] [--width N]
+  [--keep-comments] [--no-merge] [--no-spaces-strip] [--no-rewrites]
+  [--no-data-group] [--width N]
 ```
 
 Outputs `PROGRAM.min.BAS` (crunched source) and `PROGRAM.crunch.lst` (132-column before/after listing with a pass-by-pass byte summary). Design spec: `docs/superpowers/specs/2026-07-21-basic-compressor-design.md`.

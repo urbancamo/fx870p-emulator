@@ -9,10 +9,14 @@ export interface CrunchOptions {
   noMerge: boolean;
   noSpaces: boolean;
   noRewrites: boolean;
+  noDataGroup: boolean;
 }
 
 export function defaultOptions(): CrunchOptions {
-  return { level: 1, keepComments: false, noMerge: false, noSpaces: false, noRewrites: false };
+  return {
+    level: 1, keepComments: false, noMerge: false, noSpaces: false, noRewrites: false,
+    noDataGroup: false,
+  };
 }
 
 export interface PassResult { name: string; lines: CrunchLine[]; bytes: number }
@@ -151,6 +155,61 @@ export function passMerge(lines: CrunchLine[], opts: CrunchOptions): CrunchLine[
   return out;
 }
 
+function isDataOnly(l: CrunchLine): boolean {
+  return l.stmts.length > 0 && l.comment === null &&
+    l.stmts.every(s => headKeyword(s) === 'DATA');
+}
+
+function dataPayload(stmt: string): string {
+  /* strip the DATA keyword and at most one following space */
+  return stmt.trim().replace(/^DATA ?/i, '');
+}
+
+function hasComputedRestore(lines: CrunchLine[]): boolean {
+  for (const line of lines) {
+    for (const stmt of line.stmts) {
+      for (const seg of codeSegments(stmt)) {
+        if (seg.code && /\bRESTORE\s*\(/i.test(seg.text)) return true;
+      }
+    }
+  }
+  return false;
+}
+
+export function passDataGroup(lines: CrunchLine[], opts: CrunchOptions): CrunchLine[] {
+  if (opts.noDataGroup) return lines;
+  if (hasComputedRestore(lines)) return lines;
+  const targets = targetSet(lines);
+  const out: CrunchLine[] = lines.map(l =>
+    ({ ...l, stmts: [...l.stmts], origins: [...l.origins], notes: [...l.notes] }));
+  let i = 0;
+  while (i < out.length - 1) {
+    const pred = out[i];
+    const next = out[i + 1];
+    if (isDataOnly(pred) && isDataOnly(next) && !targets.has(next.num)) {
+      const payloads = [...pred.stmts, ...next.stmts].map(dataPayload);
+      const candidate = 'DATA ' + payloads.join(',');
+      let fits = candidate.length <= 255;
+      if (fits) {
+        try {
+          fits = lineBytes(pred.num, candidate) <= 255;
+        } catch {
+          fits = false;
+        }
+      }
+      if (fits) {
+        pred.stmts = [candidate];
+        pred.origins.push(...next.origins);
+        pred.notes.push(`grouped DATA line ${next.num}`);
+        out.splice(i + 1, 1);
+        continue;
+      }
+    }
+    i++;
+  }
+  return out;
+}
+
 export function runPipeline(lines: CrunchLine[], opts: CrunchOptions):
     { lines: CrunchLine[]; snapshots: PassResult[] } {
   const snapshots: PassResult[] = [{ name: 'source', lines, bytes: programBytes(lines) }];
@@ -167,6 +226,8 @@ export function runPipeline(lines: CrunchLine[], opts: CrunchOptions):
   }
   cur = passSpaces(cur, opts);
   record('whitespace strip', cur);
+  cur = passDataGroup(cur, opts);
+  record('DATA grouping', cur);
   cur = passMerge(cur, opts);
   record('line merging', cur);
   return { lines: cur, snapshots };

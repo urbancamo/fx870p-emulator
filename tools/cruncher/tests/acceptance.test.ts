@@ -69,6 +69,31 @@ for (const name of PROGRAMS) {
       expect(trueSourceBytes(src)).toBe(expected);
       if (name === 'STREK.BAS') expect(trueSourceBytes(src)).toBe(14548);
     });
+
+    it('READ-visible DATA item stream is unchanged', () => {
+      const items = (ls: import('../scan.js').CrunchLine[]) => {
+        const out: string[] = [];
+        for (const l of ls) {
+          for (const s of l.stmts) {
+            if (!/^DATA\b/i.test(s.trim())) continue;
+            const payload = s.trim().replace(/^DATA ?/i, '');
+            let cur = '';
+            let inStr = false;
+            for (const c of payload) {
+              if (c === '"') inStr = !inStr;
+              if (c === ',' && !inStr) { out.push(cur); cur = ''; }
+              else cur += c;
+            }
+            out.push(cur);
+          }
+        }
+        return out;
+      };
+      // Re-parse fresh rather than reusing the outer `original` -- removes
+      // any doubt about whether an earlier pass's snapshot shares state.
+      const fresh = parseSource(src);
+      expect(items(lines)).toEqual(items(fresh));
+    });
   });
 }
 
