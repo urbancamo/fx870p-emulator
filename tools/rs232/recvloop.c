@@ -1,0 +1,139 @@
+#define _XOPEN_SOURCE 600
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/select.h>
+#include "recvloop.h"
+#include "siso.h"
+
+#define RING_SIZE  8192
+#define HIGH_WATER 6144
+#define LOW_WATER  1024
+
+typedef struct {
+    unsigned char buf[RING_SIZE];
+    size_t head, tail, count;
+} ring;
+
+static void ring_put(ring *r, unsigned char b)
+{
+    r->buf[r->head] = b;
+    r->head = (r->head + 1) % RING_SIZE;
+    r->count++;
+}
+
+int recv_stream(int serfd, int outfd, const recv_opts *o)
+{
+    ring r;
+    siso_state ss;
+    int throttled = 0, done = 0;
+    long total = 0;
+    int idle_ms = 0;
+    int high = o->test_highwater ? o->test_highwater : HIGH_WATER;
+    int low  = o->test_lowwater  ? o->test_lowwater  : LOW_WATER;
+
+    memset(&r, 0, sizeof r);
+    siso_init(&ss);
+    fcntl(serfd, F_SETFL, fcntl(serfd, F_GETFL, 0) | O_NONBLOCK);
+    fcntl(outfd, F_SETFL, fcntl(outfd, F_GETFL, 0) | O_NONBLOCK);
+
+    while (!done || r.count > 0) {
+        fd_set rfds, wfds;
+        struct timeval tv;
+        int maxfd = serfd;
+
+        FD_ZERO(&rfds); FD_ZERO(&wfds);
+        if (!done && r.count < RING_SIZE - 8) FD_SET(serfd, &rfds);
+        if (r.count > 0) {
+            FD_SET(outfd, &wfds);
+            if (outfd > maxfd) maxfd = outfd;
+        }
+        tv.tv_sec = 0; tv.tv_usec = 100000;   /* 100 ms tick for idle timer */
+        if (select(maxfd + 1, &rfds, &wfds, NULL, &tv) < 0) {
+            if (errno == EINTR) continue;
+            return -1;
+        }
+
+        if (FD_ISSET(serfd, &rfds)) {
+            unsigned char in[256], dec[256];
+            ssize_t n;
+            /* Retry on EINTR (consistent with sendloop's EINTR policy)
+             * rather than treating a signal interruption as a read error. */
+            for (;;) {
+                n = read(serfd, in, sizeof in);
+                if (n < 0 && errno == EINTR) continue;
+                break;
+            }
+            if (n < 0 && errno != EAGAIN) return -1;
+            if (n > 0) {
+                size_t m, i;
+                idle_ms = 0;
+                m = o->use_siso ? siso_decode(&ss, in, (size_t)n, dec)
+                                : (memcpy(dec, in, (size_t)n), (size_t)n);
+                for (i = 0; i < m; i++) {
+                    unsigned char b = dec[i];
+                    if (o->text_mode && b == 0x0D) continue;
+                    if (o->text_mode && b == 0x1A) { done = 1; break; }
+                    ring_put(&r, b);
+                    total++;
+                }
+            }
+        } else if (!done) {
+            idle_ms += 100;
+            if (o->idle_timeout_s > 0 && idle_ms >= o->idle_timeout_s * 1000) {
+                if (o->verbose)
+                    fprintf(stderr, "fxrecv: idle timeout, ending transfer\n");
+                done = 1;
+            }
+        }
+
+        if (FD_ISSET(outfd, &wfds) && r.count > 0) {
+            size_t chunk = r.count;
+            ssize_t n;
+            if (r.tail + chunk > RING_SIZE) chunk = RING_SIZE - r.tail;
+            /* Retry on EINTR, same rationale as the read() above. */
+            for (;;) {
+                n = write(outfd, r.buf + r.tail, chunk);
+                if (n < 0 && errno == EINTR) continue;
+                break;
+            }
+            if (n < 0 && errno != EAGAIN) return -1;
+            if (n > 0) {
+                r.tail = (r.tail + (size_t)n) % RING_SIZE;
+                r.count -= (size_t)n;
+            }
+        }
+
+        if (o->emit_xonxoff) {
+            if (!throttled && r.count >= (size_t)high) {
+                unsigned char xoff = 0x13;
+                ssize_t w;
+                for (;;) {
+                    w = write(serfd, &xoff, 1);
+                    if (w < 0 && errno == EINTR) continue;
+                    break;
+                }
+                if (w == 1) {
+                    throttled = 1;
+                    if (o->verbose) fprintf(stderr, "fxrecv: XOFF sent\n");
+                }
+            } else if (throttled && r.count <= (size_t)low) {
+                unsigned char xon = 0x11;
+                ssize_t w;
+                for (;;) {
+                    w = write(serfd, &xon, 1);
+                    if (w < 0 && errno == EINTR) continue;
+                    break;
+                }
+                if (w == 1) {
+                    throttled = 0;
+                    if (o->verbose) fprintf(stderr, "fxrecv: XON sent\n");
+                }
+            }
+        }
+    }
+    if (o->verbose) fprintf(stderr, "fxrecv: done, %ld bytes\n", total);
+    return 0;
+}
