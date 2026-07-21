@@ -46,7 +46,10 @@ export function splitBody(body: string): { stmts: string[]; comment: Comment | n
   return { stmts: stmts.filter(s => s !== ''), comment };
 }
 
-// Split a statement into alternating code / string-literal segments.
+// Split a statement into code and string-literal segments, in order.
+// Consumers must check .code per segment: adjacent string literals yield
+// consecutive code:false segments (no empty code segment between them).
+// Concatenating .text over all segments always reproduces the input.
 export function codeSegments(s: string): { code: boolean; text: string }[] {
   const out: { code: boolean; text: string }[] = [];
   let cur = '';

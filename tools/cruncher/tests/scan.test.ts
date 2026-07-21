@@ -32,11 +32,22 @@ describe('splitBody', () => {
     expect(splitBody('REMY=1')).toEqual({ stmts: ['REMY=1'], comment: null });
     expect(splitBody('PRINT REMY')).toEqual({ stmts: ['PRINT REMY'], comment: null });
   });
+  it('REM boundary variants: bare REM at EOL, lowercase, and :REM', () => {
+    expect(splitBody('A=1:REM')).toEqual({
+      stmts: ['A=1'], comment: { marker: 'REM', text: '' },
+    });
+    expect(splitBody('rem lower')).toEqual({
+      stmts: [], comment: { marker: 'REM', text: ' lower' },
+    });
+    expect(splitBody('A=1:REM done')).toEqual({
+      stmts: ['A=1'], comment: { marker: 'REM', text: ' done' },
+    });
+  });
   it('drops empty statements from :: and trailing :', () => {
-    expect(splitBody('A=1::B=2:').stmts).toEqual(['A=1', 'B=2']);
+    expect(splitBody('A=1::B=2:')).toEqual({ stmts: ['A=1', 'B=2'], comment: null });
   });
   it('unterminated string runs to end of line', () => {
-    expect(splitBody('PRINT "TEST').stmts).toEqual(['PRINT "TEST']);
+    expect(splitBody('PRINT "TEST')).toEqual({ stmts: ['PRINT "TEST'], comment: null });
   });
 });
 
@@ -61,6 +72,13 @@ describe('codeSegments', () => {
     expect(codeSegments('PRINT "TEST')).toEqual([
       { code: true, text: 'PRINT ' },
       { code: false, text: '"TEST' },
+    ]);
+  });
+  it('adjacent string literals yield consecutive string segments', () => {
+    expect(codeSegments('PRINT "A""B"')).toEqual([
+      { code: true, text: 'PRINT ' },
+      { code: false, text: '"A"' },
+      { code: false, text: '"B"' },
     ]);
   });
 });
