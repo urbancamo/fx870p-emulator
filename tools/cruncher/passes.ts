@@ -1,6 +1,7 @@
 import { CrunchLine, codeSegments, headKeyword } from './scan.js';
 import { targetSet } from './refs.js';
 import { programBytes, lineBytes } from './bytes.js';
+import { PREFIX4, PREFIX5, PREFIX6, PREFIX7 } from '../../src/emulator/basic-tokens.js';
 
 export interface CrunchOptions {
   level: 1 | 2;
@@ -171,8 +172,114 @@ export function runPipeline(lines: CrunchLine[], opts: CrunchOptions):
   return { lines: cur, snapshots };
 }
 
-// Pass-through stub; Task 5 replaces this with the real level-2 pass
-// (variable renaming, NEXT-without-var, etc).
-export function passLevel2(lines: CrunchLine[], _opts: CrunchOptions): CrunchLine[] {
-  return lines;
+// Reserved words that must never be produced (or mistaken for) a variable
+// name: every keyword the tokenizer recognizes, built from the ROM-derived
+// prefix tables (PREFIX4..PREFIX7 are flat string arrays with '' for unmapped
+// codes -- filter those out and skip anything that isn't a keyword name).
+const RESERVED = new Set<string>(
+  [...PREFIX4, ...PREFIX5, ...PREFIX6, ...PREFIX7]
+    .filter((w): w is string => typeof w === 'string' && /^[A-Z]/.test(w))
+    .map(w => w.toUpperCase()));
+
+// Reserved-ness is checked against the FULL matched identifier (with its
+// trailing '$' still attached, if any) -- never against the dollar-stripped
+// base. That matters for two distinct reasons:
+//  - Builtin string functions tokenize as a single unit that includes the
+//    '$' (MID$, LEFT$, RIGHT$, CHR$, STR$, HEX$, INKEY$, CALC$, DMS$ are
+//    listed in the prefix tables with the '$' already attached) -- a user
+//    identifier only collides with these if the '$' matches too.
+//  - Conversely, the real tokenizer (see matchKeyword's word-boundary check
+//    in tokenize.ts) does NOT treat a trailing '$' as continuing a keyword
+//    match for keywords that don't themselves end in '$': "NAME$" or "PI$"
+//    tokenize as the bare keyword (NAME/PI) followed by a stray '$' byte,
+//    NOT as a blocked identifier. So a base-only match (stripping the '$'
+//    first) would wrongly treat e.g. "NAME$" as colliding with the NAME
+//    statement keyword, when in this dialect it never did to begin with.
+//
+// A handful of keywords also tokenize with a trailing '#' (WRITE#, RAN#)
+// that IDENT_RE never captures (it only ever captures a trailing '$', never
+// '#', since no user variable can end in '#'). Without the extra `id + '#'`
+// check, source text like "RAN#" or "WRITE#" would be seen as the bare
+// identifiers RAN / WRITE, which aren't themselves in RESERVED (only
+// "RAN#"/"WRITE#" are) -- silently renaming them would corrupt the keyword.
+function isReservedToken(id: string): boolean {
+  return RESERVED.has(id) || RESERVED.has(id + '#');
+}
+
+let renameMap = new Map<string, string>();
+export function lastRenameMap(): Map<string, string> { return renameMap; }
+
+const IDENT_RE = /[A-Za-z][A-Za-z0-9]*\$?/g;
+
+export function passLevel2(lines: CrunchLine[], opts: CrunchOptions): CrunchLine[] {
+  if (opts.level < 2) return lines;
+  renameMap = new Map();
+
+  // --- census of identifiers (code segments only, keywords excluded) ---
+  const counts = new Map<string, number>();
+  const inUse = new Set<string>();
+  for (const line of lines) {
+    for (const stmt of line.stmts) {
+      for (const seg of codeSegments(stmt)) {
+        if (!seg.code) continue;
+        for (const m of seg.text.matchAll(IDENT_RE)) {
+          const id = m[0].toUpperCase();
+          const base = id.endsWith('$') ? id.slice(0, -1) : id;
+          if (isReservedToken(id)) continue;
+          counts.set(id, (counts.get(id) ?? 0) + 1);
+          inUse.add(base);
+        }
+      }
+    }
+  }
+
+  // --- allocate shortest free names, biggest savings first ---
+  function savings([id, n]: [string, number]): number {
+    const baseLen = id.endsWith('$') ? id.length - 1 : id.length;
+    return (baseLen - 1) * n;
+  }
+  const candidates = [...counts.entries()]
+    .filter(([id]) => (id.endsWith('$') ? id.length - 1 : id.length) >= 2)
+    .sort((a, b) => savings(b) - savings(a));
+  const freeNames: string[] = [];
+  for (let c = 65; c <= 90; c++) freeNames.push(String.fromCharCode(c));
+  for (let c = 65; c <= 90; c++)
+    for (let d = 48; d <= 57; d++)
+      freeNames.push(String.fromCharCode(c) + String.fromCharCode(d));
+  let fi = 0;
+  const nextFree = (): string | null => {
+    while (fi < freeNames.length) {
+      const n = freeNames[fi++];
+      if (!inUse.has(n) && !RESERVED.has(n)) return n;
+    }
+    return null;
+  };
+  for (const [id] of candidates) {
+    const suffix = id.endsWith('$') ? '$' : '';
+    const base = suffix ? id.slice(0, -1) : id;
+    const nn = nextFree();
+    if (nn === null || nn.length >= base.length) continue; // no byte win left
+    renameMap.set(id, nn + suffix);
+    inUse.add(nn);
+  }
+
+  // --- apply renames + NEXT stripping ---
+  return lines.map(line => {
+    let stmts = line.stmts.map(stmt => mapCode(stmt, code =>
+      code.replace(IDENT_RE, w => renameMap.get(w.toUpperCase()) ?? w)));
+    const expanded: string[] = [];
+    for (const stmt of stmts) {
+      const m = /^NEXT\s+([A-Za-z][A-Za-z0-9]*\$?(\s*,\s*[A-Za-z][A-Za-z0-9]*\$?)*)$/i.exec(stmt);
+      if (m) {
+        const n = m[1].split(',').length;
+        for (let k = 0; k < n; k++) expanded.push('NEXT');
+      } else {
+        expanded.push(stmt);
+      }
+    }
+    stmts = expanded;
+    const changed = stmts.length !== line.stmts.length ||
+      stmts.some((s, i) => s !== line.stmts[i]);
+    return changed ? { ...line, stmts, notes: [...line.notes, 'level-2 applied'] } : line;
+  });
 }
