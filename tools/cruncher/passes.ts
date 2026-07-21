@@ -209,17 +209,22 @@ function isReservedToken(id: string): boolean {
 let renameMap = new Map<string, string>();
 export function lastRenameMap(): Map<string, string> { return renameMap; }
 
-const IDENT_RE = /[A-Za-z][A-Za-z0-9]*\$?/g;
+// Excludes matches preceded by a digit or '.' so the exponent letter in
+// scientific-notation literals (1E4, 1.5E3) is never mistaken for an
+// identifier -- without the lookbehind, IDENT_RE would match "E4"/"E3" and
+// rename the exponent right out of the constant.
+const IDENT_RE = /(?<![0-9.])[A-Za-z][A-Za-z0-9]*\$?/g;
 
 export function passLevel2(lines: CrunchLine[], opts: CrunchOptions): CrunchLine[] {
-  if (opts.level < 2) return lines;
   renameMap = new Map();
+  if (opts.level < 2) return lines;
 
   // --- census of identifiers (code segments only, keywords excluded) ---
   const counts = new Map<string, number>();
   const inUse = new Set<string>();
   for (const line of lines) {
     for (const stmt of line.stmts) {
+      if (headKeyword(stmt) === 'DATA') continue; // DATA payloads aren't identifiers
       for (const seg of codeSegments(stmt)) {
         if (!seg.code) continue;
         for (const m of seg.text.matchAll(IDENT_RE)) {
@@ -265,7 +270,7 @@ export function passLevel2(lines: CrunchLine[], opts: CrunchOptions): CrunchLine
 
   // --- apply renames + NEXT stripping ---
   return lines.map(line => {
-    let stmts = line.stmts.map(stmt => mapCode(stmt, code =>
+    let stmts = line.stmts.map(stmt => headKeyword(stmt) === 'DATA' ? stmt : mapCode(stmt, code =>
       code.replace(IDENT_RE, w => renameMap.get(w.toUpperCase()) ?? w)));
     const expanded: string[] = [];
     for (const stmt of stmts) {

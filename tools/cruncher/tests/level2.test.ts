@@ -44,3 +44,23 @@ describe('passLevel2 NEXT stripping', () => {
     expect(out[0].stmts).toEqual(['FOR I=1 TO 3', 'NEXT']);
   });
 });
+
+describe('passLevel2 corruption guards', () => {
+  it('never touches scientific-notation literals', () => {
+    const out = l2('10 WXYZ=1:W=INT((WXYZ MOD 1E4)/1E3)\n');
+    const s = out[0].stmts.join(':');
+    expect(s).toContain('1E4');
+    expect(s).toContain('1E3');
+    expect(s).not.toContain('WXYZ');
+  });
+  it('never renames DATA payload words', () => {
+    const out = l2('10 SCORE=1:DATA FRANKFORT,35\n');
+    expect(out[0].stmts[1]).toBe('DATA FRANKFORT,35');
+    expect(out[0].stmts[0]).not.toContain('SCORE');
+  });
+  it('level-1 call clears the rename map', () => {
+    l2('10 SCORE=1\n');
+    passLevel2(parseSource('10 A=1\n'), defaultOptions());
+    expect(lastRenameMap().size).toBe(0);
+  });
+});
