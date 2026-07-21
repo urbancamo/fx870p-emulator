@@ -87,6 +87,23 @@ describe('passMerge', () => {
     expect(out[0].stmts).toEqual(['A=1', 'B=2', 'C=3']);
     expect(out[0].origins).toEqual([10, 20, 30]);
   });
+  it('an empty jump-target placeholder absorbs its successor', () => {
+    // 200 was a comment-only jump target kept as an empty line by passComments;
+    // it may absorb the following line, keeping number 200 for the jumps.
+    const src = '100 GOTO 200\n200 REM display\n210 A=1\n220 B=2\n';
+    const afterComments = passComments(parseSource(src), opts);
+    const out = passMerge(afterComments, opts);
+    const target = out.find(l => l.num === 200)!;
+    expect(target.stmts).toEqual(['A=1', 'B=2']);
+    expect(target.origins).toEqual([200, 210, 220]);
+  });
+  it('an empty successor is never absorbed', () => {
+    const src = '100 GOTO 200\n150 A=1\n200 REM target\n';
+    const afterComments = passComments(parseSource(src), opts);
+    const out = passMerge(afterComments, opts);
+    expect(out.map(l => l.num)).toEqual([100, 150, 200]);
+    expect(out.find(l => l.num === 200)!.stmts).toEqual([]);
+  });
   it('never merges a jump target into its predecessor', () => {
     // Line 20 is a jump target (GOTO 20), so it must never be absorbed into
     // its predecessor (line 10) -- it stays a line start. Line 30 is not a

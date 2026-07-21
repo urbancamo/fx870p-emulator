@@ -123,9 +123,13 @@ export function passMerge(lines: CrunchLine[], opts: CrunchOptions): CrunchLine[
   while (i < out.length - 1) {
     const pred = out[i];
     const next = out[i + 1];
+    // An EMPTY predecessor (a kept jump-target placeholder) may absorb its
+    // successor: jumps land on pred's number and executed statements are
+    // identical to the old fall-through. An empty successor is never
+    // absorbed (it must keep its own number for the jumps that created it).
     const blocked =
       targets.has(next.num) ||
-      pred.stmts.length === 0 || next.stmts.length === 0 ||
+      next.stmts.length === 0 ||
       pred.comment !== null ||
       lineHasIf(pred) ||
       UNCOND_END.has(lastStmtHead(pred)) ||
