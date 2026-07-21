@@ -27,7 +27,7 @@ Full option references are in the man pages: [`fxsend.1`](fxsend.1), [`fxrecv.1`
 make          # builds fxsend and fxrecv
 make check    # builds and runs the test suite (4 suites: commstr, siso, sendloop, recvloop)
 make install  # installs to $(PREFIX)/bin and $(PREFIX)/share/man/man1 (PREFIX defaults to /usr/local)
-make clean    # removes binaries, objects, and test executables
+make clean    # removes the build/ tree (objects, binaries, test executables)
 ```
 
 `CC` and `CFLAGS` are overridable for unusual toolchains. The source is deliberately C89/POSIX.1-2001,
@@ -125,7 +125,7 @@ Load a program onto the calculator at 4800 baud, no parity:
 
 ```bash
 export FXPORT=/dev/cu.usbserial-A50285BI      # macOS; /dev/ttyUSB0 on Linux
-./fxsend -c 6,N,8,1,N,N,N,B,N -f SORCERER.BAS
+./build/bin/fxsend -c 6,N,8,1,N,N,N,B,N -f SORCERER.BAS
 ```
 
 On the calculator, first enter: `LOAD "COM0:6,N,8,1,N,N,N,B,N"`
@@ -133,7 +133,7 @@ On the calculator, first enter: `LOAD "COM0:6,N,8,1,N,N,N,B,N"`
 Save a program from the calculator to a file:
 
 ```bash
-./fxrecv -c 6,N,8,1,N,N,N,B,N -f SAVED.BAS
+./build/bin/fxrecv -c 6,N,8,1,N,N,N,B,N -f SAVED.BAS
 ```
 
 On the calculator: `SAVE "COM0:6,N,8,1,N,N,N,B,N"`
@@ -142,14 +142,14 @@ Both tools work as filters, so they pipe naturally. Grep a saved listing for a k
 without ever writing an intermediate file:
 
 ```bash
-./fxrecv -d /dev/cu.usbserial-A50285BI -c 6,N,8,1,N,N,N,B,N | grep GOSUB
+./build/bin/fxrecv -d /dev/cu.usbserial-A50285BI -c 6,N,8,1,N,N,N,B,N | grep GOSUB
 ```
 
 Or verify a loopback cable end-to-end (jumper an adapter's TX to its RX):
 
 ```bash
-printf 'HELLO\n' | ./fxsend -C 0 -L 0 -b &
-./fxrecv -b -t 3
+printf 'HELLO\n' | ./build/bin/fxsend -C 0 -L 0 -b &
+./build/bin/fxrecv -b -t 3
 ```
 
 ## Troubleshooting
