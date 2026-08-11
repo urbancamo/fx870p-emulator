@@ -36,21 +36,21 @@ describe('generateLoader (generic)', () => {
 });
 
 describe('generateHexPayload', () => {
-  it('encodes size prefix + bytes + checksum', () => {
+  it('encodes size prefix + bytes + checksum as CR-delimited lines', () => {
     const payload = generateHexPayload(new Uint8Array([0x48, 0x65, 0x6C]));
     // Size=3 → 0003, bytes=48 65 6C, checksum = 0x119 & 0xFF = 0x19
-    expect(payload).toBe('000348656C19');
+    expect(payload).toBe('0003\r48\r65\r6C\r19\r');
   });
 
   it('empty binary produces size=0000 + checksum=00', () => {
     const payload = generateHexPayload(new Uint8Array([]));
-    expect(payload).toBe('000000');
+    expect(payload).toBe('0000\r00\r');
   });
 
   it('checksum wraps at 256', () => {
     const payload = generateHexPayload(new Uint8Array([0xFF, 0x01]));
     // Size=2 → 0002, bytes=FF 01, checksum = 0x100 & 0xFF = 0x00
-    expect(payload).toBe('0002FF0100');
+    expect(payload).toBe('0002\rFF\r01\r00\r');
   });
 
   it('size prefix is big-endian', () => {
@@ -59,9 +59,10 @@ describe('generateHexPayload', () => {
     expect(payload.substring(0, 4)).toBe('0102');
   });
 
-  it('total length is 4 + 2*N + 2', () => {
+  it('total length is (4 + 2*N + 2) hex chars + one CR per line', () => {
     const payload = generateHexPayload(new Uint8Array(50));
-    expect(payload.length).toBe(4 + 100 + 2);
+    // lines: 1 size + 50 bytes + 1 checksum = 52 lines, each CR-terminated
+    expect(payload.length).toBe((4 + 100 + 2) + 52);
   });
 
   it('rejects binaries over 65535 bytes', () => {
