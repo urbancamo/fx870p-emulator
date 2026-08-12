@@ -1,8 +1,13 @@
 [
   {
+    "file": "EXTCLR.BAS",
+    "name": "Extended CLEAR",
+    "description": "Reserves the &H1CD0 machine-code area against BASIC's own memory use. Run once (RUN, then MODE110(&H18F5),1520) before using ML Loader."
+  },
+  {
     "file": "MLLOADER.BAS",
     "name": "ML Loader",
-    "description": "Streams compiled .hex files over COM0 and executes them at &H1CD0. Load this once, RUN it, then SEND any .hex file produced by the compiler."
+    "description": "Streams compiled .hex files over COM0 and executes them at &H1CD0. Load this once, RUN it, then SEND any .hex file produced by the compiler. Run Extended CLEAR first."
   },
   {
     "file": "LIFE.BAS",
