@@ -120,9 +120,10 @@ describe('Task 2b: phsm range + FP-safe ROM call', () => {
     // operands intact, which is what this task changed.
     //
     // NOTE: BASIC `IF A>B THEN ...` does NOT come through here — it uses
-    // emitCondition(), a separate path that still passes its operands in
-    // $19-$27 and ignores the comparison operator entirely. That is a
-    // distinct, still-open bug, out of scope for this task.
+    // emitCondition(), a separate path that was fixed later by Task 2c and is
+    // covered by task2c-condition-fix.test.ts. This case still asserts the raw
+    // difference because expression-context comparisons (`C=(A>B)`) do not yet
+    // convert the flags to a 0/1 boolean; that gap is still open.
     const run = compileAndRun('10 C=(A>B)\n20 END\n', { VAR_A: 5, VAR_B: 3 });
     expectResult(run, 'VAR_C', 2, 'C=(A>B) with A=5,B=3');
   }, 60_000);

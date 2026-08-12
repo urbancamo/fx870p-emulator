@@ -1065,16 +1065,9 @@ class CodeGen {
     const elseLabel = this.uniqueLabel('ELSE');
     const endIfLabel = this.uniqueLabel('ENDIF');
 
-    // Evaluate condition
-    this.emitCondition(stmt.condition);
-
     if (stmt.elseBranch && stmt.elseBranch.length > 0) {
-      // Conditional jump to ELSE block
-      this.code.push({
-        mnemonic: 'jr',
-        operands: `z,${elseLabel}`,
-        comment: 'IF false, jump to ELSE',
-      });
+      // Condition falls through into THEN, branches to ELSE when false
+      this.emitCondition(stmt.condition, elseLabel);
 
       // THEN block
       for (const s of stmt.thenBranch) {
@@ -1089,12 +1082,8 @@ class CodeGen {
       }
       this.code.push({ label: endIfLabel });
     } else {
-      // No ELSE — jump over THEN block if condition false
-      this.code.push({
-        mnemonic: 'jr',
-        operands: `z,${endIfLabel}`,
-        comment: 'IF false, skip THEN',
-      });
+      // No ELSE — condition jumps over the THEN block when false
+      this.emitCondition(stmt.condition, endIfLabel);
 
       // THEN block
       for (const s of stmt.thenBranch) {
@@ -1104,27 +1093,145 @@ class CodeGen {
     }
   }
 
-  private emitCondition(expr: Expression): void {
+  /**
+   * Emit a condition test that falls through when the condition is TRUE and
+   * branches to `falseLabel` when it is FALSE.
+   *
+   * A comparison is evaluated as `left - right` through the ROM's FP_SUB and
+   * then classified by the only two properties of the 9-byte BCD difference
+   * that any relational operator needs (see `tools/compiler/bcd.ts`):
+   *
+   *   Z   — all nine bytes are zero. BCD zero is the unique all-zero encoding
+   *         (bcd.ts:66, matching the ROM's own "floating point 0" at &H0636),
+   *         so Z means exactly `left = right`.
+   *   NEG — bit 2 of byte 8 is set. Byte 8 is
+   *         `floor(biasedExponent / 100) + (5 when negative)` (bcd.ts:86) and
+   *         the biased exponent is always 1..199, so byte 8 is 0 or 1 for a
+   *         value >= 0 and 5 or 6 for a value < 0. Zero (byte 8 = 0) therefore
+   *         reads as non-negative, which is what `>=` and `<=` need.
+   *
+   *     op | true when         | branch to falseLabel when
+   *     ---+-------------------+--------------------------
+   *     =  | Z                 | not Z
+   *     <> | not Z             | Z
+   *     <  | NEG               | not NEG
+   *     >  | not Z and not NEG | Z, or NEG
+   *     <= | Z or NEG          | not Z and not NEG
+   *     >= | not NEG           | NEG
+   *
+   * A non-comparison condition is BASIC's numeric truth test: false is zero,
+   * anything else is true, which is the same Z test on the accumulator.
+   */
+  private emitCondition(expr: Expression, falseLabel: string): void {
     if (expr.type === 'binary' && this.isComparisonOp(expr.op)) {
-      // Evaluate as subtraction: left - right, then test flags
+      // 1. left → accumulator, pushed to the stack
       this.emitExpression(expr.left);
       this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push left[0..7]' });
       this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push left[8]' });
+
+      // 2. right → accumulator; recover left into the $19-$27 scratch window
       this.emitExpression(expr.right);
       this.code.push({ mnemonic: 'pps',  operands: '$27',   comment: 'pop left[8] → $27' });
       this.code.push({ mnemonic: 'ppsm', operands: '$19,8', comment: 'pop left[0..7] → $19-$26' });
-      // Swap so left=acc, right=temp, then subtract
-      this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push right[0..7]' });
-      this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push right[8]' });
-      this.code.push({ mnemonic: 'ldm',  operands: '$10,$19,8', comment: 'acc[0..7] = left' });
-      this.code.push({ mnemonic: 'ld',   operands: '$18,$27',   comment: 'acc[8] = left[8]' });
-      this.code.push({ mnemonic: 'pps',  operands: '$27',       comment: 'pop right[8] → $27' });
-      this.code.push({ mnemonic: 'ppsm', operands: '$19,8',     comment: 'pop right[0..7] → $19-$26' });
-      this.emitRomCall(ROM.FP_SUB, `compare: ${expr.op}`);
-      // Flags are now set based on left - right
+
+      // 3. Stage for the ROM's convention: left in $10-$18, right in $0-$8
+      //    (identical to emitBinaryExpr's arithmetic path). The call must go
+      //    through ROM_CALL_FP — plain ROM_CALL clobbers $0-$3.
+      this.code.push({ mnemonic: 'ldm', operands: '$0,$10,8',  comment: 'right[0..7] -> $0-$7' });
+      this.code.push({ mnemonic: 'ld',  operands: '$8,$18',    comment: 'right[8] -> $8' });
+      this.code.push({ mnemonic: 'ldm', operands: '$10,$19,8', comment: 'left[0..7] -> $10-$17' });
+      this.code.push({ mnemonic: 'ld',  operands: '$18,$27',   comment: 'left[8] -> $18' });
+      this.emitRomCallFp(ROM.FP_SUB, `compare: ${expr.op}`);
+
+      // 4. Classify the difference now sitting in $10-$18
+      this.emitComparisonBranch(expr.op, falseLabel);
     } else {
-      // Non-comparison condition: evaluate and test for zero
+      // Numeric truth: the value is false only when it is BCD zero
       this.emitExpression(expr);
+      this.emitZeroTest('condition value zero?');
+      this.code.push({
+        mnemonic: 'jr',
+        operands: `z,${falseLabel}`,
+        comment: 'value is zero → condition false',
+      });
+    }
+  }
+
+  /**
+   * `orcm $10,$11,8` (opcode 0xC6) OR-compares $10-$17 against $11-$18 and
+   * writes nothing back — bit 3 of the opcode is what enables the store, and
+   * 0xC6 has it clear (`src/emulator/exec.ts:1068-1088`). The handler ORs every
+   * intermediate byte result into one accumulator and sets Z_bit when that
+   * accumulator is non-zero, so overlapping the two register ranges by one
+   * makes a single instruction cover all nine accumulator bytes. That overlap
+   * is necessary, not clever: `imm3Arg` (`exec.ts:170-174`) caps the repeat
+   * count at 8, so nine bytes cannot be reached any other way.
+   *
+   * Condition code `z` is true when Z_bit is CLEAR (`exec.ts:236`), i.e. when
+   * every byte was zero; `nz` is true when at least one byte was not.
+   */
+  private emitZeroTest(comment: string): void {
+    this.code.push({ mnemonic: 'orcm', operands: '$10,$11,8', comment });
+  }
+
+  /**
+   * `anc $18,&H04` (opcode 0x44) AND-compares the exponent/sign byte with
+   * bit 2 and, again, writes nothing back (`src/emulator/exec.ts:322-331`;
+   * 0x44 has the store bit clear and the 0x40 bit selects the immediate).
+   * `setFlagsB` sets Z_bit when the result is non-zero (`exec.ts:133-139`), so
+   * condition code `nz` is true exactly when the value is negative and `z`
+   * when it is zero or positive.
+   */
+  private emitSignTest(comment: string): void {
+    this.code.push({ mnemonic: 'anc', operands: '$18,&H04', comment });
+  }
+
+  /** Branch to `falseLabel` when `left <op> right` does not hold. */
+  private emitComparisonBranch(op: BinaryOp, falseLabel: string): void {
+    switch (op) {
+      case '=':
+        this.emitZeroTest('left - right == 0 ?');
+        this.code.push({ mnemonic: 'jr', operands: `nz,${falseLabel}`, comment: 'left <> right → false' });
+        break;
+
+      case '<>':
+        this.emitZeroTest('left - right == 0 ?');
+        this.code.push({ mnemonic: 'jr', operands: `z,${falseLabel}`, comment: 'left = right → false' });
+        break;
+
+      case '<':
+        this.emitSignTest('left - right < 0 ?');
+        this.code.push({ mnemonic: 'jr', operands: `z,${falseLabel}`, comment: 'left >= right → false' });
+        break;
+
+      case '>=':
+        this.emitSignTest('left - right < 0 ?');
+        this.code.push({ mnemonic: 'jr', operands: `nz,${falseLabel}`, comment: 'left < right → false' });
+        break;
+
+      case '>':
+        // true only when the difference is neither zero nor negative
+        this.emitZeroTest('left - right == 0 ?');
+        this.code.push({ mnemonic: 'jr', operands: `z,${falseLabel}`, comment: 'left = right → false' });
+        this.emitSignTest('left - right < 0 ?');
+        this.code.push({ mnemonic: 'jr', operands: `nz,${falseLabel}`, comment: 'left < right → false' });
+        break;
+
+      case '<=': {
+        // true when the difference is zero OR negative, so a zero difference
+        // has to skip past the sign test rather than fall into it
+        const trueLabel = this.uniqueLabel('CMPLE');
+        this.emitZeroTest('left - right == 0 ?');
+        this.code.push({ mnemonic: 'jr', operands: `z,${trueLabel}`, comment: 'left = right → true' });
+        this.emitSignTest('left - right < 0 ?');
+        this.code.push({ mnemonic: 'jr', operands: `z,${falseLabel}`, comment: 'left > right → false' });
+        this.code.push({ label: trueLabel });
+        break;
+      }
+
+      default:
+        this.code.push({ comment: `TODO: comparison operator ${op}` });
+        break;
     }
   }
 
@@ -1277,15 +1384,9 @@ class CodeGen {
 
     this.code.push({ label: topLabel, comment: 'WHILE loop top' });
 
-    // Evaluate condition
-    this.emitCondition(stmt.condition);
-
-    // Jump to after WEND if condition is false (zero flag set = false/zero result)
-    this.code.push({
-      mnemonic: 'jr',
-      operands: `z,${endLabel}`,
-      comment: 'WHILE false, exit loop',
-    });
+    // Falls through into the body while the condition holds; exits past WEND
+    // when it does not
+    this.emitCondition(stmt.condition, endLabel);
 
     // Push loop info for matching WEND
     this.whileStack.push({ topLabel, endLabel });
