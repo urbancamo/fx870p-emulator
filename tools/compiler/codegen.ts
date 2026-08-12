@@ -13,6 +13,7 @@ import type {
   ChainStatement, ModeStatement, ArrayDecl,
 } from './ast.js';
 import type { AsmLine, AsmProgram } from './asm-types.js';
+import { numberToBcd9 } from './bcd.js';
 
 // ---------------------------------------------------------------------------
 // ROM entry points
@@ -106,6 +107,8 @@ class CodeGen {
   private variables = new Map<string, VarInfo>();
   private strings: StringInfo[] = [];
   private stringIndex = 0;
+  private numberLiteralIndex = 0;
+  private numberLiterals: Array<{ label: string; bytes: Uint8Array }> = [];
   private labelIndex = 0;
   private forStack: ForLoopInfo[] = [];
   private whileStack: Array<{ topLabel: string; endLabel: string }> = [];
@@ -162,11 +165,11 @@ class CodeGen {
             comment: `DATA "${val.value}"`,
           });
         } else {
-          // Store as a 9-byte FP value placeholder (TODO: encode as BCD)
+          const bytes = numberToBcd9(val.value);
           this.code.push({
-            mnemonic: 'dw',
-            operands: this.formatNumber(val.value),
-            comment: `DATA ${val.value} (TODO: BCD encode)`,
+            mnemonic: 'db',
+            operands: Array.from(bytes).map(b => '&H' + b.toString(16).toUpperCase().padStart(2, '0')).join(','),
+            comment: `DATA ${val.value}`,
           });
         }
       }
@@ -187,6 +190,18 @@ class CodeGen {
           label: str.label,
           mnemonic: 'db',
           operands: this.encodeStringOperand(str.value),
+        });
+      }
+    }
+
+    // 5b. Number literals (DB directives, 9-byte BCD)
+    if (this.numberLiterals.length > 0) {
+      this.code.push({ comment: 'Number literals (9-byte BCD)' });
+      for (const num of this.numberLiterals) {
+        this.code.push({
+          label: num.label,
+          mnemonic: 'db',
+          operands: Array.from(num.bytes).map(b => '&H' + b.toString(16).toUpperCase().padStart(2, '0')).join(','),
         });
       }
     }
@@ -458,13 +473,11 @@ class CodeGen {
   // -------------------------------------------------------------------------
 
   private emitNumberLiteral(value: number): void {
-    // Simplified: load integer value into accumulator register pair
-    // Real implementation needs full BCD conversion for the 9-byte FP format
-    this.code.push({
-      mnemonic: 'ldw',
-      operands: `$10,${this.formatNumber(value)}`,
-      comment: `load constant ${value} (TODO: BCD conversion)`,
-    });
+    const bytes = numberToBcd9(value);
+    const label = `NUM_${this.numberLiteralIndex++}`;
+    this.numberLiterals.push({ label, bytes });
+    this.code.push({ comment: `load constant ${value}` });
+    this.emitVarLoad9(label);
   }
 
   // -------------------------------------------------------------------------
@@ -1371,7 +1384,7 @@ class CodeGen {
       // Load DATA_PTR value via IX
       this.code.push({ mnemonic: 'ldw', operands: '$2,DATA_PTR', comment: 'DATA_PTR address' });
       this.code.push({ mnemonic: 'pre', operands: 'ix,$2' });
-      this.code.push({ mnemonic: 'psr', operands: 'sx,0' });
+      this.code.push({ mnemonic: 'psr', operands: 'sx,31', comment: '$sx -> $31 (= 0): displacement 0' });
       this.code.push({ mnemonic: 'ldd', operands: '$10,(ix+$sx)', comment: 'load current DATA value via IX' });
       // Store into variable
       this.emitVariableStore(varRef);

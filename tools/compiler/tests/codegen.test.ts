@@ -105,6 +105,15 @@ describe('codegen - expressions', () => {
     expect(asm.length).toBeGreaterThan(0);
   });
 
+  it('emits 9-byte BCD data for a number literal', () => {
+    const ast = parse('10 A=5\n');
+    const asm = generate(ast);
+    const dataLine = asm.lines.find(l => l.mnemonic === 'db' && l.label?.startsWith('NUM_'));
+    expect(dataLine).toBeDefined();
+    const byteCount = dataLine!.operands!.split(',').length;
+    expect(byteCount).toBe(9);
+  });
+
   it('generates variable load', () => {
     const asm = getAsm('10 A=5\n20 B=A');
     const mnems = asm.filter(l => l.mnemonic && l.mnemonic !== 'ORG' && l.mnemonic !== 'DS');
