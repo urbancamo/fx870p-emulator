@@ -22,7 +22,7 @@ const ROM = {
   FP_ADD:    '&H05DA',
   FP_SUB:    '&H05D4',
   FP_MUL:    '&H0607',
-  FP_DIV:    '&H16BD',
+  FP_DIV:    '&H0646',
   MOD:       '&H105F',
   PRINT:     '&H3EF1',
   INPUT:     '&H3DEE',
@@ -569,6 +569,29 @@ class CodeGen {
   // -------------------------------------------------------------------------
 
   private emitBinaryExpr(op: BinaryOp, left: Expression, right: Expression): void {
+    // MOD (&H105F) is not a leaf FP routine like FP_ADD/SUB/MUL/DIV — it's a
+    // BASIC-interpreter operator-table entry point. Its preamble (&H1069 ->
+    // &H05A1) pops the left operand off the CPU's separate US ("user") stack
+    // itself, via `ppu`/`ppum`, matching how the ROM's own expression
+    // evaluator stages operators (push left with `phum`/`phu`, leave right in
+    // the $10-$18 accumulator). That US stack is a different physical stack
+    // from the SS stack our `phs`/`phsm`/`pps`/`ppsm` staging below uses for
+    // +/-/*//, so calling &H105F after that staging makes it pop garbage off
+    // an untouched US stack, corrupting the accumulator (confirmed by tracing
+    // execution — it derails into unrelated ROM code and always leaves 0).
+    // The fix is to stage MOD's operands the way the ROM itself expects:
+    // left pushed onto the US stack, right left untouched in $10-$18, then
+    // call &H105F directly — no $19-$27 shuffle needed, since &H105F's own
+    // preamble copies $10-$18 into $0-$8 and pops the US stack into $10-$18.
+    if (op === 'mod') {
+      this.emitExpression(left);
+      this.code.push({ mnemonic: 'phum', operands: '$17,8', comment: 'push left[0..7] onto US stack (MOD reads it, not SS)' });
+      this.code.push({ mnemonic: 'phu',  operands: '$18',   comment: 'push left[8] onto US stack' });
+      this.emitExpression(right);
+      this.emitRomCallFp(ROM.MOD, 'mod');
+      return;
+    }
+
     // 1. Evaluate left operand → FP accumulator ($10-$18)
     this.emitExpression(left);
 
@@ -622,7 +645,9 @@ class CodeGen {
       case '-': return ROM.FP_SUB;
       case '*': return ROM.FP_MUL;
       case '/': return ROM.FP_DIV;
-      case 'mod': return ROM.MOD;
+      // 'mod' is NOT handled here — it needs different operand staging
+      // (US stack, not SS) and is special-cased at the top of
+      // emitBinaryExpr. See the comment there for why.
       default: return undefined;
     }
   }

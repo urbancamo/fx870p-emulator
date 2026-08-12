@@ -128,7 +128,7 @@ describe('codegen - expressions', () => {
 
   it('generates division ROM call', () => {
     const asm = mnemonics('10 A=6/3');
-    expect(asm.some(l => l.includes('&H16BD'))).toBe(true);
+    expect(asm.some(l => l.includes('&H0646'))).toBe(true);
   });
 
   it('emits a ROM call for MOD', () => {
@@ -136,6 +136,23 @@ describe('codegen - expressions', () => {
     const asm = generate(ast);
     const romCallLines = asm.lines.filter(l => l.mnemonic === 'ldw' && l.operands === '$19,&H105F');
     expect(romCallLines.length).toBeGreaterThan(0);
+  });
+
+  it('stages MOD operands on the US stack, not the SS stack used by +/-/*//', () => {
+    // &H105F's own preamble (&H1069 -> &H05A1) pops the left operand off the
+    // CPU's US ("user") stack itself, matching how the ROM's own interpreter
+    // stages operators. Verified empirically via
+    // tools/emu-debugger/tests/task3-mod-div-fix.test.ts: staging the left
+    // operand through phs/phsm (the SS stack +/-/*// use) instead makes
+    // &H105F pop garbage and always return 0. Regression guard: MOD must use
+    // phum/phu, and must NOT do the $0-$8/$19-$27 register shuffle the other
+    // arithmetic ops need (&H105F does that exchange internally).
+    const asm = generate(parse('10 A=7 MOD 3\n'));
+    const mnems = asm.lines.map(l => `${l.mnemonic ?? ''} ${l.operands ?? ''}`.trim());
+    expect(mnems).toContain('phum $17,8');
+    expect(mnems).toContain('phu $18');
+    expect(mnems).not.toContain('phsm $17,8');
+    expect(mnems).not.toContain('phs $18');
   });
 
   it('generates PRINT with expression', () => {
