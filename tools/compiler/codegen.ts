@@ -582,24 +582,25 @@ class CodeGen {
     // 5. Perform the operation
     const romAddr = this.arithmeticRomAddr(op);
     if (romAddr) {
-      // ROM routines expect: left in $10-$18, right in $19-$27
-      // Swap via stack: push right, move left to acc, pop right to temp
-      this.code.push({ mnemonic: 'phsm', operands: '$10,8', comment: 'push right[0..7]' });
-      this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push right[8]' });
-      this.code.push({ mnemonic: 'ldm',  operands: '$10,$19,8', comment: 'acc[0..7] = left' });
-      this.code.push({ mnemonic: 'ld',   operands: '$18,$27',   comment: 'acc[8] = left[8]' });
-      this.code.push({ mnemonic: 'pps',  operands: '$27',       comment: 'pop right[8] → $27' });
-      this.code.push({ mnemonic: 'ppsm', operands: '$19,8',     comment: 'pop right[0..7] → $19-$26' });
+      // ROM routines expect: left operand in $10-$18 (the accumulator,
+      // already there from emitExpression(left)), right operand in $0-$8.
+      // Swap via stack: right is currently in $10-$18 (from
+      // emitExpression(right)); left is saved on the stack from the push
+      // above. Pop left back into the accumulator, then move what's now
+      // in the accumulator (right) down into $0-$8.
+      this.code.push({ mnemonic: 'ldm',  operands: '$0,$10,8',  comment: 'save right[0..7] -> $0-$7' });
+      this.code.push({ mnemonic: 'ld',   operands: '$8,$18',    comment: 'save right[8] -> $8' });
+      this.code.push({ mnemonic: 'pps',  operands: '$18',       comment: 'pop left[8] -> $18' });
+      this.code.push({ mnemonic: 'ppsm', operands: '$10,8',     comment: 'pop left[0..7] -> $10-$17' });
 
       this.emitRomCall(romAddr, `${op}`);
     } else if (this.isComparisonOp(op)) {
-      // Comparison: swap so left is in acc, right in temp, then subtract
-      this.code.push({ mnemonic: 'phsm', operands: '$10,8', comment: 'push right[0..7]' });
-      this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push right[8]' });
-      this.code.push({ mnemonic: 'ldm',  operands: '$10,$19,8', comment: 'acc[0..7] = left' });
-      this.code.push({ mnemonic: 'ld',   operands: '$18,$27',   comment: 'acc[8] = left[8]' });
-      this.code.push({ mnemonic: 'pps',  operands: '$27',       comment: 'pop right[8] → $27' });
-      this.code.push({ mnemonic: 'ppsm', operands: '$19,8',     comment: 'pop right[0..7] → $19-$26' });
+      // Same operand convention as arithmetic — FP_SUB also expects
+      // left in $10-$18, right in $0-$8.
+      this.code.push({ mnemonic: 'ldm',  operands: '$0,$10,8',  comment: 'save right[0..7] -> $0-$7' });
+      this.code.push({ mnemonic: 'ld',   operands: '$8,$18',    comment: 'save right[8] -> $8' });
+      this.code.push({ mnemonic: 'pps',  operands: '$18',       comment: 'pop left[8] -> $18' });
+      this.code.push({ mnemonic: 'ppsm', operands: '$10,8',     comment: 'pop left[0..7] -> $10-$17' });
       this.emitRomCall(ROM.FP_SUB, `compare: ${op}`);
       // Result flags used by conditional jumps
     } else {
