@@ -118,5 +118,10 @@
     "file": "SORCERER.BAS",
     "name": "Sorcerer's Cave",
     "description": "Board game adaptation — explore a labyrinth, recruit creatures, fight monsters, collect treasure, and escape alive. Run CLEAR 11000,17000 before RUN"
+  },
+  {
+    "file": "PRIMES.BAS",
+    "name": "Primes Benchmark",
+    "description": "Finds the 100th prime (541) via trial division — for comparing interpreted vs. compiled BASIC performance"
   }
 ]
