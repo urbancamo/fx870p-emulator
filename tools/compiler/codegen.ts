@@ -521,27 +521,33 @@ class CodeGen {
   //
   // The HD61700 stm/ldm instructions use REGIRRIM3 addressing (ix+sir, count 1-8).
   // Direct-address stm/ldm is not valid. We set IX to the variable address,
-  // then use sx=0 for the first 8 bytes and sx=8 for the 9th byte.
+  // move the first 8 bytes with a zero displacement, then reach the 9th byte
+  // with an immediate +8 displacement.
   // -------------------------------------------------------------------------
 
+  // `(ix+$sx)` is NOT "ix plus the value of SX": SX names a general register
+  // and the displacement is that register's CONTENTS. The ROM's global
+  // convention -- set up by ColdBootInit at &H1F53 and relied on by every ROM
+  // routine, including the FP ones -- is SX -> $31 (which holds 0) and
+  // SY -> $30 (which holds 1). So `psr sx,31` is how you say "displacement 0",
+  // and `psr sx,8` did NOT mean +8, it meant "displacement = contents of $8".
+  // Non-zero displacements use the immediate form `(ix+&Hnn)` instead.
   private emitVarLoad9(label: string, comment?: string): void {
     if (comment) this.code.push({ comment });
     this.code.push({ mnemonic: 'ldw',  operands: `$2,${label}`,         comment: 'load var address' });
     this.code.push({ mnemonic: 'pre',  operands: 'ix,$2',               comment: 'IX = var address' });
-    this.code.push({ mnemonic: 'psr',  operands: 'sx,0',                comment: 'sx = 0' });
+    this.code.push({ mnemonic: 'psr',  operands: 'sx,31',               comment: '$sx -> $31 (= 0): displacement 0' });
     this.code.push({ mnemonic: 'ldm',  operands: '$10,(ix+$sx),8',      comment: 'load bytes 0-7' });
-    this.code.push({ mnemonic: 'psr',  operands: 'sx,8',                comment: 'sx = 8' });
-    this.code.push({ mnemonic: 'ld',   operands: '$18,(ix+$sx)',         comment: 'load byte 8' });
+    this.code.push({ mnemonic: 'ld',   operands: '$18,(ix+&H08)',       comment: 'load byte 8' });
   }
 
   private emitVarStore9(label: string, comment?: string): void {
     if (comment) this.code.push({ comment });
     this.code.push({ mnemonic: 'ldw',  operands: `$2,${label}`,         comment: 'load var address' });
     this.code.push({ mnemonic: 'pre',  operands: 'ix,$2',               comment: 'IX = var address' });
-    this.code.push({ mnemonic: 'psr',  operands: 'sx,0',                comment: 'sx = 0' });
+    this.code.push({ mnemonic: 'psr',  operands: 'sx,31',               comment: '$sx -> $31 (= 0): displacement 0' });
     this.code.push({ mnemonic: 'stm',  operands: '$10,(ix+$sx),8',      comment: 'store bytes 0-7' });
-    this.code.push({ mnemonic: 'psr',  operands: 'sx,8',                comment: 'sx = 8' });
-    this.code.push({ mnemonic: 'st',   operands: '$18,(ix+$sx)',         comment: 'store byte 8' });
+    this.code.push({ mnemonic: 'st',   operands: '$18,(ix+&H08)',       comment: 'store byte 8' });
   }
 
   // Store N bytes (N <= 8) from $10 to a direct label via IX
@@ -549,7 +555,7 @@ class CodeGen {
     if (comment) this.code.push({ comment });
     this.code.push({ mnemonic: 'ldw',  operands: `$2,${label}`,         comment: 'load var address' });
     this.code.push({ mnemonic: 'pre',  operands: 'ix,$2',               comment: 'IX = var address' });
-    this.code.push({ mnemonic: 'psr',  operands: 'sx,0',                comment: 'sx = 0' });
+    this.code.push({ mnemonic: 'psr',  operands: 'sx,31',               comment: '$sx -> $31 (= 0): displacement 0' });
     if (n === 1) {
       this.code.push({ mnemonic: 'st',  operands: '$10,(ix+$sx)',        comment: 'store 1 byte' });
     } else {
@@ -567,7 +573,7 @@ class CodeGen {
 
     // 2. Push left operand (9 bytes) to stack
     // phsm max count is 8; push the 9th byte separately
-    this.code.push({ mnemonic: 'phsm', operands: '$10,8', comment: 'push left[0..7]' });
+    this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push left[0..7]' });
     this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push left[8]' });
 
     // 3. Evaluate right operand → FP accumulator ($10-$18)
@@ -591,7 +597,7 @@ class CodeGen {
       this.code.push({ mnemonic: 'ldm', operands: '$10,$19,8', comment: 'left[0..7] -> $10-$17' });
       this.code.push({ mnemonic: 'ld',  operands: '$18,$27',   comment: 'left[8] -> $18' });
 
-      this.emitRomCall(romAddr, `${op}`);
+      this.emitRomCallFp(romAddr, `${op}`);
     } else if (this.isComparisonOp(op)) {
       // Same operand convention as arithmetic — FP_SUB also expects
       // left in $10-$18, right in $0-$8.
@@ -602,7 +608,7 @@ class CodeGen {
       this.code.push({ mnemonic: 'ld',  operands: '$8,$18',    comment: 'right[8] -> $8' });
       this.code.push({ mnemonic: 'ldm', operands: '$10,$19,8', comment: 'left[0..7] -> $10-$17' });
       this.code.push({ mnemonic: 'ld',  operands: '$18,$27',   comment: 'left[8] -> $18' });
-      this.emitRomCall(ROM.FP_SUB, `compare: ${op}`);
+      this.emitRomCallFp(ROM.FP_SUB, `compare: ${op}`);
       // Result flags used by conditional jumps
     } else {
       this.code.push({ comment: `TODO: operator ${op}` });
@@ -690,7 +696,7 @@ class CodeGen {
       this.emitExpression(indices[0]);
       // Multiply index by element size to get byte offset
       this.emitNumberLiteral(elementSize);
-      this.code.push({ mnemonic: 'phsm', operands: '$10,8', comment: 'push element size[0..7]' });
+      this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push element size[0..7]' });
       this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push element size[8]' });
       // (index already evaluated above; for full impl we'd swap and call FP_MUL here)
       this.code.push({ comment: `TODO: multiply index by ${elementSize} for array offset` });
@@ -730,6 +736,29 @@ class CodeGen {
     });
   }
 
+  // FP-safe ROM call -- for routines that take their right-hand operand in
+  // $0-$8 (FP_ADD/SUB/MUL/DIV and the comparison subtract). The normal
+  // ROM_CALL path would destroy that operand: `ldw $2,<addr>` overwrites
+  // $2-$3 and the wrapper's own `ldw $0,&H5323` overwrites $0-$1.
+  //
+  // Register choice: $19/$20 hold the ROM target address and $28/$29 the
+  // BIOS2 return context. $19-$27 are dead by the time the operands have
+  // been shuffled into place, and $28/$29 are unused elsewhere. Note that
+  // $30/$31 must NOT be used: the ROM keeps global constants there
+  // ($30 = 1, $31 = 0, with SX -> $31 and SY -> $30), and the FP routines
+  // themselves read them via `$sx`/`$sy`.
+  private emitRomCallFp(addr: string, comment?: string): void {
+    this.code.push({
+      mnemonic: 'ldw',
+      operands: `$19,${addr}`,
+      comment,
+    });
+    this.code.push({
+      mnemonic: 'cal',
+      operands: 'ROM_CALL_FP',
+    });
+  }
+
   private emitRomCallWrapper(): void {
     this.code.push({
       label: 'ROM_CALL',
@@ -750,6 +779,31 @@ class CodeGen {
     this.code.push({
       mnemonic: 'jp',
       operands: '$2',
+      comment: 'jump to ROM routine',
+    });
+
+    // FP-safe mirror of the wrapper above -- identical sequence, but built
+    // from $28/$29 (unused) and $19/$20 (dead once the operands are staged)
+    // so the $0-$8 operand window survives the call.
+    this.code.push({
+      label: 'ROM_CALL_FP',
+      mnemonic: 'ldw',
+      operands: '$28,&H5323',
+      comment: 'BIOS2 return context (FP-safe: avoids $0-$8)',
+    });
+    this.code.push({
+      mnemonic: 'phsw',
+      operands: '$29',
+      comment: 'push return address',
+    });
+    this.code.push({
+      mnemonic: 'pst',
+      operands: 'UA,&H54',
+      comment: 'bank switch to Bank0',
+    });
+    this.code.push({
+      mnemonic: 'jp',
+      operands: '$19',
       comment: 'jump to ROM routine',
     });
   }
@@ -948,13 +1002,13 @@ class CodeGen {
       // Increment: counter = counter + step
       this.code.push({ comment: `NEXT ${varName}` });
       this.emitVariableLoad(loopVar);
-      this.code.push({ mnemonic: 'phsm', operands: '$10,8', comment: 'push counter[0..7]' });
+      this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push counter[0..7]' });
       this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push counter[8]' });
       this.emitVariableLoad(stepRef);
       this.code.push({ mnemonic: 'pps',  operands: '$27',   comment: 'pop counter[8] → $27' });
       this.code.push({ mnemonic: 'ppsm', operands: '$19,8', comment: 'pop counter[0..7] → $19-$26' });
       // Swap so left=counter in acc, right=step in temp
-      this.code.push({ mnemonic: 'phsm', operands: '$10,8', comment: 'push step[0..7]' });
+      this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push step[0..7]' });
       this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push step[8]' });
       this.code.push({ mnemonic: 'ldm',  operands: '$10,$19,8', comment: 'acc[0..7] = counter' });
       this.code.push({ mnemonic: 'ld',   operands: '$18,$27',   comment: 'acc[8] = counter[8]' });
@@ -965,13 +1019,13 @@ class CodeGen {
 
       // Compare: counter - limit
       this.emitVariableLoad(loopVar);
-      this.code.push({ mnemonic: 'phsm', operands: '$10,8', comment: 'push counter[0..7]' });
+      this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push counter[0..7]' });
       this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push counter[8]' });
       this.emitVariableLoad(limitRef);
       this.code.push({ mnemonic: 'pps',  operands: '$27',   comment: 'pop counter[8] → $27' });
       this.code.push({ mnemonic: 'ppsm', operands: '$19,8', comment: 'pop counter[0..7] → $19-$26' });
       // Swap so left=counter in acc, right=limit in temp
-      this.code.push({ mnemonic: 'phsm', operands: '$10,8', comment: 'push limit[0..7]' });
+      this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push limit[0..7]' });
       this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push limit[8]' });
       this.code.push({ mnemonic: 'ldm',  operands: '$10,$19,8', comment: 'acc[0..7] = counter' });
       this.code.push({ mnemonic: 'ld',   operands: '$18,$27',   comment: 'acc[8] = counter[8]' });
@@ -1054,13 +1108,13 @@ class CodeGen {
     if (expr.type === 'binary' && this.isComparisonOp(expr.op)) {
       // Evaluate as subtraction: left - right, then test flags
       this.emitExpression(expr.left);
-      this.code.push({ mnemonic: 'phsm', operands: '$10,8', comment: 'push left[0..7]' });
+      this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push left[0..7]' });
       this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push left[8]' });
       this.emitExpression(expr.right);
       this.code.push({ mnemonic: 'pps',  operands: '$27',   comment: 'pop left[8] → $27' });
       this.code.push({ mnemonic: 'ppsm', operands: '$19,8', comment: 'pop left[0..7] → $19-$26' });
       // Swap so left=acc, right=temp, then subtract
-      this.code.push({ mnemonic: 'phsm', operands: '$10,8', comment: 'push right[0..7]' });
+      this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push right[0..7]' });
       this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push right[8]' });
       this.code.push({ mnemonic: 'ldm',  operands: '$10,$19,8', comment: 'acc[0..7] = left' });
       this.code.push({ mnemonic: 'ld',   operands: '$18,$27',   comment: 'acc[8] = left[8]' });
@@ -1097,7 +1151,7 @@ class CodeGen {
       // Load selector
       this.emitVariableLoad(selectorRef);
       // Push selector
-      this.code.push({ mnemonic: 'phsm', operands: '$10,8', comment: `push selector[0..7]` });
+      this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: `push selector[0..7]` });
       this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push selector[8]' });
       // Load comparison value (i+1)
       this.emitNumberLiteral(i + 1);
@@ -1105,7 +1159,7 @@ class CodeGen {
       this.code.push({ mnemonic: 'pps',  operands: '$27',   comment: 'pop selector[8] → $27' });
       this.code.push({ mnemonic: 'ppsm', operands: '$19,8', comment: 'pop selector[0..7] → $19-$26' });
       // Swap so acc=selector, temp=(i+1), then subtract
-      this.code.push({ mnemonic: 'phsm', operands: '$10,8',     comment: 'push (i+1)[0..7]' });
+      this.code.push({ mnemonic: 'phsm', operands: '$17,8',     comment: 'push (i+1)[0..7]' });
       this.code.push({ mnemonic: 'phs',  operands: '$18',        comment: 'push (i+1)[8]' });
       this.code.push({ mnemonic: 'ldm',  operands: '$10,$19,8',  comment: 'acc[0..7] = selector' });
       this.code.push({ mnemonic: 'ld',   operands: '$18,$27',    comment: 'acc[8] = selector[8]' });
@@ -1264,7 +1318,7 @@ class CodeGen {
     this.code.push({ comment: 'LOCATE col,row' });
     // Evaluate col into accumulator
     this.emitExpression(stmt.col);
-    this.code.push({ mnemonic: 'phsm', operands: '$10,8', comment: 'push col[0..7]' });
+    this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push col[0..7]' });
     this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push col[8]' });
     // Evaluate row if present
     if (stmt.row) {
@@ -1304,7 +1358,7 @@ class CodeGen {
     this.code.push({ comment: 'POKE address, value' });
     // Evaluate address
     this.emitExpression(stmt.address);
-    this.code.push({ mnemonic: 'phsm', operands: '$10,8', comment: 'push address[0..7]' });
+    this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push address[0..7]' });
     this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push address[8]' });
     // Evaluate value
     this.emitExpression(stmt.value);
@@ -1327,7 +1381,7 @@ class CodeGen {
     this.code.push({ comment: 'DEFSEG segment' });
     this.emitExpression(stmt.segment);
     // Store segment value in UA register area
-    this.code.push({ mnemonic: 'phsm', operands: '$10,8', comment: 'push segment value[0..7]' });
+    this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push segment value[0..7]' });
     this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push segment value[8]' });
     this.code.push({ comment: 'TODO: set segment register from expression result (DEFSEG)' });
   }
@@ -1399,10 +1453,10 @@ class CodeGen {
   private emitOpen(stmt: OpenStatement): void {
     this.code.push({ comment: 'OPEN filename, mode, filenum — stub' });
     this.emitExpression(stmt.filenum);
-    this.code.push({ mnemonic: 'phsm', operands: '$10,8', comment: 'push filenum[0..7]' });
+    this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push filenum[0..7]' });
     this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push filenum[8]' });
     this.emitExpression(stmt.mode);
-    this.code.push({ mnemonic: 'phsm', operands: '$10,8', comment: 'push mode[0..7]' });
+    this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push mode[0..7]' });
     this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push mode[8]' });
     this.emitExpression(stmt.filename);
     this.code.push({
@@ -1431,7 +1485,7 @@ class CodeGen {
   private emitPrintFile(stmt: PrintFileStatement): void {
     this.code.push({ comment: 'PRINT# filenum, ... — stub' });
     this.emitExpression(stmt.filenum);
-    this.code.push({ mnemonic: 'phsm', operands: '$10,8', comment: 'push filenum[0..7]' });
+    this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push filenum[0..7]' });
     this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push filenum[8]' });
     // Print each item
     for (const item of stmt.items) {
@@ -1478,7 +1532,7 @@ class CodeGen {
   private emitWriteFile(stmt: WriteFileStatement): void {
     this.code.push({ comment: 'WRITE# filenum, items — stub' });
     this.emitExpression(stmt.filenum);
-    this.code.push({ mnemonic: 'phsm', operands: '$10,8', comment: 'push filenum[0..7]' });
+    this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push filenum[0..7]' });
     this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push filenum[8]' });
     for (const item of stmt.items) {
       this.emitExpression(item);
@@ -1525,7 +1579,7 @@ class CodeGen {
   private emitDefchr(stmt: DefchrStatement): void {
     this.code.push({ comment: 'DEFCHR$ code, pattern — stub' });
     this.emitExpression(stmt.code);
-    this.code.push({ mnemonic: 'phsm', operands: '$10,8', comment: 'push char code[0..7]' });
+    this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push char code[0..7]' });
     this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push char code[8]' });
     this.emitExpression(stmt.pattern);
     this.code.push({
@@ -1560,7 +1614,7 @@ class CodeGen {
     this.emitExpression(stmt.number);
     if (stmt.args) {
       for (const arg of stmt.args) {
-        this.code.push({ mnemonic: 'phsm', operands: '$10,8', comment: 'push MODE arg[0..7]' });
+        this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push MODE arg[0..7]' });
         this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push MODE arg[8]' });
         this.emitExpression(arg);
       }

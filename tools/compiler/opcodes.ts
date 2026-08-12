@@ -1053,20 +1053,22 @@ function tryEncode(
       if (isNaN(count) || count < 1 || count > 8) return null;
 
       const hasJr = parts.length >= 4 && parts[3]!.toLowerCase().startsWith('jr');
-      const operandByte = (reg & 0x1F) | (hasJr ? 0x80 : 0);
 
-      // Source reg encoded in second byte's bits [6:5] (or 0x60 for general reg)
+      // The source selector lives in bits [6:5] of the FIRST operand byte —
+      // the decoder (`shortRegAr1` in src/emulator/exec.ts) tests
+      // `(x & 0x60) === 0x60` on that byte to decide whether the source is a
+      // named general register (index then supplied in the low 5 bits of the
+      // count byte) or an SIR-indexed one. Emitting the selector in the count
+      // byte instead silently turned `ldm $0,$10,8` into `ldm $0,($sx),8`.
       const srcStr = parts[1]!.trim();
       const short = encodeShortReg(srcStr);
       if (!short) return null;
 
+      const operandByte = (reg & 0x1F) | short.bits | (hasJr ? 0x80 : 0);
+
       bytes.push(index);
       bytes.push(operandByte);
-      if (short.extraByte !== undefined) {
-        bytes.push(((count - 1) << 5) | (short.extraByte & 0x1F));
-      } else {
-        bytes.push(((count - 1) << 5) | short.bits);
-      }
+      bytes.push(((count - 1) << 5) | ((short.extraByte ?? 0) & 0x1F));
       if (hasJr) {
         const jrPart = parts[3]!.trim();
         const jrTarget = parseHex(jrPart.replace(/^jr\s+/i, ''));
