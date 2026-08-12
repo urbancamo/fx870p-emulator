@@ -71,10 +71,18 @@ describe('numberToBcd9', () => {
       .toEqual([0x99, 0x99, 0x99, 0x99, 0x99, 0x99, 0x09, 0x00, 0x01]);
   });
 
-  // captured from "12345678901234+0" — the 14th digit is dropped, not rounded
+  // Both cases captured from the real ROM. The first only shows that a 14th
+  // digit is dropped (its 14th digit is 4, so truncating and rounding agree);
+  // the second is the discriminating vector — its 14th digit is 9, so d13 is
+  // 3 under truncation and would be 4 under round-half-up. d13 is the low
+  // nibble of bytes[0], hence 0x23 here versus 0x24 if bcd.ts ever rounded.
   it('truncates a literal with more than 13 significant digits', () => {
+    // captured from "12345678901234+0" — 1.234567890123E+13
     expect(bytesOf(12345678901234))
       .toEqual([0x23, 0x01, 0x89, 0x67, 0x45, 0x23, 0x01, 0x13, 0x01]);
+    // captured from "1.2345678901239+0" — truncated to ...0123, not rounded to ...0124
+    expect(bytesOf(1.2345678901239))
+      .toEqual([0x23, 0x01, 0x89, 0x67, 0x45, 0x23, 0x01, 0x00, 0x01]);
   });
 
   // captured from "3-2" (second operand, negated by FP_SUB before FP_ADD)
