@@ -27,3 +27,4 @@ build
 /trace.jsonl
 /emulator-debug.log
 tools/emu-debugger/snapshots/
+.superpowers/sdd/
