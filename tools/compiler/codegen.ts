@@ -23,6 +23,7 @@ const ROM = {
   FP_SUB:    '&H05D4',
   FP_MUL:    '&H0607',
   FP_DIV:    '&H16BD',
+  MOD:       '&H105F',
   PRINT:     '&H3EF1',
   INPUT:     '&H3DEE',
   OUTCR:     '&H2AE8',
@@ -621,6 +622,7 @@ class CodeGen {
       case '-': return ROM.FP_SUB;
       case '*': return ROM.FP_MUL;
       case '/': return ROM.FP_DIV;
+      case 'mod': return ROM.MOD;
       default: return undefined;
     }
   }

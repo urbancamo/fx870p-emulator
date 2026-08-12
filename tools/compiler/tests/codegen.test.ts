@@ -131,6 +131,13 @@ describe('codegen - expressions', () => {
     expect(asm.some(l => l.includes('&H16BD'))).toBe(true);
   });
 
+  it('emits a ROM call for MOD', () => {
+    const ast = parse('10 A=7 MOD 3\n');
+    const asm = generate(ast);
+    const romCallLines = asm.lines.filter(l => l.mnemonic === 'ldw' && l.operands === '$19,&H105F');
+    expect(romCallLines.length).toBeGreaterThan(0);
+  });
+
   it('generates PRINT with expression', () => {
     const asm = mnemonics('10 PRINT 42');
     expect(asm.some(l => l.includes('&H3EF1'))).toBe(true);
