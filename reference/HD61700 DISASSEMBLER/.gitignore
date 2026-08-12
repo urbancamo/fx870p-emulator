@@ -1,0 +1,8 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/HD61700/bin/Debug
+/HD61700/obj
+/.vs
+/packages/CommandLineParser.2.9.1

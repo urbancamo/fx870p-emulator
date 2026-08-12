@@ -1,0 +1,4157 @@
+This text is based on the English version of the original Casio PB-1000
+manual and on the machine translation of the document which accompanies
+the HD61 Cross Assembler <http://www.geocities.jp/hd61700lab/>.
+
+
+	Description of the HD61700 microprocessor assembly language
+
+
+1.2	Internal Registers
+
+(1) Main Registers
+The internal RAM of the HD61700 can be accessed as a file of 32 8-bit
+registers. Addresses 0 through 31 are identical to general RAM addresses,
+and 16-bit up to 64-bit data can be handled using any adjacent main registers
+in combination. The little-endian byte order is used (the least significant
+first).
+
+(2) Other Registers
+PC: Program Counter (16-bit), indicates the final address of the current
+ execution. A value of one is added when execution is complete, and the next
+ command is fetched. Addresses newly specified by jump or call commands are
+ also set in this register.
+ In the case of the RETURN command, the address popped from the stack is set
+ in the program counter.
+
+SSP: System Stack Pointer (16-bit), saves the present program counter
+ address to the stack when CALL commands or interrupt handling routines are
+ encountered. This address is restored to the program counter upon return
+ or interrupt return. The system stack can be also used to store data with
+ the PHS/PPS commands.
+ System stack pointer data is retained even when the unit is switched OFF.
+ 
+USP: User Stack Pointer (16-bit), available for the user programs without
+ any system restrictions. It is predecremented by the PHU command and
+ postincremented by the PPU command.
+
+IX/IY/IZ: Index Registers (16-bit) - pointers to the external memory space.
+ The X-register and Z-register have virtually the same function, and can be
+ used as general 16-bit data pointers with an offset of +/-255. The index
+ registers are also used in conjunction with transfer commands and search
+ commands.
+ The Y-register is used exclusively as the terminal pointer for the transfer
+ and search commands.
+ These registers are cleared with 0 upon RESET and when power is switched OFF.
+
+SX/SY/SZ: Specific Index Registers (5-bit, UNDOCUMENTED) - pointers to the
+ internal data RAM allowing indirect access to the main registers. In many
+ cases they can substitute the main register operands, resulting in smaller
+ code size and faster execution speed. In the Casio PB-1000 system their
+ values are fixed:
+   SX=31, indicates the main register $31
+   SY=30, indicates the main register $30
+   SZ=0, indicates the main register $0
+ The choice whether to use them or not can be left to the HD61 assembler
+ which automatically picks the best addressing mode when the optimisation
+ is turned on (LEVEL 1).
+ The modification of SIR values is allowed under following conditions:
+   (1) disabled interrupts
+   (2) they are restored to original state when calling any ROM functions
+   (3) the optimisation in the HD61 assembler should be turned off (LEVEL 0),
+       otherwise it would, whenever possible, substitute the occurrences of
+       the $31, $30, and $0 registers with corresponding SI registers, which
+       would spoil the code
+ These registers are cleared with 0 upon RESET and when power is switched OFF.
+
+F: Flag Register (8-bit)
+
+	MSB     ->       LSB
+	Z C LZ UZ SW APO * *
+
+bit 7 - Zero Flag Z, reset to 0 when all the bits of a calculation result are
+ 0 (Z), and set to 1 when data are present (NZ).
+bit 6 - Carry Flag C, set to 1 when a carry or borrow occurs (C), and reset
+ to 0 when a carry or borrow does not occur (NC).
+bit 5 - Lower Digit Zero Flag LZ, reset to 0 when the low-order 4 bits are 0
+ due to a calculation result (LZ), and set to 1 when data are present (NLZ).
+bit 4 - Upper Digit Zero Flag UZ, reset to 0 when the high-order 4 bits are 0
+ (UZ), and set to 1 when data are present.
+bit 3 - Power Switch State Flag SW, indicates the ON/OFF status of the power
+ switch. This flag is set to 1 when power is ON, and reset to 0 when power is
+ OFF.
+bit 2 - Auto Power On State Flag APO, set to 1 when the system was turned on
+ with the ON terminal or One-Minute Timer interrupt, and reset to 0 when the
+ system was turned on with the power switch or BRK key.
+
+Status Registers
+The status registers are used to determine or modify the status of a variety
+ of functions.
+
+(1) IE: Interrupt Enable Register IE (Read/Write, 8-bit), performs interrupt
+ masking and sets the interrupt conditions.
+
+bit 7 - INT 1 Interrupt enable
+bit 6 - KEY/Pulse interrupt enable
+bit 5 - INT 2 interrupt enable
+bit 4 - One-minute timer interrupt enable
+bit 3 - ON interrupt enable
+bit 2 - Power On enable from ON terminal
+bit 1 - INT 1 terminal interrupt edge specification
+	0: falling edge, 1: rising edge
+bit 0 - INT 2 terminal interrupt level specification
+	0: low level, 1: high level
+
+The RESET operation clears this register entirely, and bits 0, 1, 5, 6, and 7
+are also cleared when power is OFF. The settings of bits 2 through 4 are
+retained when power is switched OFF.
+The bit number determines the interrupt priority level, for example INT1 has
+higher priority than KEY/Pulse interrupt.
+An interrupt service routine of lower priority can be always interrupted by
+a higher priority interrupt (UNDOCUMENTED property).
+
+(2) IA: Interrupt Select and Key Output Register (Read/Write, 8-bit), sets the
+ type of interrupt and key output.
+
+bit 7 - key interrupt (1) or pulse interrupt (0) specification
+bit 6 - selects the pulse frequency of 32Hz (1) or 256Hz (0) in the pulse
+ interrupt mode
+bits 5,4 - specify the interrupt capable KI inputs in the key interrupt mode
+	0: None
+	1: KI1
+	2: KI1 and KI2
+	3: All inputs KI1..KI12
+bits 3..0 - 4-bit key output specification as follows:
+	0: None key output selected
+	1 to 12: Single key output KO1..KO12 selected
+	13: All-key outputs selected
+	14: Undefined
+	15: Undefined
+
+Note: in the Casio PB-2000C the pulse interrupt frequency selected by bit 6 of
+ the IA register is 1Hz (1) or 256Hz (0).
+
+(3) UA: High-Order Address Specification Register (Read/Write, 8-bit)
+ The 2 bits of this register are added to the PC, X, Y, Z, SSP and USP 16-bit
+ registers to allow specification of an 18-bit address (banking).
+
+bits 7,6 - Z-register high-order address specification
+bits 5,4 - X-register/Y-register high-order address specification
+bits 3,2 - SSP/USP register high-order address specification
+bits 1,0 - PC high-order address specification
+
+This register is cleared with 0 upon RESET and when power is switched OFF.
+
+Note: the effect of the PC high-order address modification is delayed by
+one instruction cycle, so that a memory bank change would occur only after
+a following jump/call/return. The interrupts should be disabled before any
+modification of the PC high-order address, unless the far jump/call/return
+is executed from a memory area excluded from bank switching.
+
+Note: interrupt handling routines ignore the PC high-order address
+specification, code is always exexuted from the memory bank 0.
+
+(4) Display Driver Control Register (Write Only, 8-bit), outputs a control
+ signal when display data or commands are sent to the display driver.
+
+bit 7 - VDD2
+bit 6 - CLOCK ON (1), OFF (O)
+bit 5 - not used
+bit 4 - CE4
+bit 3 - CE3
+bit 2 - CE2
+bit 1 - CE1
+bit 0 - OP
+
+Bit 5 is undefined, and set values (except that set in bit 6) are output from
+the pin according to negative logic.
+The register can be accessed with the (UNDOCUMENTED) PPO instruction.
+
+(5) PE: Port Data Direction Register (Read/Write, 8-bit), specifies the port
+ pins direction for either input or output.
+
+bit 7 - specifies port 7 as output (1) or input (0)
+bit 6 - specifies port 6 as output (1) or input (0)
+bit 5 - specifies port 5 as output (1) or input (0)
+bit 4 - specifies port 4 as output (1) or input (0)
+bit 3 - specifies port 3 as output (1) or input (0)
+bit 2 - specifies port 2 as output (1) or input (0)
+bit 1 - specifies port 1 as output (1) or input (0)
+bit 0 - specifies port 0 as output (1) or input (0)
+
+All bits are cleared (reset to input status) when the RESET operation is
+performed or when power is switched OFF.
+
+(6) PD: Port Data Register (Read/Write, 8-bit), sets the state of an output
+ port when written, or returns the state of an output data latch when read.
+
+bit 7 - Port 7 data
+bit 6 - Port 6 data
+bit 5 - Port 5 data
+bit 4 - Port 4 data
+bit 3 - Port 3 data
+bit 2 - Port 2 data
+bit 1 - Port 1 data
+bit 0 - Port 0 data
+
+This register is not initialized by the RESET operation or when power is
+switched OFF (undefined).
+
+(7) TM: Timer data register (Read, 8-bit), can be reset to 0 with the CLT
+ instruction, and read to a main register with the GST instruction. Change
+ of the seconds bits from 59 to 00 triggers the One-Minute-Timer interrupt.
+bit 7,6  - minutes (0 to 3)
+bit 5..0 - seconds (0 to 59)
+
+Note: When the seconds bits change from 59 to 00, there is a short period
+ of 1/65536 sec with 60 as seconds. During this period the CLT instruction
+ fails to clear the TM register.
+ Reading the TM register at the instant it is changing value may return
+ invalid results, i.e. some low-order bits may have already changed but the
+ high-order bits may not have changed yet.
+ The usual solution to this issue is to continue to read the TM register until
+ two consecutive reads return the same value.
+
+(8) IB: Interrupt control and memory bank range configuration register
+ (UNDOCUMENTED)
+bit 7..6 - memory bank select options (Read/Write)
+bit 5 - Power On enable from the one-minute timer interrupt (Read/Write)
+bit 4 - IRQ1 interrupt flag (Read only)
+bit 3 - key/pulse interrupt flag (Read only)
+bit 2 - IRQ2 interrupt flag (Read only)
+bit 1 - one-minute timer interrupt flag (Read only)
+bit 0 - ON interrupt flag (Read only)
+
+Bits 7..6 specify the address below which always the bank 0 is selected,
+regardless of the UA register value.
+00 - UA valid in the full address range
+01 - UA valid in the address range 4000..FFFF
+10 - UA valid in the address range 8000..FFFF
+11 - UA valid in the address range C000..FFFF
+
+Bits 4..0 reflect the state of the hardware interrupt request latches. They
+are set by hardware after an interrupt occurs, and cleared either by the RTNI
+instruction, or by the CANI instruction, or by disabling the corresponding
+interrupt.
+
+(9) KY: Key input register (Read, 16-bit), returns the state of the 12-bit KI
+ input port and the state of the external interrupt inputs.
+bit 15..12 - keyboard port pins KI9..KI12
+bit 11     - IRQ1 input level (UNDOCUMENTED)
+bit 10     - IRQ2 input level (UNDOCUMENTED)
+bit 9      - ON-interrupt input level (UNDOCUMENTED)
+bit 8      - function unknown
+bit 7..0   - keyboard port pins KI1..KI8
+
+
+The symbols listed below are used in the explanations and examples throughout
+this document:
+
+$0..$31		Main register address specification
+SX		Specific X register (5-bit, UNDOCUMENTED)
+SY		Specific Y register (5-bit, UNDOCUMENTED)
+SZ		Specific Z register (5-bit, UNDOCUMENTED)
+$SX or $(SX)	Main register indicated indirectly by the specific register SX
+$SY or $(SY)	Main register indicated indirectly by the specific register SY
+$SZ or $(SZ)	Main register indicated indirectly by the specific register SZ
+SI or SIR	indicates any of the SX, SY or SZ registers
+IX		X-register (16-bit)
+IZ		Z-register (16-bit)
+IR		indicates both the IX and IZ registers
+SS or SSP	System stack pointer (16-bit)
+US or USP	User stack pointer (16-bit)
+KY		Key input register (16-bit)
+PC		Program counter (16-bit)
+F		Status flag register (8-bit)
+Z		Zero flag
+NC		Non zero flag
+C		Carry flag
+NC		Non carry flag
+LZ		Low-order digit zero flag
+UZ		High-order digit zero flag
+NLZ or LNZ	Low-order digit non zero flag
+IE		Interrupt enable register (8-bit)
+IA		Interrupt select and Key Output register (8-bit)
+IB:		Interrupt control and memory bank range configuration register
+		(8-bit, UNDOCUMENTED)
+UA		High-order address specification register (8-bit)
+PD		Port data register (8-bit)
+PE		Port data direction register (8-bit)
+TM		Timer data register (8-bit)
+IM3		3-bit immediate data 2..8 (used in multi-byte commands)
+IM5		5-bit immediate data &H00..&H1F
+IM8		8-bit immediate data &H00..&HFF
+IM16		16-bit immediate data &H0000..&HFFFF
+<-		Transfer direction
+&H		Prefix of a hexadecimal literal
+( )		Contents of memory pointed to by the register included within
+		parentheses
+
+
+2	The HD61 assembler source file format
+
+Syntax of an assembler statement
+  ([ LABEL: ]) [ Mnemonic ] [ OP1 ] [, OP2 ] [, OP3 ] ... ([; Comment ])
+
+  The mnemonic should be separated from the first operand by a space or a tab.
+  Actually the assembler doesn't need it, but it's required according to the
+  specification.
+  Multiple operands should be separated with a comma.
+  The mnemonics and operands should be typed with capital letters.
+  The label and comment fields are optional.
+
+Numerical values
+  Supported sizes of numerical values
+	8 bit integer type IM8: 0 to 255
+	16 bit integer type IM16: 0 to 65535
+  Supported notation of numerical constants
+	decimal (default): 123
+	hexadecimal: &HAB
+	binary: &B10011010
+	string: "AB" is equivalent to &H4241
+
+Labels
+  A label can contain up to 16 characters (the internal PB-1000 assembler
+  allows only 5 characters) from the following set: "@", "_", "A" to "Z",
+  "a" to "z", "0" to "9". The first character must not be a digit.
+  The label is assigned the current location counter or a value specified
+  by the EQU pseudo instruction.
+  A defined label can substitute any numerical operand.
+
+Expressions and operators
+  Any numerical operand can be replaced by a label or an expression.
+  The expressions are evaluated in order of operator precedence.
+  The list of available operators (from the highest to the lowest precedence):
+  (1) unary operators:
+	H (or U) returns the high-order byte of an expression
+	L (or D) returns the low-order byte of an expression
+	N returns the bitwise complement of an expression
+  (2) logical negation: !
+  (3) expression within parentheses: ()
+  (4) arithmetical multiplicative operators:
+	* multiplication
+	/ division
+	% modulo
+  (5) arithmetical additive operators:
+	+ addition
+	- subtraction
+  (6) bitwise logical operators:
+	& AND
+	| OR
+	^ XOR
+  (7) relational operators (used to compare values):
+	= equal to
+	> greater than
+	< less than
+	>= greater than or equal to
+	<= less than or equal to
+	<> not equal to
+
+Pseudo instructions
+
+  The HD61 assembler supports all basic pseudo instructions of the PB-1000
+  internal assembler, but with some enhancements, for example labels and
+  expressions can be used.
+
+(1) ORG
+  Format: ORG [ address ] (or label/expression)
+  The ORG directive loads the location counter with the numerical word-size
+  value specified in the operand. Multiple ORG statements in a program are
+  possible, but it's not allowed to define smaller ORG values than the current
+  location counter.
+  The location counter must be specified with ORG at the beginning of the
+  program. Until then only usage of instructions START and EQU is permitted.
+  Any label appearing in the operand field must be previously defined.
+
+(2) START
+  Format: START [ run start address ] (or label/expression)
+  The START directive sets the program entry point to address specified by
+  the numerical word-size expression. It can occur in a program only once.
+
+(3) EQU
+  Format: [ LABEL: ] EQU [ numerical value ] (or label/expression)
+  The EQU directive assigns a numerical value specified by the operand to a
+  label. Any label appearing in the operand field must be previously defined.
+  Note: Unlike other assemblers, the label name defined by the EQU directive
+  must be terminated by a colon.
+
+(4) DB
+  Format: ([ LABEL: ]) DB [ numerical value ] (, [ numerical value ],
+  "character string", label/expresson ......)
+  The bytes specified by the list of operands are stored consecutively in
+  the memory starting at the address in the location counter.
+  The DB directive accepts not only numerical values, labels and expressions
+  as valid operands, but also character strings within quotes.
+  All numeric operands must evaluate to 8-bit numbers (value in range of 0 to
+  255).
+  Example: DB 1, 2, 3, "ABCDEF 0 1 2", &H20
+
+(5) DW 
+  Format: ([ LABEL: ]) DW [ numerical value ] (, [ numerical value ],
+  label/expression ......)
+  The 2-byte words specified by the list of operands are stored consecutively
+  in the memory starting at the address in the location counter.
+  The DW directive accepts as valid operands numerical values, labels and
+  expressions, but no strings (except of numerical constants in form of a
+  string of up to 2 characters).
+  All numeric operands must evaluate to 16-bit numbers (value in range of 0 to
+  65535).
+  The internal PB-1000 assembler doesn't support this instruction.
+
+(6) DS
+  Format: ([ LABEL: ]) DS [ numerical value ] (or label/expression)
+  The DS directive reserves a block of memory and clears it with 0 (while the
+  contents of the memory block reserved by the internal PB-1000 assembler is
+  undefined). The operand specifies the number of bytes to be reserved. Any
+  label appearing in the operand field must be previously defined.
+
+(7) LEVEL
+  Format: LEVEL [ numerical value (0 or 1) ]
+  This directive specifies whether the code should be optimised by replacing
+  (whenever possible) all references to the $0, $30 and $31 Main Registers
+  with corresponding Specific Index Registers.
+  LEVEL 1 (default value) turns the optimisation on.
+  LEVEL 0 turns the optimisation off in order to maintain the output code
+  compatibility with the internal PB-1000 assembler, or when the Specific
+  Index Registers are written with non-standard values.
+
+(8) #IF - #ELSE - #ENDIF
+  Format: #IF [ expression ]
+       << instructions >>
+      (#ELSE
+       << instructions >>)
+      #ENDIF
+  If the expression in the operand field of the #IF directive evaluates to
+  a non-zero value, then all instructions between the #IF and the next #ELSE
+  or #ENDIF are assembled, otherwise they are ignored.
+  #ELSE is the converse of #IF. If the expression in the operand field of the
+  #IF directive evaluates to zero, then all instructions between the #ELSE and
+  the #ENDIF are assembled, otherwise they are ignored.
+  Any label appearing in the operand field of the #IF directive must be
+  previously defined.
+  The #ELSE directive is optional.
+  Nesting of #IF - #ELSE - #ENDIF is possible up to 255 levels.
+  The internal PB-1000 assembler doesn't support this instruction.
+
+(9) #INCLUDE
+  Format: #INCLUDE (file name)
+  Subsequent source lines are input from the file specified by the #INCLUDE
+  operand, until the end of file or nested #INCLUDE is encountered. After
+  completing of the included file, the previous source file is resumed.
+  The file name should be surrounded with parentheses.
+  The nesting of #INCLUDE is possible up to 256 levels.
+  An attempt to #INCLUDE recursively an already opened file causes an "Invalid
+  Include File Name" error.
+  During #INCLUDE processing the output of the list file is inhibited (this
+  can be modified with the later mentioned #NOLIST/#LIST directives).
+
+(10) #INCBIN
+  Format: #INCBIN (file name.BMP/file name)
+  The binary file of size up to 64kB and name specified by the #INCBIN
+  operand is converted as binary data to the DB format.
+  The file name should be surrounded with parentheses.
+  A file with an extension BMP is expected to have the Windows bitmap format
+  (monochrome, 2 colours), otherwise the assembly ends with an "Illegal Bitmap
+  File Format" error. The pixel data are converted to the graphic format of
+  the LCD display.
+
+(11) #NOLIST/#LIST/#EJECT
+  Format: #NOLIST
+          #LIST
+          #EJECT
+  This set of directives controls the output of the assembly listing (lst
+  file).
+  #NOLIST suppresses the assembly listing output.
+  #LIST resumes the assembly listing output.
+  #EJECT outputs LINE FEED (&H0C) and the page header.
+  The internal PB-1000 assembler doesn't support these instructions.
+
+(12) #KC/#AI
+  Format: #KC
+          #AI
+  Besides the AI mnemonic notation format described in this document, the HD61
+  assembler also supports an alterative KC notation format. This can lead to
+  confusions, because both dialects sometimes use the same mnemonic name for
+  different instructions, which are distinguished only by the operands. An
+  intended LDM or STM instruction (in the AI format) with accidentally missing
+  #3 operand would be interpreted as the KC format instruction equivalent to
+  LDD or STD. In such case the assembler may warn the user about possible
+  misinterpretation, when the (default) #AI option is selected.
+  The warnings can be suppressed with the #KC pseudoinstruction. This setting
+  is recommended for assembly sources in the KC format.
+  Example warning message:
+	"WARNING: 'LDM' was interpreted to 'LDD' of the KC form."
+
+
+3	Instruction set
+
+##################################################################
+3.1	Transfer commands (8-bit)
+##################################################################
+
+Mnemonic:	LD (load)
+Purpose:	Transfers data specified by the #2 operand to the main
+		register specified by the #1 operand.
+		Some addressing modes support an UNDOCUMENTED optional jump
+		extension. When the #3 operand is specified, it's used as a
+		(relative) jump address in range up to +/-127 bytes. The jump
+		is taken after the instruction is executed.
+Flags:		none affected
+Format:		LD opr1, opr2
+
+Addressing modes:
+
+(1) transfer from a main register
+Purpose:	Transfers the contents of the main register specified by the
+		#2 operand to the main register specified by the #1 operand.
+		Supports an optional jump extension.
+Format:		LD $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	LD $2, $0
+		LD $2, $30, JR ERROR	;jump extension
+
+(2) indirect transfer from a main register indicated by a specific index
+  register (UNDOCUMENTED)
+Purpose:	Transfers the contents of the main register indicated by
+		the specific index register specified by the #2 operand to
+		the main register specified by the #1 operand. Supports an
+		optional jump extension.
+Format:		LD $C5, $SI [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	LD $2, $SX
+		LD $3, $SY
+		LD $4, $SZ, JR ERROR	;jump extension
+
+(3) transfer from external memory addressed by a pair of main registers
+Purpose:	Transfers the contents of the external memory location pointed
+		to by the 2-byte main register specified by the #2 operand to
+		the main register specified by the #1 operand. The external
+		memory bank (high-order address) is the same as the X-register
+		bank.
+		Supports an optional jump extension.
+Format:		LD $C5, ($C5) [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	LD $2, ($0)
+		LD $2, ($30), JR ERROR	;jump extension
+
+(4) transfer from external memory addressed by a pair of main registers
+  indicated by a specific index register (UNDOCUMENTED)
+Purpose:	Transfers the contents of the external memory location pointed
+		to by the 2-byte main register indicated by the specific index
+		register specified by the #2 operand to the main register
+		specified by the #1 operand. The external memory bank
+		(high-order address) is the same as the X-register bank.
+		Supports an optional jump extension.
+Format:		LD $C5, ($SI) [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	LD $2, ($SX)
+		LD $2, ($SZ), JR ERROR	;jump extension
+
+(5) transfer from external memory addressed by the sum of an index register
+  and a main register
+Purpose:	Transfers the contents of the external memory location pointed
+		to by the sum of an index register and a main register
+		specified by the #2 operand to the main register specified by
+		the #1 operand.
+Format:		LD $C5, (IX+/-$C5)
+		LD $C5, (IZ+/-$C5)
+Example:	LD $2, (IX+$31)
+		
+(6) transfer from external memory addressed by the sum of an index register
+  and a main register indicated by a specific index register (UNDOCUMENTED)
+Purpose:	Transfers the contents of the external memory location to
+		the main register specified by the #1 operand. The effective
+		address of this memory location is the sum of an index
+		register and a main register indicated by a specific index
+		register specified by the #2 operand.
+Format:		LD $C5, (IX+/-$SI)
+		LD $C5, (IZ+/-$SI)
+Examples:	LD $2, (IX+$SY)
+		LD $3, (IX-$SZ)
+		
+(7) transfer from external memory addressed by the sum of an index register
+  and an 8-bit immediate data
+Purpose:	Transfers the contents of the external memory location pointed
+		to by the sum of an index register and an 8-bit immediate data
+		specified by the #2 operand to the main register specified by
+		the #1 operand.
+Format:		LD $C5, (IX+/-IM8)
+		LD $C5, (IZ+/-IM8)
+Example:	LD $2, (IX+123)
+
+(8) transfer of an 8-bit immediate data
+Purpose:	Transfers the 8-bit immediate data contained in the #2 operand
+		to the main register specified by the #1 operand. Supports an
+		optional jump extension.
+Format:		LD $C5, IM8 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	LD $4, 123
+		LD $2, 3, ERROR		;jump extension
+
+-------------------
+
+Mnemonic:	LDI (load and increment)
+Purpose:	$C5 <- (IR+/-A)
+		IR <- IR+/-A +1
+		Transfers the contents of the external memory location pointed
+		to by the sum of an index register and a main register
+		specified by the #2 operand to the main register specified by
+		the #1 	operand. Then a sum of the offset A and +1 is added to
+		the IR register specified by the #2 operand. Operand A can be
+		of $C5 type (including the UNDOCUMENTED substitution by a
+		specific index register) or IM8 type.
+Flags:		none affected
+Format:		LDI $C5, (IR+/-A)
+Examples:	LDI $4, (IX+$2)		;main register offset specification
+		LDI $4, (IX-$2)
+		LDI $4, (IZ+$2)
+		LDI $4, (IZ-$2)
+		LDI $4, (IX+$SX)	;indirect offset specification
+		LDI $4, (IX-$SY)
+		LDI $4, (IZ+$SX)
+		LDI $4, (IZ-$SY)
+		LDI $4, (IX+123)	;8-bit immediate offset specification
+		LDI $4, (IX-123)
+		LDI $4, (IZ+123)
+		LDI $4, (IZ-123)
+
+-------------------
+
+Mnemonic:	LDD (load, UNDOCUMENTED)
+Format:		LDD $C5, (IR+/-A)
+Purpose:	$C5 <- (IR+/-A)
+		IR <- IR+/-A
+		Transfers the contents of the external memory location pointed
+		to by the sum of an index register and a main register
+		specified by the #2 operand to the main register specified by
+		the #1 operand, then the offset A is added to the IR register.
+		It's almost equivalent to the LDI instruction, except that
+		incrementing of the IR register does not take place. Operand
+		A can be of $C5 type (including the substitution by a specific
+		index register) or IM8 type.
+Flags:		none affected
+Examples:	LDD $4, (IX+$10)	;main register offset specification
+		LDD $4, (IZ+$10)
+		LDD $4, (IX+$SX)	;indirect offset specification
+		LDD $4, (IZ+$SY)
+		LDD $4, (IX+123)	;8-bit immediate offset specification
+		LDD $4, (IX-123)
+
+-------------------
+
+Mnemonic:	ST (Store)
+Purpose:	opr1 -> opr2
+		Transfers the contents of an 8-bit register specified by the
+		#1 operand to an external memory location specified by the
+		#2 operand.
+		Some addressing modes support an UNDOCUMENTED optional jump
+		extension. When the #3 operand is specified, it's used as a
+		(relative) jump address in range up to +/-127 bytes. The jump
+		is taken after the instruction is executed.
+Flags:		none affected
+Format:		ST opr1, opr2
+
+Addressing modes:
+
+(1) transfer to external memory addressed by a pair of registers
+Purpose:	Transfers the contents of the main register specified by the
+		#1 operand to the external memory location pointed to by the
+		2-byte main register specified by the #2 operand. The external
+		memory bank (high-order address) is the same as the X-register
+		bank.
+		Supports an optional jump extension.
+Format:		ST $C5, ($C5) [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	ST $2, ($0)
+		ST $2, ($0), JR LABEL
+
+(2) transfer to external memory addressed by a pair of registers indicated by
+  a specific index register (UNDOCUMENTED)
+Purpose:	Transfers the contents of the main register specified by
+		the #1 operand to the external memory location pointed to by
+		the 2-byte main register indicated by the specific index
+		register specified by the #2 operand. The external memory bank
+		(high-order address) is the same as the X-register bank.
+		Supports an optional jump extension.
+Format:		ST $C5, ($SI) [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	ST $2, ($SX)
+		ST $2, ($SX), JR LABEL
+
+(3) transfer to external memory addressed by the sum of an index register
+  and a main register
+Purpose:	Transfers the contents of the main register specified by the
+		#1 operand to the external memory location pointed to by the
+		sum of an index register and a main register specified by the
+		#2 operand.
+Format:		ST $C5, (IX+/-$C5)
+		ST $C5, (IZ+/-$C5)
+Example:	ST $2, (IX+$31)
+		
+(4) transfer to external memory addressed by the sum of an index register
+  and a main register indicated by a specific index register (UNDOCUMENTED)
+Purpose:	Transfers the contents of the main register specified by the
+		#1 operand to the external memory location. The effective
+		address of this memory location is the sum of an index
+		register and a main register indicated by a specific index
+		register specified by the #2 operand.
+Format:		ST $C5, (IX+/-$SI)
+		ST $C5, (IZ+/-$SI)
+Examples:	ST $2, (IX+$SY)
+		ST $3, (IX-$SZ)
+
+(5) transfer to external memory addressed by the sum of an index register
+  and an 8-bit immediate data
+Purpose:	Transfers the contents of the main register specified by the
+		#1 operand to the external memory location pointed to by the
+		sum of an index register and an 8-bit immediate data specified
+		by the #2 operand.
+Format:		ST $C5, (IX+/-IM8)
+		ST $C5, (IZ+/-IM8)
+Example:	ST $2, (IX+123)
+
+-------------------
+
+Mnemonic:	ST (Store IM8, UNDOCUMENTED)
+Purpose:	IM8 -> ($SI)
+		Transfers the 8-bit immediate data specified by the #1 operand
+		to the external memory location pointed to by the 2-byte main
+		register indicated by the specific index register specified by
+		the #2 operand. The external memory bank (high-order address)
+		is the same as the X-register bank.
+		Note: The HD61 assembler with the optimisation turned on
+		(LEVEL 1) allows to use the main register $0 ($0, $1 pair),
+		$30 ($30, $31 pair) or $31 ($31, $0 pair) as a #2 operand.
+		It will replace them with a corresponding specific index
+		register.
+Flags:		none affected
+Format:		ST IM8, ($SI)
+Example:	ST 123, ($SX)
+		ST 123, ($0)	;accepted by the HD61 assembler
+
+-------------------
+
+Mnemonic:	STI (Store increment)
+Purpose:	$C5 -> (IR+/-A)
+		IR <- IR+/-A +1
+		Transfers the contents of the main register specified by
+		the #1 operand to the external memory location pointed to
+		by (IR+/-A), then a sum of the offset A and +1 is added to
+		the IR register.
+		Operand A can be of $C5 type (including the substitution by
+		a specific index register) or IM8 type.
+Flags:		none affected
+Format:		STI $C5, (IR+/-A)
+Examples:	STI $4, (IX+$2)		;main register offset specification
+		STI $4, (IX-$2)
+		STI $4, (IZ+$2)
+		STI $4, (IZ-$2)
+		STI $4, (IX+$SX)	;indirect offset specification
+		STI $4, (IZ-$SX)
+		STI $4, (IX+123)	;8-bit immediate offset specification
+		STI $4, (IX-123)
+		STI $4, (IZ+123)
+		STI $4, (IZ-123)
+
+-------------------
+
+Mnemonic:	STD (store, UNDOCUMENTED)
+Purpose:	$C5 -> (IR+/-A)
+		IR <- IR+/-A
+		Transfers the contents of the main register specified by
+		the #1 operand to the external memory location pointed to
+		by (IR+/-A), then the offset A is added to the IR register.
+		It's almost equivalent to the STI instruction, except that
+		incrementing of the IR register does not take place.
+		Operand A can be of $C5 (including the substitution by
+		a specific index register) or IM8 type.
+Flags:		none affected
+Format:		LDD $C5, (IR+/-A)
+Examples:	STD $4, (IX+$10)	;main register offset specification
+		STD $4, (IZ+$10)
+		STD $4, (IX+$SX)	;indirect offset specification
+		STD $4, (IZ-$SX)
+		STD $4, (IX+123)	;8-bit immediate offset specification
+		STD $4, (IX-123)
+
+-------------------
+
+Mnemonic:	PPS (pop from the system stack)
+Purpose:	$C5 <- (SSP)
+		SSP <- SSP + 1
+		Transfers the contents of the external memory location pointed
+		to by the SSP to the main register specified by the #1
+		operand, then adds 1 to the SSP.
+Flags:		none affected
+Format:		PPS $C5
+Example:	PPS $2
+
+-------------------
+
+Mnemonic:	PPU (pop from the user stack)
+Purpose:	$C5 <- (USP)
+		USP <- USP + 1
+		Transfers the contents of the external memory location pointed
+		to by the USP to the main register specified by the #1
+		operand, then adds 1 to the USP.
+Flags:		none affected
+Format:		PPU $C5
+Example:	PPU $2
+
+-------------------
+
+Mnemonic:	PHS (push on the system stack)
+Purpose:	$C5 -> (SSP-1)
+		SSP <- SSP - 1
+		Subtracts 1 from the SSP (predecrement), then transfers the
+		contents of the main register specified by the #1 operand to
+		the external memory location pointed to by the SSP.
+Flags:		none affected
+Format:		PHS $C5
+Example:	PHS $2
+
+-------------------
+
+Mnemonic:	PHU (push on the user stack)
+Purpose:	$C5 -> (USP-1)
+		USP <- USP - 1
+		Subtracts 1 from the USP (predecrement), then transfers the
+		contents of the main register specified by the #1 operand to
+		the external memory location pointed to by the USP.
+Flags:		none affected
+Format:		PHU $C5
+Example:	PHU $2
+
+-------------------
+
+Mnemonic:	GFL (get flag)
+Purpose:	$C5 <- F
+		Transfers the flag register contents to the main register
+		specified by the #1 operand.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		none affected
+Format:		GFL $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	GFL $2
+		GFL $2, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	PFL (put flag)
+Purpose:	opr1 -> F
+		Transfers data specified by the #1 operand to the flag
+		register (high-order 4 bits only).
+Flags:		Z, C, LZ, and UZ flags. Each is changed to preset value.
+
+Addressing modes:
+
+(1) main register
+Purpose:	$C5 -> F
+		Transfers the contents of the main register specified by the
+		#1 operand to the flag register.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Format:		PFL $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	PFL $2
+		PFL $2, LABEL	;jump extension
+
+(2) 8-bit immediate data (UNDOCUMENTED)
+Purpose:	IM8 -> F
+		Transfers the contents of the immediate 8-bit data specified
+		by the #1 operand to the flag register.
+Format:		PFL IM8
+Example:	PFL 123		;immediate data
+
+-------------------
+
+Mnemonic:	GPO (get port)
+Purpose:	$C5 <- Port
+		Transfers the port terminal contents to the main register
+		specified by the #1 operand.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+		Note: The instruction GPO $C5 reads the logical values present
+		on the pins, while GST PD,$C5 reads the output data latch.
+Flags:		none affected
+Format:		GPO $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	GPO $2
+		GPO $2, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	GST (get status)
+Purpose:	$C5 <- Sreg
+		Transfers the contents of the status register specified by the
+		#1 operand to the main register specified by the #2 operand.
+		Sreg=PE, PD, UA, IA, IE and TM
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		none affected
+Format:		GST Sreg, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	GST PE, $2
+		GST PD, $2
+		GST UA, $2
+		GST IB, $2		;UNDOCUMENTED
+		GST IA, $2
+		GST IE, $2
+		GST TM, $2
+		GST PE, $2, LABEL	;jump extension
+		GST PD, $2, LABEL	;jump extension
+		GST UA, $2, LABEL	;jump extension
+		GST IB, $2, LABEL	;jump extension
+		GST IA, $2, LABEL	;jump extension
+		GST IE, $2, LABEL	;jump extension
+		GST TM, $2, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	PST (put status)
+Purpose:	opr2 -> Sreg
+		Transfers the data specified by the #2 operand to the status
+		register specified by the #1 operand.
+		Sreg= PE, PD, UA, IA, IE and TM
+Flags:		none affected
+
+Addressing modes:
+
+(1) main register
+Purpose:	$C5 -> Sreg
+		Transfers the contents of the main register specified by the
+		#2 operand to the status register specified by the #1 operand.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Format:		PST Sreg, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	PST PE, $2
+		PST PD, $2
+		PST UA, $2
+		PST IB, $2		;UNDOCUMENTED
+		PST IA, $2
+		PST IE, $2
+		PST PE, $2, LABEL	;jump extension
+		PST PD, $2, LABEL	;jump extension
+		PST UA, $2, LABEL	;jump extension
+		PST IB, $2, LABEL	;jump extension
+		PST IA, $2, LABEL	;jump extension
+		PST IE, $2, LABEL	;jump extension
+
+(2) 8-bit immediate data
+Purpose:	IM8 -> Sreg
+		Transfers the 8-bit immediate data included in the #2 operand
+		to the status register specified by the #1 operand.
+Format:		PST Sreg, IM8
+Examples:	PST PE,123
+		PST PD,123
+		PST UA,123
+		PST IB,123		;UNDOCUMENTED
+		PST IA,123
+		PST IE,123
+
+-------------------
+
+Mnemonic:	STL (store lcd data, UNDOCUMENTED)
+Purpose:	opr1 -> LCD data area
+		Transfers the data specified by the #1 operand to the LCD data
+		area.
+Flags:		none affected
+
+Addressing modes:
+
+(1) main register
+Purpose:	$C5 -> LCD
+		Transfers the contents of the main register specified by the
+		#1 operand to the LCD data area.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Format:		STL $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	STL $2
+		STL $2, LABEL	;jump extension
+
+(2) 8-bit immediate data
+Purpose:	IM8 -> LCD
+		Transfers the immediate 8-bit data specified by the #1 operand
+		to the LCD data area.
+Format:		STL IM8
+Example:	STL 123
+
+-------------------
+
+Mnemonic:	LDL (load the LCD data port, UNDOCUMENTED)
+Purpose:	LCD -> $C5
+		Reads the LCD data port to the main register specified by the
+		#1 operand.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		none affected
+Format:		LDL $C5 [ , (JR ) LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Example:	LDL $2
+		LDL $2, LABEL	;Jump extension
+
+-------------------
+
+Mnemonic:	PPO (put lcd control port, UNDOCUMENTED)
+Purpose:	opr1 -> LCD control port
+		Transfers the data specified by the #1 operand to the LCD
+		control port.
+Flags:		none affected
+
+Addressing modes:
+
+(1) main register
+Purpose:	$C5 -> LCD
+		Transfers the contents of the main register specified by the
+		#1 operand to the LCD control port.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Format:		PPO $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	PPO $2
+		PPO $2, LABEL	;jump extension
+
+(2) 8-bit immediate data
+Purpose:	IM8 -> LCD
+		Transfers the immediate 8-bit data specified by the #1 operand
+		to the LCD control port.
+Format:		PPO IM8
+Example:	PPO 123
+
+-------------------
+
+Mnemonic:	PSR (Put Specific index Register, UNDOCUMENTED)
+Purpose:	opr2 -> SIR
+		Transfers the 5-bit data specified by the #2 operand to the
+		specific index register specified by the #1 operand.
+Flags:		none affected
+
+Addressing modes:
+
+(1) main register
+Purpose:	$C5 -> SIR
+		Transfers the contents of the main register specified by the
+		#2 operand (only the low-order 5 bits) to the specific index
+		register specified by the #1 operand.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Format:		PSR SIR, $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	PSR SX, $2
+		PSR SY, $2
+		PSR SZ, $2
+		PSR SX, $2, LABEL	;jump extension
+		PSR SY, $2, LABEL
+		PSR SZ, $2, LABEL
+
+(2) 5-bit immediate data
+Purpose:	IM5 -> SIR
+		Transfers the immediate 5-bit data specified by the #2 operand
+		to the specific index register specified by the #1 operand.
+Format:		PSR SIR, IM5
+Example:	PSR SX, 15
+		PSR SY, 15
+		PSR SZ, 15
+
+-------------------
+
+Mnemonic:	GSR (Get Specific index Register, UNDOCUMENTED)
+Purpose:	SIR -> $C5
+		Transfers the contents of the specific index register
+		specified by the #1 operand to the main register specified
+		by the #2 operand.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		none affected
+Format:		GSR SIR, $C5 [ , (JR ) LABEL ]
+Example:	GSR SX, $2
+		GSR SY, $2
+		GSR SZ, $2
+		GSR SX, $2, LABEL	;jump extension
+		GSR SY, $2, LABEL
+		GSR SZ, $2, LABEL
+
+##################################################################
+3.2	Transfer commands (16 bits)
+##################################################################
+
+Mnemonic:	LDW (load word)
+Purpose:	opr1 <- opr2
+		Transfers 2-byte data specified by the #2 operand to the pair
+		of main registers specified by the #1 operand.
+		Some addressing modes support an UNDOCUMENTED optional jump
+		extension. When the #3 operand is specified, it's used as a
+		(relative) jump address in range up to +/-127 bytes. The jump
+		is taken after the instruction is executed.
+Flags:		none affected
+Format:		LDW opr1, opr2
+
+Addressing modes:
+
+(1) transfer from a main register pair
+Purpose:	Transfers the contents of the 2-byte main register specified
+		by the #2 operand to the 2-byte main register specified by the
+		#1 operand.
+		Supports an optional jump extension.
+Format:		LDW $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	LDW $2, $0
+		LDW $2, $30, JR ERROR	;jump extension
+
+(2) indirect transfer from a main register pair indicated by a specific index
+  register (UNDOCUMENTED)
+Purpose:	Transfers the contents of the 2-byte main register indicated
+		by the specific index register specified by the #2 operand to
+		the 2-byte main register specified by the #1 operand. Supports
+		an optional jump extension.
+Format:		LDW $C5, $SI [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	LDW $4, $SX
+		LDW $4, $SZ, JR ERROR	;jump extension
+
+(3) transfer from external memory addressed by a pair of main registers
+Purpose:	Transfers the 2-byte contents of the external memory location
+		pointed to by the main register pair specified by the #2
+		operand to the main register pair specified by the #1 operand.
+		The external memory bank (high-order address) is the same as
+		the X-register bank.
+		Supports an optional jump extension.
+Format:		LDW $C5, ($C5) [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	LDW $2, ($0)
+		LDW $2, ($30), JR ERROR	;jump extension
+
+(4) transfer from external memory addressed by a pair of main registers
+  indicated by a specific index register (UNDOCUMENTED)
+Purpose:	Transfers the 2-byte contents of the external memory location
+		pointed to by the main register pair indicated by the specific
+		index register specified by the #2 operand to the main
+		register pair specified by the #1 operand. The external memory
+		bank (high-order address) is the same as the X-register bank.
+		Supports an optional jump extension.
+Format:		LDW $C5, ($SI) [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	LDW $2, ($SX)
+		LDW $2, ($SZ), JR ERROR	;jump extension
+
+(5) transfer from external memory addressed by the sum of an index register
+  and a main register
+Purpose:	Transfers the 2-byte contents of the external memory location
+		pointed to by the sum of an index register and a main register
+		specified by the #2 operand to the main register pair
+		specified by the #1 operand.
+Format:		LDW $C5, (IX+/-$C5)
+		LDW $C5, (IZ+/-$C5)
+Example:	LDW $2, (IX+$31)
+
+(6) transfer from external memory addressed by the sum of an index register
+  and a main register indicated by a specific index register (UNDOCUMENTED)
+Purpose:	Transfers the 2-byte contents of the external memory location
+		to the main register pair specified by the #1 operand. The
+		effective address of this memory location is the sum of an
+		index register and a main register indicated by a specific
+		index register specified by the #2 operand.
+Format:		LDW $C5, (IX+/-$SI)
+		LDW $C5, (IZ+/-$SI)
+Example:	LDW $2, (IX+$SZ)
+
+(7) transfer of a 16-bit immediate data
+Purpose:	Transfers the 16-bit immediate data contained in the #2
+		operand to the main register pair specified by the #1 operand.
+Format:		LDW $C5, IM16
+Example:	LDW $4,  &H7012	;$4 <- &H12, $5 <- &H70
+
+-------------------
+
+Mnemonic:	LDIW (load and increment word)
+Purpose:	$C5, $C5+1 <- (IR+/-A)
+		IR <- IR+/-A +2
+		Transfers the 2-byte contents of the external memory location
+		pointed to by the sum of an index register and a main register
+		specified by the #2 operand to the main register pair
+		specified by the #1 operand. Then a sum of the offset A and +2
+		is added to the index register specified by the #2 operand
+		(postincrement). Operand A can be of $C5 type only (including
+		the UNDOCUMENTED substitution by a specific index register).
+Flags:		none affected
+Format:		LDIW $C5, (IR+/-$C5)
+Examples:	LDIW $2, (IX+$0)	;main register offset specification
+		; For values IX=&H7000 and $0=1 we get following results:
+		; $2 <- (memory contents of &H7001 address)
+		; $3 <- (memory contents of &H7002 address)
+		; IX <- &H7003
+		LDIW $4, (IX-$2)	;main register offset specification
+		LDIW $4, (IZ+$2)
+		LDIW $4, (IZ-$2)
+		LDIW $4, (IX+$SX)	;indirect offset specification
+		LDIW $4, (IX-$SY)
+		LDIW $4, (IZ+$SX)
+		LDIW $4, (IZ-$SY)
+
+-------------------
+
+Mnemonic:	LDDW  (load and decrement word, UNDOCUMENTED)
+Purpose:	$C5, $C5-1 <- (IR+/-A)
+		IR <- IR+/-A-1
+		Transfers the 2-byte contents of the external memory location
+		pointed to by the sum of an index register and a main register
+		specified by the #2 operand to the main register pair
+		specified by the #1 operand. Then a sum of the offset A and -1
+		is added to the index register specified by the #2 operand.
+		Operand A can be of $C5 type only (including the UNDOCUMENTED
+		substitution by a specific index register).
+		Note: the destination registers are different than in case of
+		the LDW and LDIW ($C5, $C5-1 instead of $C5, $C5+1, see the
+		example).
+Flags:		none affected
+Format:		LDDW $C5, (IR+/-A)
+Examples:	LDDW $2, (IX+$0)	;main register offset specification
+		; For values IX=&H7000 and the $0=1 we get following results:
+		; $2 <- (memory contents of address &H7001)
+		; $1 <- (memory contents of address &H7000)
+		; IX <- &H7000
+		LDDW $4, (IX+$10)	;main register offset specification
+		LDDW $4, (IZ+$10)
+		LDDW $4, (IX+$SX)	;indirect offset specification
+		LDDW $4, (IZ-$SY)
+
+-------------------
+
+Mnemonic:	STW (store word)
+Purpose:	opr1 -> opr2
+		Transfers the contents of the 2-byte main register specified
+		by the #1 operand to the 2-byte external memory location
+		specified by the #2 operand.
+		Some addressing modes support an UNDOCUMENTED optional jump
+		extension. When the #3 operand is specified, it's used as a
+		(relative) jump address in range up to +/-127 bytes. The jump
+		is taken after the instruction is executed.
+Flags:		none affected
+Format:		STW opr1, opr2
+
+Addressing modes:
+
+(1) transfer to external memory addressed by a pair of registers
+Purpose:	Transfers the contents of the 2-byte main register specified
+		by the #1 operand to the external memory location pointed to
+		by the 2-byte main register specified by the #2 operand. The
+		external memory bank (high-order address) is the same as the
+		X-register bank.
+		Supports an optional jump extension.
+Format:		STW $C5, ($C5) [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	STW $2, ($0)
+		STW $2, ($0), JR LABEL
+
+(2) transfer to external memory addressed by a pair of registers indicated by
+  a specific index register (UNDOCUMENTED)
+Purpose:	Transfers the contents of the 2-byte main register specified
+		by the #1 operand to the external memory location pointed
+		to by the 2-byte main register indicated by the specific index
+		register specified by the #2 operand. The external memory bank
+		(high-order address) is the same as the X-register bank.
+		Supports an optional jump extension.
+Format:		STW $C5, ($SI) [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	STW $2, ($SX)
+		STW $2, ($SX), JR LABEL
+
+(3) transfer to external memory addressed by the sum of an index register
+  and a main register
+Purpose:	Transfers the contents of the 2-byte main register specified
+		by the #1 operand to the external memory location pointed to
+		by the sum of an index register and a main register specified
+		by the #2 operand.
+Format:		STW $C5, (IX+/-$C5)
+		STW $C5, (IZ+/-$C5)
+Examples:	STW $4, (IX+$2)
+		STW $4, (IX-$2)
+		STW $4, (IZ+$2)
+		STW $4, (IZ-$2)
+
+(4) transfer to external memory addressed by the sum of an index register
+  and a main register indicated by a specific index register (UNDOCUMENTED)
+Purpose:	Transfers the contents of the 2-byte main register specified
+		by the #1 operand to the external memory location. The
+		effective address of this memory location is the sum of an
+		index register and a main register indicated by a specific
+		index register specified by the #2 operand.
+Format:		STW $C5, (IX+/-$SI)
+		STW $C5, (IZ+/-$SI)
+Examples:	STW $4, (IX+$SX)
+		STW $4, (IX-$SY)
+		STW $4, (IZ+$SX)
+		STW $4, (IZ-$SZ)
+
+-------------------
+
+Mnemonic:	STW (Store immediate word, UNDOCUMENTED)
+Purpose:	IM16 -> ($SI)
+		Transfers the contents of the 16-bit immediate data specified
+		by the #1 operand to the external memory location pointed to
+		by the 2-byte main register indicated by the specific index
+		register specified by the #2 operand. The external memory bank
+		(high-order address) is the same as the X-register bank.
+		Note: The HD61 assembler with the optimisation turned on
+		(LEVEL 1) allows to use the main register $0 ($0, $1 pair),
+		$30 ($30, $31 pair) or $31 ($31, $0 pair) as a #2 operand.
+		It will replace them with a corresponding specific index
+		register.
+Flags:		none affected
+Format:		STW IM16, ($SI)
+Example:	STW &H7023, ($SX)
+		STW &H7023, ($0)	;accepted by the HD61 assembler
+
+-------------------
+
+Mnemonic:	STIW (Store increment word)
+Purpose:	$C5 -> (IR+/-A)
+		$C5+1 -> (IR+/-A +1)
+		IR <- IR+/-A +2
+		Transfers the contents of the 2-byle main register specified
+		by the #1 operand to the 2-byle external memory location
+		pointed to by (IR+/-A), then a sum of the offset A and +2 is
+		added to the IR register.
+		Operand A can be of $C5 type only (including the substitution
+		by a specific index register).
+Flags:		none affected
+Format:		STIW $C5, (IR+/-A)
+Examples:	STIW $4, (IX+$2)	;main register offset specification
+		STIW $4, (IX-$2)
+		STIW $4, (IZ+$2)
+		STIW $4, (IZ-$2)
+		STIW $4, (IX+$SX)	;indirect offset specification
+		STIW $4, (IZ+$SY)
+
+-------------------
+
+Mnemonic:	STDW (Store decrement word, UNDOCUMENTED)
+Purpose:	$C5 -> (IR+/-A)
+		$C5-1 -> (IR+/-A -1)
+		IR <- IR+/-A -1
+		Transfers the contents of the 2-byle main register specified
+		by the #1 operand to the 2-byle external memory location
+		pointed to by (IR+/-A), then a sum of the offset A and -1 is
+		added to the IR register.
+		Operand A can be of $C5 type only (including the substitution
+		by a specific index register).
+		Note: the source registers are different than in case of
+		the STW and STIW ($C5, $C5-1 instead of $C5, $C5+1, see the
+		example).
+Flags:		none affected
+Examples:	STDW $2, (IX+$0)	;main register offset specification
+		; For values IX=&H7000 and the $0=1 we get following results:
+		; $2 -> (address &H7001)
+		; $1 -> (address &H7000)
+		; IX <- &H7000
+		STDW $4, (IX+$10)
+		STDW $4, (IZ-$10)
+		STDW $4, (IX+$SX)	;indirect offset specification
+		STDW $4, (IZ-$SX)
+
+-------------------
+
+Mnemonic:	PPSW (pop a word from the system stack)
+Purpose:	$C5 <- (SS)
+		$C5+1 <- (SS+1)
+		SS <- SS + 2
+		Transfers the contents of the external memory location pointed
+		to by the SSP and SSP+1 to the 2-byte main register specified
+		by the #1 operand. Then 2 is added to the SSP (postincrement).
+Flags:		none affected
+Format:		PPSW $C5
+Example:	PPSW $2
+		; (SS) -> $2
+		; (SS+1) -> $3
+		; SS <- SS + 2
+
+-------------------
+
+Mnemonic:	PPUW (pop a word from the user stack)
+Purpose:	$C5 <- (US)
+		$C5+1 <- (US+1)
+		US <- US + 2
+		Transfers the contents of the external memory location pointed
+		to by the USP and USP+1 to the 2-byte main register specified
+		by the #1 operand. Then 2 is added to the USP (postincrement).
+Flags:		none affected
+Format:		PPUW $C5
+Example:	PPUW $2
+		; (US) -> $2
+		; (US+1) -> $3
+		; US <- US + 2
+
+-------------------
+
+Mnemonic:	PHSW (push a word on the system stack)
+Purpose:	$C5 -> (SS-1)
+		$C5-1 -> (SS-2)
+		SS <- SS-2
+		Transfers the 2-byte main register specified by the #1 operand
+		($C5, $C5-1) to the external memory location pointed to by the
+		SSP (SSP-1, SSP-2), then subtracts 2 from the SSP.
+Flags:		none affected
+Format:		PHSW $C5
+Example:	PHSW $2
+		; $2 -> (SS-1)
+		; $1 -> (SS-2)
+		; SS <- SS - 2
+
+-------------------
+
+Mnemonic:	PHUW (push a word on the user stack)
+Purpose:	$C5 -> (US-1)
+		$C5-1 -> (US-2)
+		US <- US - 2
+		Transfers the 2-byte main register specified by the #1 operand
+		($C5, $C5-1) to the external memory location pointed to by the
+		USP (USP-1, USP-2), then subtracts 2 from the USP.
+Flags:		none affected
+Format:		PHUW $C5
+Example:	PHUW $2
+		; $2 -> (US-1)
+		; $1 -> (US-2)
+		; US <- US - 2
+
+-------------------
+
+Mnemonic:	GRE (get register)
+Purpose:	Reg -> $C5
+		Transfers the contents of the 16-bit register specified by the
+		#1 operand to the 2-byte main register specified by the #2
+		operand.
+		Reg = IX, IZ, IY, SS, US and KY
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		none affected
+Format:		GRE Reg, $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	GRE IX, $2
+		GRE IY, $2
+		GRE IZ, $2
+		GRE US, $2
+		GRE SS, $2
+		GRE KY, $2
+		GRE IX, $2, LABEL	;jump extension
+		GRE IY, $2, LABEL	;jump extension
+		GRE IZ, $2, LABEL	;jump extension
+		GRE US, $2, LABEL	;jump extension
+		GRE SS, $2, LABEL	;jump extension
+		GRE KY, $2, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	PRE (put register)
+Purpose:	Reg <- opr2
+		Transfers data specified by the #2 operand to the 16-bit
+		register specified by the #1 operand.
+		Reg = IX, IY, IZ, SS, US
+Flags:		none affected
+
+Addressing modes:
+
+(1) main register
+Purpose:	Reg <- $C5
+		Transfers the contents of the 2-byte main register specified
+		by the #2 operand to the 16-bit register specified by the #1
+		operand.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Format:		PRE Reg, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	PRE IX, $2
+		PRE IY, $2
+		PRE IZ, $2
+		PRE US, $2
+		PRE SS, $2
+		PRE IX, $2, LABEL	;jump extension
+		PRE IY, $2, LABEL	;jump extension
+		PRE IZ, $2, LABEL	;jump extension
+		PRE US, $2, LABEL	;jump extension
+		PRE SS, $2, LABEL	;jump extension
+
+(2) 16-bit immediate data
+Purpose:	Reg <- IM16
+		Transfers the 16-bit immediate data contained in the #2
+		operand to the 16-bit register specified by the #1 operand.
+Format:		PRE Reg, IM16
+Example:	PRE IX, &H703F
+		PRE IY, &H703F
+		PRE IZ, &H703F
+		PRE US, &H703F
+		PRE SS, &H703F
+
+-------------------
+
+Mnemonic:	STLW (store lcd data word, UNDOCUMENTED)
+Purpose:	$C5 -> LCD data area
+		Transfers the contents of the main registers $C5 and $C5+1
+		specified by the #1 operand to the LCD data area (8 bits at
+		a time).
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		none affected
+Format:		STLW $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	STLW $2
+		STLW $2, LABEL
+
+-------------------
+
+Mnemonic:	LDLW (load from the LCD data port word, UNDOCUMENTED)
+Purpose:	LCD data area -> $C5, $C5+1
+		Reads the LCD data port to the 2-byte main register specified
+		by the #1 operand (8 bits at a time).
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		none affected
+Format:		LDLW $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Example:	LDLW $2
+		LDLW $2, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	PPOW (put lcd control port word, UNDOCUMENTED)
+Purpose:	$C5 -> LCD control port
+		Transfers the contents of the main registers $C5 and $C5+1
+		specified by the #1 operand to the LCD control port (8 bits at
+		a time).
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		none affected
+Format:		PPOW $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	PPOW $2
+		PPOW $2, LABEL
+
+-------------------
+
+Mnemonic:	GFLW (get flag word, UNDOCUMENTED)
+Purpose:	$C5 <- F
+		$C5+1 <- F
+		Transfers the flag register contents to the main register pair
+		specified by the #1 operand (the same value is written to both
+		registers).
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		none affected
+Format:		GFLW $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	GFL $2
+		GFL $2, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	GPOW (get port word, UNDOCUMENTED)
+Purpose:	$C5 <- Port
+		$C5+1 <- Port
+		Transfers the port terminal contents to the main register pair
+		specified by the #1 operand (the same value is written to both
+		registers).
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		none affected
+Format:		GPOW $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	GPOW $2
+		GPOW $2, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	PSRW (Put Specific index Register word, UNDOCUMENTED)
+Purpose:	$C5 -> SIR
+		$C5+1 -> SIR
+		Transfers the contents of register $C5 specified by the #2
+		operand and $C5+1 to the specific index register specified
+		by the #1 operand. Actually, the specific index register
+		receives only the contents of the $C5+1 register because the
+		previous data is overwritten. Only the low order 5 bits are
+		transferred.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		none affected
+Format:		PSRW SIR, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	PSRW SX, $2
+		PSRW SX, $2
+		PSRW SY, $2
+		PSRW SZ, $2
+		PSRW SX, $2, LABEL	;jump extension
+		PSRW SY, $2, LABEL
+		PSRW SZ, $2, LABEL
+
+-------------------
+
+Mnemonic:	GSRW (Get Specific index Register word, UNDOCUMENTED)
+Purpose:	SIR -> $C5
+		SIR+1 -> $C5+1
+		Transfers the contents of the specific index register
+		specified by the #1 operand to the main register specified by
+		the #2 operand. The same value incremented by +1 mod 32 is
+		written to the next main register.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		none affected
+Format:		GSRW SIR, $C5 [ , JR LABEL ]
+Examples:	GSRW SY, $2
+		; if SY=30 then $2<-30 and $3<-31
+		; if SY=31 then $2<-31 and $3<-0
+		GSRW SX, $2
+		GSRW SY, $2
+		GSRW SZ, $2
+		GSRW SX, $2, LABEL	;jump extension
+		GSRW SY, $2, LABEL
+		GSRW SZ, $2, LABEL
+
+##################################################################
+3.3	Arithmetic commands (8-bit)
+##################################################################
+
+Mnemonic:	INV (invert)
+Purpose:	Converts the contents of the main register specified by the
+		#1 operand to their ones complement.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=1, LZ and UZ change
+Format:		INV $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	INV $2
+		INV $2, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	CMP (complement)
+Purpose:	Converts the contents of the main register specified by the
+		#1 operand to their twos complement.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z, C, LZ and UZ change
+		Carry is reset if result=0, set if result<>0 (as by the 0-$C5
+		operation).
+Format:		CMP $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	CMP $2
+		CMP $2, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	AD (add)
+Purpose:	opr1 <- opr1 + opr2
+		Some addressing modes support an UNDOCUMENTED optional jump
+		extension. When the #3 operand is specified, it's used as a
+		(relative) jump address in range up to +/-127 bytes. The jump
+		is taken after the instruction is executed.
+Flags:		Z, C, LZ and UZ change
+
+Addressing modes:
+
+(1) Main Register + Main Register -> Main Register
+Purpose:	Adds the contents of the main register specified by the
+		#2 operand (or indicated by the specific index register
+		specified by the #2 operand, UNDOCUMENTED) to the contents of
+		the main register specified by the #1 operand. The result is
+		then written to the main register specified by the #1 operand.
+		Supports an optional jump extension.
+Format:		AD $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	AD $4, $2
+		AD $4, $2, LABEL	;jump extension
+		AD $4, $SZ
+		AD $4, $SZ, LABEL	;jump extension
+
+(2) Main Register + 8-bit Immediate Data -> Main Register
+Purpose:	Adds the 8-bit immediate data contained in the #2 operand to
+		the main register specified by the #1 operand. The result is
+		then written to the main register specified by the #1 operand.
+		Supports an optional jump extension.
+Format:		AD $C5, IM8 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	AD $4,123
+		AD $4,123, JR LABEL	;jump extension
+
+(3) External Memory + Main Register -> External Memory
+Purpose:	Adds the contents of the main register specified by the #2
+		operand to the contents of the external memory location
+		pointed to by the sum of an index register and an offset A
+		specified by the #1 operand. The result is then written to
+		the external memory location specified by the #1 operand.
+		Operand A can be of $C5 (including the UNDOCUMENTED
+		substitution by a specific index register) or IM8 type.
+Format:		AD (IR+/-A), $C5
+Examples:	AD (IX+$4), $2		;main register offset specification
+		AD (IX-$4), $2
+		AD (IZ+$4), $2
+		AD (IZ-$4), $2
+		AD (IX+$SZ), $2		;indirect offset specification
+		AD (IX-$SZ), $2
+		AD (IZ+$SZ), $2
+		AD (IZ-$SZ), $2
+		AD (IX+123), $2		;8-bit immediate offset specification
+		AD (IX-123), $2
+		AD (IZ+123), $2
+		AD (IZ-123), $2
+
+-------------------
+
+Mnemonic:	SB (subtract)
+Purpose:	opr1 <- opr1 - opr2
+		Some addressing modes support an UNDOCUMENTED optional jump
+		extension. When the #3 operand is specified, it's used as a
+		(relative) jump address in range up to +/-127 bytes. The jump
+		is taken after the instruction is executed.
+Flags:		Z, C, LZ and UZ change
+
+Addressing modes:
+
+(1) Main Register - Main Register -> Main Register
+Purpose:	Subtracts the contents of the main register specified by
+		the #2 operand (or indicated by the specific index register
+		specified by the #2 operand, UNDOCUMENTED) from the contents
+		of the main register specified by the #1 operand. The result
+		is then written to the main register specified by the #1
+		operand.
+		Supports an optional jump extension.
+Format:		SB $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	SB $4, $2
+		SB $4, $2, LABEL	;jump extension
+		SB $4, $SZ
+		SB $4, $SZ, LABEL	;jump extension
+
+(2) Main Register - 8-bit Immediate Data -> Main Register
+Purpose:	Subtracts the 8-bit immediate data contained in the #2 operand
+		from the main register specified by the #1 operand. The result
+		is then written to the main register specified by the #1
+		operand.
+		Supports an optional jump extension.
+Format:		SB $C5, IM8 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	SB $4,123
+		SB $4,123, JR LABEL	;jump extension
+
+(3) External Memory - Main Register -> External Memory
+Purpose:	Subtracts the contents of the main register specified by the
+		#2 operand from the contents of the external memory location
+		pointed to by the sum of an index register and an offset A
+		specified by the #1 operand. The result is then written to
+		the external memory location specified by the #1 operand.
+		Operand A can be of $C5 (including the UNDOCUMENTED
+		substitution by a specific index register) or IM8 type.
+Format:		SB (IR+/-A), $C5
+Examples:	SB (IX+$4), $2		;main register offset specification
+		SB (IX-$4), $2
+		SB (IZ+$4), $2
+		SB (IZ-$4), $2
+		SB (IX+$SZ), $2		;indirect offset specification
+		SB (IX-$SZ), $2
+		SB (IZ+$SZ), $2
+		SB (IZ-$SZ), $2
+		SB (IX+123), $2		;8-bit immediate offset specification
+		SB (IX-123), $2
+		SB (IZ+123), $2
+		SB (IZ-123), $2
+
+-------------------
+
+Mnemonic:	ADB (add bcd)
+Purpose:	opr1 <- opr1 + opr2
+		Performs bcd addition of the data specified by the #2 operand
+		to the contents of the main register specified by the #1
+		operand. The result is then written to the main register
+		specified by the #1 operand.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z, C, LZ and UZ change
+
+Addressing modes:
+
+(1) Main Register + Main Register -> Main Register
+Purpose:	Performs bcd addition of the contents of the main register
+		specified by the #2 operand (or indicated by the specific
+		index register specified by the #2 operand, UNDOCUMENTED) and
+		the contents of the main register specified by the #1 operand.
+Format:		ADB $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	ADB $4, $2
+		ADB $4, $2, LABEL	;jump extension
+		ADB $4, $SZ
+		ADB $4, $SZ, LABEL	;jump extension
+
+(2) Main Register + 8-bit Immediate Data -> Main Register
+Purpose:	Performs bcd addition of the 8-bit immediate data contained in
+		the #2 operand and the contents of the main register specified
+		by the #1 operand.
+Format:		ADB $C5, IM8 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Example:	ADB $4,123
+		ADB $4,123, JR LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	SBB (subtract bcd)
+Purpose:	opr1 <- opr1 - opr2
+		Performs bcd subtraction of the contents of the data specified
+		by the #2 operand from the main register specified by the
+		#1 operand. The result is then written to the main register
+		specified by the #1 operand.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z, C, LZ and UZ change
+
+Addressing modes:
+
+(1) Main Register - Main Register -> Main Register
+Purpose:	Performs bcd subtraction of the contents of the main register
+		specified by the #2 operand (or indicated by the specific
+		index register specified by the #2 operand, UNDOCUMENTED) from
+		the contents of the main register specified by the #1 operand.
+Format:		SBB $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	SBB $4, $2
+		SBB $4, $2, LABEL	;jump extension
+		SBB $4, $SZ
+		SBB $4, $SZ, LABEL	;jump extension
+
+(2) Main Register - 8-bit Immediate Data -> Main Register
+Purpose:	Performs bcd subtraction of the 8-bit immediate data contained
+		in the #2 operand from the contents of the main register
+		specified by the #1 operand.
+Format:		SBB $C5, IM8 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Example:	SBB $4,123
+		SBB $4,123, JR LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	ADC (add check)
+Purpose:	opr1 + opr2
+		Adds the data specified by the #2 operand to the data
+		specified by the #1 operand. Only the status of the flags
+		is changed and the result of the addition is not written
+		anywhere.
+		Some addressing modes support an UNDOCUMENTED optional jump
+		extension. When the #3 operand is specified, it's used as a
+		(relative) jump address in range up to +/-127 bytes. The jump
+		is taken after the instruction is executed.
+Flags:		Z, C, LZ and UZ change
+
+Addressing modes:
+
+(1) Main Register + Main Register
+Purpose:	Adds the contents of the main register specified by the
+		#2 operand (or indicated by the specific index register
+		specified by the #2 operand, UNDOCUMENTED) to the contents
+		of the main register specified by the #1 operand.
+		Supports an optional jump extension.
+Format:		ADC $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	ADC $4, $2
+		ADC $4, $2, LABEL	;jump extension
+		ADC $4, $SZ
+		ADC $4, $SZ, LABEL	;jump extension
+
+(2) Main Register + 8-bit Immediate Data
+Purpose:	Adds the 8-bit immediate data contained in the #2 operand to
+		the main register specified by the #1 operand.
+		Supports an optional jump extension.
+Format:		ADC $C5, IM8 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	ADC $4,123
+		ADC $4,123, JR LABEL	;jump extension
+
+(3) External Memory + Main Register
+Purpose:	Adds the contents of the main register specified by the #2
+		operand to the contents of the external memory location
+		pointed to by the sum of an index register and an offset A
+		specified by the #1 operand. 
+		Operand A can be of $C5 or IM8 type.
+Format:		ADC (IR+/-A), $C5
+Examples:	ADC (IX+$4), $2		;main register offset specification
+		ADC (IX-$4), $2
+		ADC (IZ+$4), $2
+		ADC (IZ-$4), $2
+		ADC (IX+$SZ), $2	;indirect offset specification
+		ADC (IX-$SZ), $2
+		ADC (IZ+$SZ), $2
+		ADC (IZ-$SZ), $2
+		ADC (IX+123), $2	;8-bit immediate offset specification
+		ADC (IX-123), $2
+		ADC (IZ+123), $2
+		ADC (IZ-123), $2
+
+-------------------
+
+Mnemonic:	SBC (subtract check)
+Purpose:	opr1 - opr2
+		Subtracts the data specified by the #2 operand from the data
+		specified by the #1 operand. Only the status of the flags is
+		changed and the result of the subtraction is not written
+		anywhere.
+		Some addressing modes support an UNDOCUMENTED optional jump
+		extension. When the #3 operand is specified, it's used as a
+		(relative) jump address in range up to +/-127 bytes. The jump
+		is taken after the instruction is executed.
+Flags:		Z, C, LZ and UZ change
+
+Addressing modes:
+
+(1) Main Register - Main Register
+Purpose:	Subtracts the contents of the main register specified by
+		the #2 operand (or indicated by the specific index register
+		specified by the #2 operand, UNDOCUMENTED) from the contents
+		of the main register specified by the #1 operand.
+		Supports an optional jump extension.
+Format:		SBC $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	SBC $4, $2
+		SBC $4, $2, LABEL	;jump extension
+		SBC $4, $SZ
+		SBC $4, $SZ, LABEL	;jump extension
+
+(2) Main Register - 8-bit Immediate Data
+Purpose:	Subtracts the 8-bit immediate data contained in the #2 operand
+		from the main register specified by the #1 operand.
+		Supports an optional jump extension.
+Format:		SBC $C5, IM8 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	SBC $4,123
+		SBC $4,123, JR LABEL	;jump extension
+
+(3) External Memory - Main Register
+Purpose:	Subtracts the contents of the main register specified by the
+		#2 operand from the contents of the external memory location
+		pointed to by the sum of an index register and an offset A
+		specified by the #1 operand.
+		Operand A can be of $C5 (including the UNDOCUMENTED
+		substitution by a specific index register) or IM8 type.
+Format:		SBC (IR+/-A), $C5
+Examples:	SBC (IX+$4), $2		;main register offset specification
+		SBC (IX-$4), $2
+		SBC (IZ+$4), $2
+		SBC (IZ-$4), $2
+		SBC (IX+$SZ), $2	;indirect offset specification
+		SBC (IX-$SZ), $2
+		SBC (IZ+$SZ), $2
+		SBC (IZ-$SZ), $2
+		SBC (IX+123), $2	;8-bit immediate offset specification
+		SBC (IX-123), $2
+		SBC (IZ+123), $2
+		SBC (IZ-123), $2
+
+-------------------
+
+Mnemonic:	AN (and)
+Purpose:	opr1 <- opr1 and opr2
+		Calculates the logical product (AND) for the main register
+		specified by the #1 operand and the data specified by the
+		#2 operand. The result is then written to the main register
+		specified by the #1 operand.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=0, LZ and UZ change
+
+Addressing modes:
+
+(1) Main Register and Main Register -> Main Register
+Purpose:	Calculates the logical product (AND) for the contents of the
+		main register specified by the #1 operand and the contents of
+		the main register specified by the #2 operand (or indicated
+		by the specific index register specified by the #2 operand,
+		UNDOCUMENTED).
+Format:		AN $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	AN $4, $2
+		AN $4, $2, LABEL	;jump extension
+		AN $4, $SZ
+		AN $4, $SZ, LABEL	;jump extension
+
+(2) Main Register and 8-bit Immediate Data -> Main Register
+Purpose:	Calculates the logical product (AND) for the contents of the
+		main register specified by the #1 operand and the 8-bit
+		immediate data contained in the #2 operand.
+Format:		AN $C5, IM8 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Example:	AN $4,123
+		AN $4,123, JR LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	ANC (and check)
+Purpose:	opr1 and opr2
+		Calculates the logical product (AND) for the main register
+		specified by the #1 operand and the data specified by the
+		#2 operand. Only the status of the flags is changed and the
+		result of AND is not written anywhere.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=0, LZ and UZ change
+
+Addressing modes:
+
+(1) Main Register and Main Register
+Purpose:	Checks the logical product (AND) for the contents of the main
+		register specified by the #1 operand and the contents of the
+		main register specified by the #2 operand (or indicated by
+		the specific index register specified by the #2 operand,
+		UNDOCUMENTED).
+Format:		ANC $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	ANC $4, $2
+		ANC $4, $2, LABEL	;jump extension
+		ANC $4, $SZ
+		ANC $4, $SZ, LABEL	;jump extension
+
+(2) Main Register and 8-bit Immediate Data
+Purpose:	Checks the logical product (AND) for the contents of the main
+		register specified by the #1 operand and the 8-bit immediate
+		data contained in the #2 operand.
+Format:		ANC $C5, IM8 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Example:	ANC $4,123
+		ANC $4,123, JR LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	NA (nand)
+Purpose:	opr1 <- opr1 nand opr2
+		Takes the NAND (inverted AND) for the contents of the main
+		register specified by the #1 operand and the data specified
+		by the #2 operand. The result is then written to the main
+		register specified by the #1 operand.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=1, LZ and UZ change
+
+Addressing modes:
+
+(1) Main Register nand Main Register -> Main Register
+Purpose:	Takes the NAND for the contents of the main register specified
+		by the #1 operand and the contents of the main register
+		specified by the #2 operand (or indicated by the specific
+		index register specified by the #2 operand, UNDOCUMENTED).
+Format:		NA $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	NA $4, $2
+		NA $4, $2, LABEL	;jump extension
+		NA $4, $SZ
+		NA $4, $SZ, LABEL	;jump extension
+
+(2) Main Register nand 8-bit Immediate Data -> Main Register
+Purpose:	Takes the NAND for the contents of the main register specified
+		by the #1 operand and the 8-bit immediate data contained in
+		the #2 operand.
+Format:		NA $C5, IM8 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Example:	NA $4,123
+		NA $4,123, JR LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	NAC (nand check)
+Purpose:	opr1 nand opr2
+		Takes the NAND (inverted AND) for the contents of the main
+		register specified by the #1 operand and the data specified
+		by the #2 operand. Only the status of the flags is changed
+		and the result of NAND is not written anywhere.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=1, LZ and UZ change
+
+Addressing modes:
+
+(1) Main Register nand Main Register
+Purpose:	Checks the result of the NAND operation for the contents of
+		the main register specified by the #1 operand and the contents
+		of the main register specified by the #2 operand (or indicated
+		by the specific index register specified by the #2 operand,
+		UNDOCUMENTED).
+Format:		NAC $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	NAC $4, $2
+		NAC $4, $2, LABEL	;jump extension
+		NAC $4, $SZ
+		NAC $4, $SZ, LABEL	;jump extension
+
+(2) Main Register nand 8-bit Immediate Data
+Purpose:	Checks the result of the NAND operation for the contents of
+		the main register specified by the #1 operand and the 8-bit
+		immediate data contained in the #2 operand.
+Format:		NAC $C5, IM8 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Example:	NAC $4,123
+		NAC $4,123, JR LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	OR (or)
+Purpose:	opr1 <- opr1 or opr2
+		Calculates the logical sum (OR) for the main register
+		specified by the #1 operand and the data specified by the
+		#2 operand. The result is then written to the main register
+		specified by the #1 operand.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=1, LZ and UZ change
+
+Addressing modes:
+
+(1) Main Register or Main Register -> Main Register
+Purpose:	Calculates the logical sum (OR) for the contents of the
+		main register specified by the #1 operand and the contents of
+		the main register specified by the #2 operand (or indicated
+		by the specific index register specified by the #2 operand,
+		UNDOCUMENTED).
+Format:		OR $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	OR $4, $2
+		OR $4, $2, LABEL	;jump extension
+		OR $4, $SZ
+		OR $4, $SZ, LABEL	;jump extension
+
+(2) Main Register or 8-bit Immediate Data -> Main Register
+Purpose:	Calculates the logical sum (OR) for the contents of the
+		main register specified by the #1 operand and the 8-bit
+		immediate data contained in the #2 operand.
+Format:		OR $C5, IM8 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Example:	OR $4,123
+		OR $4,123, JR LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	ORC (or check)
+Purpose:	opr1 or opr2
+		Calculates the logical sum (AND) for the main register
+		specified by the #1 operand and the data specified by the
+		#2 operand. Only the status of the flags is changed and the
+		result of OR is not written anywhere.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=1, LZ and UZ change
+
+Addressing modes:
+
+(1) Main Register or Main Register
+Purpose:	Checks the logical sum (OR) for the contents of the main
+		register specified by the #1 operand and the contents of the
+		main register specified by the #2 operand (or indicated by
+		the specific index register specified by the #2 operand,
+		UNDOCUMENTED).
+Format:		ORC $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	ORC $4, $2
+		ORC $4, $2, LABEL	;jump extension
+		ORC $4, $SZ
+		ORC $4, $SZ, LABEL	;jump extension
+
+(2) Main Register or 8-bit Immediate Data
+Purpose:	Checks the logical sum (OR) for the contents of the main
+		register specified by the #1 operand and the 8-bit immediate
+		data contained in the #2 operand.
+Format:		ORC $C5, IM8 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Example:	ORC $4,123
+		ORC $4,123, JR LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	XR (exclusive or)
+Purpose:	opr1 <- opr1 xor opr2
+		Takes the XOR (exclusive OR) for the contents of the main
+		register specified by the #1 operand and the data specified
+		by the #2 operand. The result is then written to the main
+		register specified by the #1 operand.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=0, LZ and UZ change
+
+Addressing modes:
+
+(1) Main Register xor Main Register -> Main Register
+Purpose:	Takes the XOR for the contents of the main register specified
+		by the #1 operand and the contents of the main register
+		specified by the #2 operand (or indicated by the specific
+		index register specified by the #2 operand, UNDOCUMENTED).
+Format:		XR $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	XR $4, $2
+		XR $4, $2, LABEL	;jump extension
+		XR $4, $SZ
+		XR $4, $SZ, LABEL	;jump extension
+
+(2) Main Register xor 8-bit Immediate Data -> Main Register
+Purpose:	Takes the XOR for the contents of the main register specified
+		by the #1 operand and the 8-bit immediate data contained in
+		the #2 operand.
+Format:		XR $C5, IM8 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Example:	XR $4,123
+		XR $4,123, JR LABEL	;jump extension
+
+-------------------
+
+Mnemonic:  	XRC  (exclusive or check)
+Purpose:	opr1 nand opr2
+		Takes the XOR (exclusive OR) for the contents of the main
+		register specified by the #1 operand and the data specified
+		by the #2 operand. Only the status of the flags is changed
+		and the result of XOR is not written anywhere.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=0, LZ and UZ change
+
+Addressing modes:
+
+(1) Main Register xor Main Register
+Purpose:	Checks the result of the XOR operation for the contents of
+		the main register specified by the #1 operand and the contents
+		of the main register specified by the #2 operand (or indicated
+		by the specific index register specified by the #2 operand,
+		UNDOCUMENTED).
+Format:		XRC $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	XRC $4, $2
+		XRC $4, $2, LABEL	;jump extension
+		XRC $4, $SZ
+		XRC $4, $SZ, LABEL	;jump extension
+
+(2) Main Register xor 8-bit Immediate Data
+Purpose:	Checks the result of the XOR operation for the contents of
+		the main register specified by the #1 operand and the 8-bit
+		immediate data contained in the #2 operand.
+Format:		XRC $C5, IM8 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Example:	XRC $4,123
+		XRC $4,123, JR LABEL	;jump extension
+
+##################################################################
+3.4	Arithmetic commands (16-bit)
+##################################################################
+
+The 16-bit arithmetic and logical instructions modify the flags register
+according to the following rules:
+Z:  0 when all 16 bits are 0.
+C:  1 when a carry or borrow from the most significant bit (bit 15) occurs.
+LZ: 0 when the low-order 4 bits of the high-order byte are 0.
+UZ: 0 when the high-order 4 bits of the high-order byte are 0.
+
+-------------------
+
+Mnemonic:	INVW (invert word)
+Purpose:	Converts the contents of the 2-byte main register specified
+		by the #1 operand to their ones complement.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=1, LZ and UZ change
+Format:		INVW $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	INVW $2
+		INVW $2, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	CMPW (complement word)
+Purpose:	Converts the contents of the 2-byte main register specified
+		by the #1 operand to their two's complement.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flag:		Z, C, LZ and UZ change
+		Carry is reset if result=0, set if result<>0.
+Format:		CMPW $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	CMPW $2
+		CMPW $2, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	ADW (add word)
+Purpose:	opr1 <- opr1 + opr2
+Flags:		Z, C, LZ and UZ change
+
+Addressing modes:
+
+(1) Main Register + Main Register -> Main Register
+Purpose:	Adds the contents of the 2-byte main register specified by
+		the #2 operand (or indicated by the specific index register
+		specified by the #2 operand, UNDOCUMENTED) to the contents
+		of the 2-byte main register specified by the #1 operand. The
+		result is then written to the 2-byte main register specified
+		by the #1 operand.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Format:		ADW $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	ADW $4, $2
+		ADW $4, $2, JR LABEL	;jump extension
+		ADW $4, $SZ
+		ADW $4, $SZ, JR LABEL	;jump extension
+
+(2) External Memory + Main Register -> External Memory
+Purpose:	Adds the contents of the 2-byte main register specified by
+		the #2 operand to the contents of the 2-byte external memory
+		location pointed to by the sum of an index register and a
+		main register (or the UNDOCUMENTED substitution thereof by
+		a specific index register) specified by the #1 operand. The
+		result is then written to the 2-byte external memory location
+		specified by the #1 operand.
+Format:		ADW (IR+/-$C5), $C5
+Examples:	ADW (IX+$4), $2		;main register offset specification
+		ADW (IX-$4), $2
+		ADW (IZ+$4), $2
+		ADW (IZ-$4), $2
+		ADW (IX+$SZ), $2	;indirect offset specification
+		ADW (IX-$SZ), $2
+		ADW (IZ+$SZ), $2
+		ADW (IZ-$SZ), $2
+
+-------------------
+
+Mnemonic:	SBW (subtract word)
+Purpose:	opr1 <- opr1 - opr2
+Flags:		Z, C, LZ and UZ change
+
+Addressing modes:
+
+(1) Main Register - Main Register -> Main Register
+Purpose:	Subtracts the contents of the 2-byte main register specified
+		by the #2 operand (or indicated by the specific index register
+		specified by the #2 operand, UNDOCUMENTED) from the contents
+		of the 2-byte main register specified by the #1 operand. The
+		result is then written to the 2-byte main register specified
+		by the #1 operand.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Format:		SBW $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	SBW $4, $2
+		SBW $4, $2, JR LABEL	;jump extension
+		SBW $4, $SZ
+		SBW $4, $SZ, JR LABEL	;jump extension
+
+(2) External Memory - Main Register -> External Memory
+Purpose:	Subtracts the contents of the 2-byte main register specified
+		by the #2 operand from the contents of the 2-byte external
+		memory location pointed to by the sum of an index register
+		and a main register (or the UNDOCUMENTED substitution thereof
+		by a specific index register) specified by the #1 operand. The
+		result is then written to the 2-byte external memory location
+		specified by the #1 operand.
+Format:		SBW (IR+/-$C5), $C5
+Examples:	SBW (IX+$4), $2		;main register offset specification
+		SBW (IX-$4), $2
+		SBW (IZ+$4), $2
+		SBW (IZ-$4), $2
+		SBW (IX+$SZ), $2	;indirect offset specification
+		SBW (IX-$SZ), $2
+		SBW (IZ+$SZ), $2
+		SBW (IZ-$SZ), $2
+
+-------------------
+
+Mnemonic:	ADBW (binary coded decimal word addition)
+Purpose:	Performs bcd addition of the contents of the 2-byte main
+		register specified by the #2 operand (or indicated by the
+		specific index register specified by the #2 operand,
+		UNDOCUMENTED) to the contents of the 2-byte main register
+		specified by the #1 operand. The result is then written to
+		the 2-byte main register specified by the #1 operand.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z, C, LZ and UZ change
+Format:		ADBW $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	ADBW $4, $2
+		ADBW $4, $2, JR LABEL	;jump extension
+		ADBW $4, $SZ
+		ADBW $4, $SZ, JR LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	SBBW (binary coded decimal word subtraction)
+Purpose:	Performs bcd subtraction of the contents of the 2-byte main
+		register specified by the #2 operand (or indicated by the
+		specific index register specified by the #2 operand,
+		UNDOCUMENTED) from the contents of the 2-byte main register
+		specified by the #1 operand. The result is then written to
+		the 2-byte main register specified by the #1 operand.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z, C, LZ and UZ change
+Format:		SBBW $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	SBBW $4, $2
+		SBBW $4, $2, LABEL	;jump extension
+		SBBW $4, $SZ
+		SBBW $4, $SZ, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	ADCW (add check word)
+Purpose:	opr1 + opr2
+		Adds the contents of the data specified by the #2 operand to
+		the contents of the 2-byte main register specified by the #1
+		operand. Only the status of the flags is changed and the sum
+		is not written anywhere.
+Flags:		Z, C, LZ and UZ change
+
+Addressing modes:
+
+(1) Main Register + Main Register
+Purpose:	Adds the contents of the 2-byte main register specified by
+		the #2 operand (or indicated by the specific index register
+		specified by the #2 operand, UNDOCUMENTED) to the contents
+		of the 2-byte main register specified by the #1 operand.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Format:		ADCW $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	ADCW $4, $2
+		ADCW $4, $2, JR LABEL	;jump extension
+		ADCW $4, $SZ
+		ADCW $4, $SZ, JR LABEL	;jump extension
+
+(2) External Memory + Main Register
+Purpose:	Adds the contents of the 2-byte main register specified by
+		the #2 operand to the contents of the 2-byte external memory
+		location pointed to by the sum of an index register and a
+		main register (or the UNDOCUMENTED substitution thereof by
+		a specific register) specified by the #1 operand.
+Format:		ADCW (IR+/-$C5), $C5
+Examples:	ADCW (IX+$4), $2	;main register offset specification
+		ADCW (IX-$4), $2
+		ADCW (IZ+$4), $2
+		ADCW (IZ-$4), $2
+		ADCW (IX+$SZ), $2	;indirect offset specification
+		ADCW (IX-$SZ), $2
+		ADCW (IZ+$SZ), $2
+		ADCW (IZ-$SZ), $2
+
+-------------------
+
+Mnemonic:	SBCW (subtract check word)
+Purpose:	opr1 - opr2
+		Subtracts the contents of the data specified by the #2 operand
+		from the contents of the 2-byte main register specified by the
+		#1 operand. Only the status of the flags is changed and the
+		result of the subtraction is not written anywhere.
+Flags:		Z, C, LZ and UZ change
+
+Addressing modes:
+
+(1) Main Register - Main Register
+Purpose:	Subtracts the contents of the 2-byte main register specified
+		by the #2 operand (or indicated by the specific index register
+		specified by the #2 operand, UNDOCUMENTED) from the contents
+		of the 2-byte main register specified by the #1 operand.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Format:		SBCW $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	SBCW $4, $2
+		SBCW $4, $2, JR LABEL	;jump extension
+		SBCW $4, $SZ
+		SBCW $4, $SZ, JR LABEL	;jump extension
+
+(2) External Memory - Main Register
+Purpose:	Subtracts the contents of the 2-byte main register specified
+		by the #2 operand from the contents of the 2-byte external
+		memory location pointed to by the sum of an index register
+		and a main register (or the UNDOCUMENTED substitution thereof
+		by a specific index register) specified by the #1 operand.
+Format:		SBCW (IR+/-$C5), $C5
+Examples:	SBCW (IX+$4), $2	;main register offset specification
+		SBCW (IX-$4), $2
+		SBCW (IZ+$4), $2
+		SBCW (IZ-$4), $2
+		SBCW (IX+$SZ), $2	;indirect offset specification
+		SBCW (IX-$SZ), $2
+		SBCW (IZ+$SZ), $2
+		SBCW (IZ-$SZ), $2
+
+-------------------
+
+Mnemonic:	ANW (and word)
+Purpose:	Calculates the logical product (AND) for the contents of
+		the 2-byte main register specified by the #1 operand and
+		the contents of the 2-byte main register specified by the
+		#2 operand (or indicated by the specific index register
+		specified by the #2 operand, UNDOCUMENTED). The result is
+		then written to the 2-byte main register specified by the
+		#1 operand.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=0, LZ and UZ change
+Format:		ANW A and B [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	ANW $4, $2
+		ANW $4, $2, LABEL	;jump extension
+		ANW $4, $SZ
+		ANW $4, $SZ, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	ANCW (and check word)
+Purpose:	Calculates the logical product (AND) for the contents of
+		the 2-byte main register specified by the #1 operand and
+		the contents of the 2-byte main register specified by the
+		#2 operand (or indicated by the specific index register
+		specified by the #2 operand, UNDOCUMENTED). Only the status
+		of the flags is changed and the result of the AND is not
+		written anywhere.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=0, LZ and UZ change
+Format:		ANCW $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	ANCW $4, $2
+		ANCW $4, $2, LABEL	;jump extension
+		ANCW $4, $SZ
+		ANCW $4, $SZ, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	NAW (nand word)
+Purpose:	Takes the NAND (inverted AND) for the contents of the 2-byte
+		main register specified by the #1 operand and the contents
+		of the 2-byte main register specified by the #2 operand (or
+		indicated by the specific index register specified by the
+		#2 operand, UNDOCUMENTED). The result is then written in the
+		2-byte main register specified by the #1 operand.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=1, LZ and UZ change
+Format:		NAW $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	NAW $4, $2
+		NAW $4, $2, LABEL	;jump extension
+		NAW $4, $SZ
+		NAW $4, $SZ, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	NACW (nand check word)
+Purpose:	Takes the NAND (inverted AND) for the contents of the 2-byte
+		main register specified by the #1 operand and the contents
+		of the 2-byte main register specified by the #2 operand (or
+		indicated by the specific index register specified by the
+		#2 operand, UNDOCUMENTED). Only the status of the flags is
+		changed and the result of the NAND is not written anywhere.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=1, LZ and UZ change
+Format:		NACW $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	NACW $4, $2
+		NACW $4, $2, LABEL	;jump extension
+		NACW $4, $SZ
+		NACW $4, $SZ, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	ORW (or word)
+Purpose:	Produces the logical sum (OR) for the contents of the 2-byte
+		main register specified by the #1 operand and the contents
+		of the 2-byte main register specified by the #2 operand (or
+		indicated by the specific index register specified by the
+		#2 operand, UNDOCUMENTED). The result is then written to the
+		2-byte main register specified by the #1 operand.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=1, LZ and UZ change
+Format:		ORW $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	ORW $4, $2
+		ORW $4, $2, LABEL	;jump extension
+		ORW $4, $SZ
+		ORW $4, $SZ, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	ORCW (or check word)
+Purpose:	Produces the logical sum (OR) for the contents of the 2-byte
+		main register specified by the #1 operand and the contents
+		of the 2-byte main register specified by the #2 operand (or
+		indicated by the specific index register specified by the
+		#2 operand, UNDOCUMENTED). Only the status of the flags is
+		changed and the result of the OR is not written anywhere.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=1, LZ and UZ change
+Format:		ORCW $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	ORCW $4, $2
+		ORCW $4, $2, LABEL	;jump extension
+		ORCW $4, $SZ
+		ORCW $4, $SZ, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	XRW (exclusive or word)
+Purpose:	Takes the XOR (exclusive OR) for the contents of the 2-byte
+		main register specified by the #1 operand and the contents
+		of the 2-byte main register specified by the #2 operand (or
+		indicated by the specific index register specified by the
+		#2 operand, UNDOCUMENTED). The result is then written in the
+		2-byte main register specified by the #1 operand.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=0, LZ and UZ change
+Format:		XRW $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	XRW $4, $2
+		XRW $4, $SZ, LABEL	;jump extension
+		XRW $4, $2
+		XRW $4, $SZ, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	XRCW (exclusive or check word)
+Purpose:	Takes the XOR (exclusive OR) for the contents of the 2-byte
+		main register specified by the #1 operand and the contents
+		of the 2-byte main register specified by the #2 operand (or
+		indicated by the specific index register specified by the
+		#2 operand, UNDOCUMENTED). Only the status of the flags is
+		changed and the result is not written anywhere.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=0, LZ and UZ change
+Format:		XRCW $C5, $C5 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	XRCW $4, $2
+		XRCW $4, $2, LABEL	;jump extension
+		XRCW $4, $SZ
+		XRCW $4, $SZ, LABEL	;jump extension
+
+##################################################################
+3.5	Rotating and shift commands (8-bit)
+##################################################################
+
+Mnemonic:	ROU (rotate up)
+Purpose:	Performs a left rotation between the main register specified
+		by the #1 operand and the carry flag register.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z, C, LZ and UZ change
+Format:		ROU $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	ROU $2
+		ROU $2, LABEL	;jump extension
+
+	+ - - - - - - - - - - - - - - - +
+	|   _       _ _ _ _ _ _ _ _     |
+	+ - _  <--  _ _ _ _ _ _ _ _  <- +
+	  Carry    MSB           LSB
+
+-------------------
+
+Mnemonic:	ROD (rotate down)
+Purpose:	Performs a right rotation between the main register specified
+		by the #1 operand and the carry flag register.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flag:		Z, C, LZ and UZ change
+Format:		ROD $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	ROD $2
+		ROD $2, LABEL	;jump extension
+
+	+ - - - - - - - - - - - - - - - +
+	|   _       _ _ _ _ _ _ _ _     |
+	+ - _  -->  _ _ _ _ _ _ _ _  -> +
+	  Carry    MSB           LSB
+
+-------------------
+
+Mnemonic:	BIU (bit up)
+Purpose:	Shifts the contents of the main register specified by the #1
+		operand to the left. The least significant bit receives a 0,
+		while the data from the most significant bit moves to the
+		Carry flag register.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z, C, LZ and UZ change
+Format:		BIU $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	BIU $2
+		BIU $2, LABEL	;jump extension
+
+	  _       _ _ _ _ _ _ _ _
+	  _  <--  _ _ _ _ _ _ _ _  <-- "0"
+	Carry    MSB           LSB
+
+-------------------
+
+Mnemonic:	BID (bit down)
+Purpose:	Shifts the contents of the main register specified by the #1
+		operand to the right. The most significant bit receives a 0,
+		while the data from the least significant bit moves to the
+		Carry flag register.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z, C, LZ and UZ change
+Format:		BID $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	BID $2
+		BID $2, LABEL	;jump extension
+
+	         _ _ _ _ _ _ _ _       _
+	"0" -->  _ _ _ _ _ _ _ _  -->  _
+	        MSB           LSB    Carry
+
+-------------------
+
+Mnemonic:	DIU (digit up)
+Purpose:	Shifts the contents of the main register specified by the #1
+		operand to the left in units of digits (4 bits). The low-order
+		digit bits receive O's.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=0, LZ=0, UZ changes
+Format:		DIU $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	DIU $2
+		DIU $2, LABEL	;jump extension
+
+	           _ _ _ _ _ _ _ _
+	void  <--  _ _ _ _ _ _ _ _  <--  "0000"
+	          MSB           LSB
+
+-------------------
+
+Mnemonic:	DID (digit down)
+Purpose:	Shifts the contents of the main register specified by the
+		#1 operand to the right in units of digits (4 bits). The
+		high-order digit bits receive O's.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=0, LZ changes, UZ=0
+Format:		DID $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	DID $2
+		DID $2, LABEL	;jump extension
+
+	             _ _ _ _ _ _ _ _
+	"0000"  -->  _ _ _ _ _ _ _ _  -->  void
+	            MSB           LSB
+
+-------------------
+
+Mnemonic:	BYU (byte up, UNDOCUMENTED)
+Purpose:	Writes 0 to the main register specified by the #1 operand.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		Z=0, C=0, LZ and UZ change
+Format:		BYU $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	BYU	$2
+		BYU	$2, LABEL	;jump extension
+
+	           _ _ _ _ _ _ _ _
+	void  <--  _ _ _ _ _ _ _ _  <--  "00000000"
+	          MSB           LSB
+
+-------------------
+
+Mnemonic:	BYD (byte down, UNDOCUMENTED)
+Purpose:	Writes 0 to the main register specified by the #1 operand.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		Z=0, C=0, LZ and UZ change
+Format:		BYD $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	BYD $2
+		BYD $2, LABEL (jump extension)
+
+	                 _ _ _ _ _ _ _ _
+	"00000000"  -->  _ _ _ _ _ _ _ _  -->  void
+	                MSB           LSB
+
+##################################################################
+3.6	Rotating shift commands (16-bit)
+##################################################################
+
+Mnemonic:	ROUW (rotate up word)
+Purpose:	Performs a left rotation between the 2-byte main register
+		specified by the #1 operand and the carry flag register.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z, C, LZ and UZ change
+		The LZ and UZ bits are determined by the contents of the $C5+1
+		register.
+Format:		ROUW $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Example:	ROUW $2
+		ROUW $2, LABEL	;jump extension
+
+	+ - - - - - - - - - - - - - - - - - - - - - - - - - - +
+	|   _       _ _ _$C5+1_ _ _       _ _ _ $C5 _ _ _     |
+	+ - _  <--  _ _ _ _ _ _ _ _  <--  _ _ _ _ _ _ _ _  <- +
+	  Carry    MSB                                 LSB
+
+-------------------
+
+Mnemonic:	RODW (rotate down word)
+Purpose:	Performs a right rotation between the 2-byte main register
+		specified by the #1 operand and the carry flag register.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z, C, LZ and UZ change
+		The LZ and UZ bits are determined by the contents of the $C5-1
+		register.
+Format:		RODW $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	RODW $2
+		RODW $2, LABEL	;jump extension
+
+	+ - - - - - - - - - - - - - - - - - - - - - - - - - - +
+	|   _       _ _ _ $C5 _ _ _       _ _ _$C5-1_ _ _     |
+	+ - _  -->  _ _ _ _ _ _ _ _  -->  _ _ _ _ _ _ _ _  -> +
+	  Carry    MSB                                 LSB
+
+-------------------
+
+Mnemonic:	BIUW (bit up word)
+Purpose:	Shifts the contents of the 2-byie main register specified by
+		the #1 operand to the left. The least significant bit of the
+		low-order byte receives a 0, while the data from the most
+		significant bit of the high-order byte moves to the carry flag
+		register.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z, C, LZ and UZ change
+		The LZ and UZ bits are determined by the contents of the $C5+1
+		register.
+Format:		BIUW $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	BIUW $2
+		BIUW $2, LABEL	;jump extension
+
+	  _       _ _ _$C5+1_ _ _       _ _ _ $C5 _ _ _
+	  _  <--  _ _ _ _ _ _ _ _  <--  _ _ _ _ _ _ _ _  <-- "0"
+	Carry    MSB                                 LSB
+
+-------------------
+
+Mnemonic:	BIDW (bit down word)
+Purpose:	Shifts the contents of the 2-byte main register specified by
+		the #1 operand to the right. The most significant bit of the
+		high-order byte receives a 0, while the data from the least
+		significant bit of the low-order byte moves to the carry flag
+		register.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z, C, LZ and UZ change
+		The LZ and UZ bits are determined by the contents of the $C5-1
+		register.
+Format:		BIDW $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	BIDW $2
+		BIDW $2, LABEL	;jump extension
+
+	         _ _ _ $C5 _ _ _       _ _ _$C5-1_ _ _       _
+	"0" -->  _ _ _ _ _ _ _ _  -->  _ _ _ _ _ _ _ _  -->  _
+	        MSB                                 LSB    Carry
+
+-------------------
+
+Mnemonic:	DIUW (digit up word)
+Purpose:	Shifts the contents of the 2-byte main register specified by
+		the #1 operand to the left in units of digits (4 bits). The
+		low-order digit bits of the low-order byte receive 0's.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=0, LZ and UZ change
+		The LZ and UZ bits are determined by the contents of the $C5+1
+		register.
+Format:		DIUW $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	DIUW $2
+		DIUW $2, LABEL	;jump extension
+
+	           _ _ _$C5+1_ _ _       _ _ _ $C5 _ _ _
+	void  <--  _ _ _ _ _ _ _ _  <--  _ _ _ _ _ _ _ _  <-- "0000"
+	          MSB                                 LSB
+
+-------------------
+
+Mnemonic:	DIDW (digit down word)
+Purpose:	Shifts the contents of the 2-byte main register specified by
+		the #1 operand to the right in units of digits (4 bits). The
+		high-order digit bits of the high-order byte receive O's.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=0, LZ and UZ change
+		The LZ and UZ bits are determined by the contents of the $C5-1
+		register.
+Format:		DIDW $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	DIDW $2
+		DIDW $2, LABEL	;jump extension
+
+	            _ _ _ $C5 _ _ _       _ _ _$C5-1_ _ _
+	"0000" -->  _ _ _ _ _ _ _ _  -->  _ _ _ _ _ _ _ _  -->  void
+	           MSB                                 LSB
+
+-------------------
+
+Mnemonic:	BYUW (byte up word)
+Purpose:	Shifts the contents of the 2-byte main register specified by
+		the #1 operand to the left in units of bytes. The low-order
+		byte receives 0's.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=0, LZ and UZ change
+		The LZ and UZ bits are determined by the contents of the $C5+1
+		register.
+Format:		BYUW $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Example:	BYUW $2
+		BYUW $2, LABEL	;jump extension
+
+	           _ _ _$C5+1_ _ _       _ _ _ $C5 _ _ _
+	void  <--  _ _ _ _ _ _ _ _  <--  _ _ _ _ _ _ _ _  <-- "00000000"
+	          MSB                                 LSB
+
+-------------------
+
+Mnemonic:	BYDW (byte down word)
+Purpose:	Shifts the contents of the 2-byte main register specified by
+		the #1 operand to the right in units of bytes. The high-order
+		byte receives O's.
+		An optional label in the #2 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction (UNDOCUMENTED extension).
+Flags:		Z changes, C=0, LZ and UZ change
+		The LZ and UZ bits are determined by the contents of the $C5-1
+		register.
+Format:		BYDW $C5 [ , JR LABEL ]
+		The JR tag of the #2 operand can be omitted.
+Examples:	BYDW $2
+		BYDW $2, LABEL	;jump extension
+
+	                _ _ _ $C5 _ _ _       _ _ _$C5-1_ _ _
+	"00000000" -->  _ _ _ _ _ _ _ _  -->  _ _ _ _ _ _ _ _  -> void
+	               MSB                                 LSB
+
+##################################################################
+3.7	Jump/call instructions
+##################################################################
+
+Mnemonic:	JP (absolute unconditional jump)
+Purpose:	Jumps to the address specified by the 16-bit immediate data
+		contained in the #1 operand.
+Flags:		none affected
+Format:		JP IM16
+Example:	JP &H703F	;Unconditional jump
+
+-------------------
+
+Mnemonic:	JP (absolute conditional jumps)
+Purpose:	Jumps to the address specified by the #2 operand when the
+		condition is met. Otherwise, execution proceeds to the next
+		command.
+Format:		JP Condition, IM16
+Examples:	JP Z, &H703F	;jump on zero,
+				;jump when the zero flag (Z) is 0 (result=0)
+		JP NZ, &H703F	;jump on non-zero,
+				;jump when the zero flag (Z) is 1 (result<>O)
+		JP C, &H703F	;jump on carry,
+				;jump when the carry flag (C) is 1 (carry
+				;produced by the result)
+		JP NC, &H703F	;jump on non-carry
+				;jump when the carry flag (C) is 0 (no carry
+				;produced by the result)
+		JP LZ, &H703F	;jump on lower digit zero
+				;jump when the low-order digit zero flag is 0
+				;(four low-order bits = 0)
+		JP UZ, &H703F	;jump on upper digit zero
+				;jump when the high-order digit zero flag is 0
+				;(four high-order bits = 0)
+		JP NLZ, &H703F	;jump on lower digit non-zero (UNDOCUMENTED)
+				;jump when the low-order digit zero flag is 1
+				;(four low-order bits <> 0)
+
+-------------------
+
+Mnemonic:	JP (jump register, UNDOCUMENTED)
+Purpose:	Jumps to the address contained in the main register pair
+		specified in the #1 operand.
+Flags:		none affected
+Format:		JP $C5
+		Note: the syntax of this instruction was changed in the
+		HD61 assembler version 0.34 from JP ($C5) to JP $C5
+Example:	JP $17
+
+-------------------
+
+Mnemonic:	JP (indirect jump register, UNDOCUMENTED)
+Purpose:	Transfers the 2-byte contents of the external memory location
+		pointed to by the main register pair specified in the #2
+		operand to the program counter (PC). The external memory bank
+		(high-order address) is the same as the X-register bank.
+Flags:		none affected
+Format:		JP ($C5)
+Example:	JP ($17)
+		; if $17,$18=&H7000 and following data are stored in the
+		; memory: ($H7000)=&H10, (&H7001)=&H70 then the JP ($17)
+		; instruction takes a jump to the address &H7010
+
+-------------------
+
+Mnemonic:	JR (relative unconditional jump)
+Purpose:	The displacement expressed as immediate data (-127..+127) is
+		added to the program counter (PC), and a jump is executed to
+		the resulting address.
+Flags:		none affected
+Format:		JR IM7
+Example:	JR LABEL
+		JR +32		;+IM7
+		JR -32		;-IM7
+
+-------------------
+
+Mnemonic:	JR (relative conditional jump)
+Purpose:	Relative jump is performed when the condition is met.
+		Otherwise, execution proceeds to the next command.
+Flags:		none affected
+Format:		JR Condition, IM7
+Examples:	JR Z, LABEL	;jump on zero,
+				;jump when the zero flag (Z) is 0 (result=0)
+		JR NZ, LABEL	;jump on non-zero,
+				;jump when the zero flag (Z) is 1 (result<>O)
+		JR C, LABEL	;jump on carry,
+				;jump when the carry flag (C) is 1 (carry
+				;produced by the result)
+		JR NC, LABEL	;jump on non-carry
+				;jump when the carry flag (C) is 0 (no carry
+				;produced by the result)
+		JR LZ, LABEL	;jump on lower digit zero
+				;jump when the low-order digit zero flag is 0
+				;(four low-order bits = 0)
+		JR UZ, LABEL	;jump on upper digit zero
+				;jump when the high-order digit zero flag is 0
+				;(four high-order bits = 0)
+		JR NLZ, LABEL	;jump on lower digit non-zero (UNDOCUMENTED)
+				;jump when the low-order digit zero flag is 1
+				;(four low-order bits <> 0)
+
+-------------------
+
+Mnemonic:	CAL (unconditional call)
+Purpose:	The program counter contents that indicate the final address
+		of the CAL command currently being executed is pushed into
+		the system stack, and the system stack pointer is decremented
+		by 2. Then execution jumps to an address specified by 16-bit
+		immediate data.
+Flags:		none affected
+Format:		CAL IM16
+Example:	CAL &H703F	;Unconditional call
+
+-------------------
+
+Mnemonic:	CAL (conditional call)
+Purpose:	Calls the address specified by the #2 operand when the
+		condition is met. Otherwise, execution proceeds to the next
+		command.
+Flags:		none affected
+Format:		CAL Condition, IM16
+Examples:	CAL Z, &H703F	;call on zero,
+				;call when the zero flag (Z) is 0 (result=0)
+		CAL NZ, &H703F	;call on non-zero,
+				;call when the zero flag (Z) is 1 (result<>O)
+		CAL C, &H703F	;call on carry,
+				;call when the carry flag (C) is 1 (carry
+				;produced by the result)
+		CAL NC, &H703F	;call on non-carry
+				;call when the carry flag (C) is 0 (no carry
+				;produced by the result)
+		CAL LZ, &H703F	;call on lower digit zero
+				;call when the low-order digit zero flag is 0
+				;(four low-order bits = 0)
+		CAL UZ, &H703F	;call on upper digit zero
+				;call when the high-order digit zero flag is 0
+				;(four high-order bits = 0)
+		CAL NLZ, &H703F	;call on lower digit non-zero (UNDOCUMENTED)
+				;call when the low-order digit zero flag is 1
+				;(four low-order bits <> 0)
+
+-------------------
+
+Mnemonic:	RTN (unconditional return)
+Purpose:	Pops a 16-bit address from the system stack causing the system
+		stack pointer to be incremented by 2, then one is added to the
+		address value and the result is transferred to the program
+		counter (PC).
+Flags:		none affected
+Format:		RTN
+Example:	RTN	;Unconditional return
+
+-------------------
+
+Mnemonic:	RTN (conditional return)
+Purpose:	Returns when the condition is met. Otherwise, execution
+		proceeds to the next command.
+Flags:		none affected
+Format:		RTN Condition
+Examples:	RTN Z	;return on zero,
+			;return when the zero flag (Z) is 0 (result=0)
+		RTN NZ	;return on non-zero,
+			;return when the zero flag (Z) is 1 (result<>O)
+		RTN C	;return on carry,
+			;return when the carry flag (C) is 1 (carry produced
+			;by the result)
+		RTN NC	;return on non-carry
+			;return when the carry flag (C) is 0 (no carry
+			;produced by the result)
+		RTN LZ	;return on lower digit zero
+			;return when the low-order digit zero flag is 0
+			;(four low-order bits = 0)
+		RTN UZ	;return on upper digit zero
+			;return when the high-order digit zero flag is 0
+			;(four high-order bits = 0)
+		RTN NLZ	;return on lower digit non-zero (UNDOCUMENTED)
+			;return when the low-order digit zero flag is 1
+			;(four low-order bits <> 0)
+
+##################################################################
+3.8	Block transfer/search commands
+##################################################################
+
+Mnemonic:	BUP (block up)
+Purpose:	Copies a block of memory where:
+		X-register = original block beginning address
+		Y-register = original block ending address
+		Z-register = destination beginning address
+		Note: in this case X-register < Y-register.
+Flags:		none affected
+Format:		BUP
+Example:	PRE IX,&H8000
+		PRE IY,&H80FF
+		PRE IZ,&H4000
+		BUP
+		; the memory block &H8000-&H80FF will be copied to the address
+		; &H4000-&H40FF (&H0100 bytes will be copied)
+		; the contents of registers after executing the command:
+		; IX=&H80FF, IY=&H80FF (unchanged), IZ=&H40FF
+
+-------------------
+
+Mnemonic:	BDN (block down)
+Purpose:	Copies a block of memory where:
+		X-register = original block beginning (upper) address
+		Y-register = original block ending (lower) address
+		Z-register = destination beginning (upper) address
+		Note: in this case X-register > Y-register
+Flags:		none affected
+Format:		BDN
+Example:	PRE IX,&H7FFF
+		PRE IY,&H7000
+		PRE IZ,&H9FFF
+		BDN
+		; the memory block &H7000-&H7FFF will be copied to the address
+		; &H9000-&H9FFF (&H1000 bytes will be copied)
+		; the contents of registers after executing the command:
+		; IX=&H7000, IY=&H7000 (unchanged), IZ=&H9000
+
+-------------------
+
+Mnemonic:	SUP (search up)
+Purpose:	Searches the external memory within a specific range
+		(X-register = beginning address and Y-register = ending
+		address) for the contents of the main register or 8-bit
+		immediate data specified by the #1 operand.
+		The Zero flag is cleared and the search is terminated when
+		the data is located.
+		The Zero flag is set and X-register = Y-register when the
+		search was unsuccessful.
+		Note: in this case X-register < Y-register
+Flags:		Z, C, LZ and UZ change
+Format:		SUP $C5 (or IM8)
+Example:	SUP $2		;search for data specified in a main register
+		SUP 123		;search for 8-bit immediate data
+
+-------------------
+
+Mnemonic:	SDN (search down)
+Purpose:	Searches the external memory within a specific range
+		(X-register = beginning address and Y-register = ending
+		address - 1) for the contents of the main register or 8-bit
+		immediate data specified by the #1 operand.
+		The Zero flag is cleared and the search is terminated when
+		the data is located.
+		The Zero flag is set and X-register = Y-register when the
+		search was unsuccessful.
+		Note: in this case X-register > Y-register
+Flags:		Z, C, LZ and UZ change
+Format:		SDN $C5 (or IM8)
+Example:	SDN $2		;search for data specified in a main register
+		SDN 123		;search for 8-bit immediate data
+
+-------------------
+
+Mnemonic:	BUPS (block up & search, UNDOCUMENTED )
+Purpose:	Copies a block of memory where:
+		X-register = original block beginning address
+		Y-register = original block ending address
+		Z-register = destination beginning address
+		While transferring, the transferred data is searched for the
+		8-bit immediate data specified by the #1 operand.
+		The execution is terminated when the data was located.
+		Note: in this case X-register < Y-register.
+Flags:		Z, C, LZ and UZ change
+Format:		BUPS IM8
+Example:	BUPS &H20
+
+-------------------
+
+Mnemonic:	BDNS (block down & search, UNDOCUMENTED )
+Purpose:	Copies a block of memory where:
+		X-register = original block beginning address
+		Y-register = original block ending address
+		Z-register = destination beginning address
+		While transferring, the transferred data is searched for the
+		8-bit immediate data specified by the #1 operand.
+		The execution is terminated when the data was located.
+		Note: in this case X-register > Y-register.
+Flags:		Z, C, LZ and UZ change
+Format:		BDNS IM8
+Example:	BDNS &H20
+
+##################################################################
+3.9	Special instructions
+##################################################################
+
+Mnemonic:	NOP (no operation)
+Purpose:	Increments (+1) the program counter.
+Flags:		none affected
+Format:		NOP
+Example:	NOP
+
+-------------------
+
+Mnemonic:	CLT (clear timer)
+Purpose:	Inputs a SET signal to all timer counters to set the value of
+		the counters to 0.
+		Note: If the CLT instruction occurs during a short period of
+		1/65536 sec when the seconds bits of the TM register change
+		from 59 to 00, it fails to clear the TM register.
+		As a workaround, two instructions CLT separated by a small
+		delay should be used.
+Flags:		none affected
+Format:		CLT
+Example:	CLT		;first attempt to clear the TM register
+		XRCM $0,$0,8	;short delay
+		CLT		;second attempt to clear the TM register
+
+-------------------
+
+Mnemonic:	FST (fast mode)
+Purpose:	Uses the system clock without dividing (high-speed processing
+		mode).
+		Note: The system usually operates in the high-speed mode.
+Flags:		none affected
+Format:		FST
+Example:	FST
+
+-------------------
+
+Mnemonic:	SLW (slow mode)
+Purpose:	Uses the system clock with 1/16 dividing (low power mode).
+		Automatic switching to the high-speed processing mode is
+		performed in the interrupt handling routine.
+		Note: The slow mode doesn't change the LCD port clock
+		frequency which with the LCD port transfer is synchronized.
+		Therefore, any LCD access in the slow mode disrupts the LCD
+		system.
+		Consequently, a machine code program should restore the fast
+		mode before returning to the system. However, a BASIC program
+		can be safely run in the slow mode as long as it doesn't
+		display anything on the screen.
+Flags:		none affected
+Format:		SLW
+Example:	SLW
+
+-------------------
+
+Mnemonic:	OFF (OFF)
+Purpose:	Puts the microprocessor into sleep mode and cuts the power
+		supply of the internal logic VDD system. Following registers
+		are changed:
+		- PC <- address of the Power-On routine
+		- IX, IY, IZ <- 0
+		- SX, SY, SZ <- 0
+		- UA <- 0
+		- IA <- 0, but the KO1 pin driving the BRK key is selected
+		- bits 0, 1, 5, 6, and 7 of the IE register are cleared
+		- PE <- 0, i.e. all port pins are in high impedance state
+                - $0-$31, SSP and USP are retained
+		The processor can be waken up by following events:
+		- Power Switch state change from off to on (voltage level
+		  change on the SW input from high to low)
+		- BRK key (voltage level change on the KI1 pin from high to
+		  low)
+		- One-Minute Timer interrupt (when enabled by the bit 5 of
+		  the IB register)
+		- ON terminal state change from high to low (when enabled by
+		  the bit 2 of the IE register)
+		Note: In the PB-1000/PB-2000C the ON-interrupt input is driven
+		by the LCD controller and therefore cannot turn the power on.
+Format:		OFF
+Flags:		The APO bit is cleared when the system is turned on with the
+		power switch or the BRK key, and set when the system is turned
+		on with the ON terminal or One-Minute Timer interrupt.
+Example:	OFF
+
+-------------------
+
+Mnemonic:	TRP (trap)
+Purpose:	Input of the TRP command operation code (FF) causes the trap
+		address (address where FF is written) to be entered into the
+		stack at the present SSP location. Processing is then
+		performed from the fixed address (in case of PB-1000 &H6FFA),
+		and is returned to the command following the TRP command by
+		a RTN command.
+Flags:		none affected
+Format:		TRP
+Example:	TRP
+
+-------------------
+
+Mnemonic:	CANI (cancel interrupt)
+Purpose:	Clears the hardware interrupt request latch which has the
+		highest priority.
+Format:		CANI
+Flags:		none affected
+Example:	CANI
+
+-------------------
+
+Mnemonic:	RTNI (return from interrupt)
+Purpose:	Loads the system stack contents into the program counter (PC),
+		returns to the resulting address and adds 2 to the SSP, and
+		performs an operation equivalent to CANI. This command is used
+		to return from an interrupt handling routine.
+Flags:		none affected
+Format:		RTNI
+Example:	RTNI
+
+##################################################################
+3.10	Multiple byte move commands (16..64-bit), UNDOCUMENTED
+##################################################################
+
+This group of instructions allows transfer up to 64 bits of data (8 bytes) in
+a single turn. The number of bytes can be specified in range 2..8. For smaller
+specified values, 2 bytes will be transferred.
+The HD61 assembler doesn't allow to specify the number of bytes less than 2.
+
+-------------------
+
+Mnemonic:	LDM (load multi byte register)
+Purpose:	Transfers the contents of the main register block specified
+		by the #2 operand (or indicated by the specific index register
+		specified by the #2 operand) to the main register block
+		specified by the #1 operand. The number of bytes is specified
+		by the #3 operand IM3.
+		An optional label in the #4 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		none affected
+Format:		LDM $C5, $C5, IM3 [ , JR LABEL ]
+		The JR tag of the #4 operand can be omitted.
+Example:	LDM $2, $6, 3
+		; $2 <- $6
+		; $3 <- $7
+		; $4 <- $8
+		LDM $2, $10, 5, JPUP	;jump extension
+		LDM $0, $SX ,6
+		LDM $0, $SX ,6, JPUP	;jump extension
+
+-------------------
+
+Mnemonic:	LDM (load multi byte memory)
+Purpose:	Transfers the contents of the external memory block pointed
+		to by the sum of an index register and an offset A specified
+		by the #2 operand to the main register block specified by the
+		#1 operand. The number of bytes is specified by the #3 operand
+		IM3. Operand A can be of $C5 type only (including the
+		substitution by a specific index register).
+Flags:		none affected
+Format:		LDM $C5, (IR+/-$C5), IM3
+Examples:	LDM $2, (IX+$0),3
+		; For values IX=&H7000 and the $0=1 we get following results:
+		; $2 <- (memory contents of address &H7001)
+		; $3 <- (memory contents of address &H7002)
+		; $4 <- (memory contents of address &H7003)
+		; IX <- &H7000
+		LDM $4, (IX+$2), 6	;main register offset specification
+		LDM $4, (IX-$2), 6
+		LDM $4, (IZ+$2), 6
+		LDM $4, (IZ-$2), 6
+		LDM $0, (IX+$SZ), 3	;indirect offset specification
+		LDM $0, (IZ-$SX), 3
+
+-------------------
+
+Mnemonic:	LDIM (load increment multi byte)
+Purpose:	$C5 (IM3) <- (IR+/-A) (IM3)
+		IR <- IR+/-A + IM3
+		Transfers the contents of the external memory block pointed
+		to by the sum of an index register and an offset A specified
+		by the #2 operand to the main register block specified by the
+		#1 operand. The number of bytes is specified by the #3 operand
+		IM3. Then a sum of the offset A and the number of bytes IM3 is
+		added to the index register specified by the #2 operand
+		(postincrement). Operand A can be of $C5 type only (including
+		the substitution by a specific index register).
+Flags:		none affected
+Format:		LDIM $C5, (IR+/-A), IM3
+Examples:	LDIM $2, (IX+$0), 3
+		; For values IX=&H7000 and the $0=1 we get following results:
+		; $2 <- (memory contents of address &H7001)
+		; $3 <- (memory contents of address &H7002)
+		; $4 <- (memory contents of address &H7003)
+		; IX <- &H7004
+		LDIM $4, (IX+$2), 6	;main register offset specification
+		LDIM $4, (IX-$2), 6
+		LDIM $4, (IZ+$2), 6
+		LDIM $4, (IZ-$2), 6
+		LDIM $4, (IX-$SX) ,6	;indirect offset specification
+		LDIM $4, (IZ+$SY) ,6
+
+-------------------
+
+Mnemonic:	LDDM (load decrement multi byte)
+Purpose:	$C5 (-IM3) <- (IR+/-A) (-IM3)
+		IR <- IR+/-A - IM3 + 1
+		Transfers the contents of the external memory block pointed
+		to by the sum of an index register and an offset A specified
+		by the #2 operand to the main register block specified by the
+		#1 operand. The number of bytes is specified by the #3 operand
+		IM3. Then a sum of the offset A and -IM3+1 is added to the
+		index register specified by the #2 operand.
+		Operand A can be of $C5 type only (including the substitution
+		by a specific index register).
+		Note: the source registers are different than in case of the
+		LDM and LDIM ($C5, $C5-1, ... instead of $C5, $C5+1, ... ,
+		see the example).
+Flags:		none affected
+Format:		LDDM $C5, (IR+/-A), IM3
+Examples:	LDDM $3, (IX+$0), 3
+		; For values IX=&H7000 and the $0=1 we get following results:
+		; $3 <- (memory contents of address &H7001)
+		; $2 <- (memory contents of address &H7000)
+		; $1 <- (memory contents of address &H6FFF)
+		; IX <- &H6FFF
+		LDDM $7, (IX+$2), 6	;main register offset specification
+		LDDM $7, (IX-$2), 6
+		LDDM $7, (IZ+$2), 6
+		LDDM $7, (IZ-$2), 6
+		LDDM $7, (IX-$SX) ,6	;indirect offset specification
+		LDDM $7, (IZ+$SY) ,6
+
+-------------------
+
+Mnemonic:	LDCM (load check multi byte)
+Purpose:	No operation.
+		This instruction has the same format as LDM, but nothing is
+		actually processed. It's probably only a by-product of the
+		instruction decoder. Only the addressing modes listed in the
+		examples are allowed.
+Flags:		none affected
+Format:		LDCM  opr1, opr2, IM3 [ , JR LABEL ]
+Examples:	LDCM $4, $2, 6
+		LDCM $4, $SX, 6
+		LDCM $2, $3, 6, LABEL
+		LDCM $4, $SX, 6, LABEL
+
+-------------------
+
+Mnemonic:	STM (Store multi byte memory)
+Purpose:	Transfers the contents of the main register block specified
+		by the #1 operand to the external memory location pointed to
+		by the sum of an index register and a main register (or the
+		substitution thereof by a specific index register) specified
+		by the #2 operand. The number of bytes is specified by the
+		#3 operand IM3. The external memory bank conforms with the
+		X-register.
+Flags:		none affected
+Format:		STM $C5, (IR+/-$C5), IM3
+Examples:	STM $2, (IX+$0), 3
+		; For values IX=&H7000 and the $0=1 we get following results:
+		; $2 -> (memory address &H7001)
+		; $3 -> (memory address &H7002)
+		; $4 -> (memory address &H7003)
+		; IX <- &H7000
+		STM $4, (IX+$2), 6	;main register offset specification
+		STM $4, (IX-$2), 6
+		STM $4, (IZ+$2), 6
+		STM $4, (IZ-$2), 6
+		STM $4, (IX-$SX), 6	;indirect offset specification
+		STM $4, (IZ+$SY), 6
+
+-------------------
+
+Mnemonic:	STIM (Store increment multi byte)
+Purpose:	$C5 (IM3) -> (IR+/-A) (IM3)
+		IR <- IR+/-A +IM3
+		Transfers the main register block specified by the #1 operand
+		(number of registers specified by the #2 operand IM3) to the
+		external memory location pointed to by (IR+/-A), then a sum
+		of the offset A and IM3 is added to the IR register.
+		Operand A can be of $C5 type only (including the substitution
+		by a specific index register).
+Flags:		none affected
+Format:		STIM $C5, (IR+/-A), IM3
+Examples:	STIM $2, (IX+$0),3
+		; For values IX=&H7000 and the $0=1 we get following results:
+		; $2 -> (memory address &H7001)
+		; $3 -> (memory address &H7002)
+		; $4 -> (memory address &H7003)
+		; IX <- &H7004
+		STIM $4, (IX+$2), 6	;main register offset specification
+		STIM $4, (IX-$2), 6
+		STIM $4, (IZ+$2), 6
+		STIM $4, (IZ-$2), 6
+		STIM $4, (IX-$SX), 6	;indirect offset specification
+		STIM $4, (IZ+$SY), 6
+
+-------------------
+
+Mnemonic:	STDM (Store decrement multi byte)
+Purpose:	$C5 (-IM3) -> (IR+/-A) (-IM3)
+		IR <- IR+/-A - IM3 + 1
+		Transfers the main register block specified by the #1 operand
+		(number of registers specified by the #2 operand IM3) to the
+		external memory location pointed to by (IR+/-A), then a sum
+		of the offset A and -IM3+1 is added to the IR register.
+		Operand A can be of $C5 type only (including the substitution
+		by a specific index register).
+		Note: the source registers are different than in case of the
+		STM and STIM ($C5, $C5-1, ... instead of $C5, $C5+1, ... ,
+		see the example).
+Flags:		none affected
+Format:		STDM $C5, (IR+/-A), IM3
+Examples:	STDM $2, (IX+$0),3
+		; For values IX=&H7000 and the $0=1 we get following results:
+		; $2 -> (memory address &H7001)
+		; $1 -> (memory address &H7000)
+		; $0 -> (memory address &H6FFF)
+		; IX <- &H6FFF
+		STDM $4, (IX+$2), 6	;main register offset specification
+		STDM $4, (IX-$2), 6
+		STDM $4, (IZ+$2), 6
+		STDM $4, (IZ-$2), 6
+		STDM $4, (IX-$SX), 6	;indirect offset specification
+		STDM $4, (IZ+$SY), 6
+
+-------------------
+
+Mnemonic:	PPSM (pop by system stack pointer multi byte)
+Purpose:	Transfers the contents of the external memory block pointed
+		to by the SSP to the main register block specified by the #1
+		operand (number of bytes specified by the #2 operand), then
+		adds IM3 to the SSP.
+Flags:		none affected
+Format:		PPSM $C5, IM3
+Example:	PPSM $2,6
+		; (SS) -> $2
+		; (SS+1) -> $3
+		; (SS+2) -> $4
+		; (SS+3) -> $5
+		; (SS+4) -> $6
+		; (SS+5) -> $7
+		; SS <- SS + 6
+
+-------------------
+
+Mnemonic:	PPUM (pop by user stack pointer multi byte)
+Purpose:	Transfers the contents of the external memory block pointed
+		to by the USP to the main register block specified by the #1
+		operand (number of bytes specified by the #2 operand), then
+		adds IM3 to the USP.
+Flags:		none affected
+Format:		PPUM $C5, IM3
+Example:	PPUM $2,6
+		; (US) -> $2
+		; (US+1) -> $3
+		; (US+2) -> $4
+		; (US+3) -> $5
+		; (US+4) -> $6
+		; (US+5) -> $7
+		; US <- US + 6
+
+-------------------
+
+Mnemonic:	PHSM (push system stack pointer multi byte)
+Purpose:	Transfers the main register block specified by the #1 operand
+		(number of registers specified by the #2 operand) to the
+		external memory location pointed to by the SSP, then subtracts
+		IM3 from the SSP.
+Flags:		none affected
+Format:		PHSM $C5, IM3
+Example:	PHSM $7,6
+		; $7 -> (SS-1)
+		; $6 -> (SS-2)
+		; $5 -> (SS-3)
+		; $6 -> (SS-4)
+		; $3 -> (SS-5)
+		; $2 -> (SS-6)
+		; SS <- SS - 6
+
+-------------------
+
+Mnemonic:	PHUM (push user stack pointer multi byte)
+Purpose:	Transfers the main register block specified by the #1 operand
+		(number of registers specified by the #2 operand) to the
+		external memory location pointed to by the USP, then subtracts
+		IM3 from the USP.
+Flags:		none affected
+Format:		PHUM $C5, IM3
+Example:	PHUM $7,6
+		; $7 -> (US-1)
+		; $6 -> (US-2)
+		; $5 -> (US-3)
+		; $4 -> (US-4)
+		; $3 -> (US-5)
+		; $2 -> (US-6)
+		; US <- US - 6
+
+-------------------
+
+Mnemonic:	STLM (store lcd data multi byte)
+Purpose:	$C5 (IM3) -> LCD data area
+		Transfers the main register block specified by the #1 operand
+		(number of registers specified by the #2 operand) to the LCD
+		data area (8 bits at a time).
+Flags:		none affected
+Format:		STLM $C5, IM3
+Example:	STLM $2,6
+
+-------------------
+
+Mnemonic:	LDLM (load from the LCD data port multi byte)
+Purpose:	LCD data area -> $C5 (IM3)
+		Reads the LCD data port to the main register block specified
+		by the #1 operand (8 bits at a time), number of registers
+		specified by the #2 operand.
+Flags:		none affected
+Format:		LDLM $C5, IM3
+Example:	LDLM $2, 6
+
+-------------------
+
+Mnemonic:	PPOM (put lcd control port multi byte)
+Purpose:	$C5 (IM3) -> LCD control port
+		Transfers the main register block specified by the #1 operand
+		(number of registers specified by the #2 operand) to the LCD
+		control port (8 bits at a time).
+Flags:		none affected
+Format:		PPOM $C5, IM3
+Example:	PPOM $2,6
+
+-------------------
+
+Mnemonic:	PSRM (Put Specific index Register multi byte)
+Purpose:	$C5+IM3-1 -> SIR
+		Transfers the contents of the main register block specified
+		by the #2 operand to the specific index register specified
+		by the #1 operand. Actually, the specific index register
+		receives only the contents of the $C5+IM3-1 register because
+		the previous data is overwritten. Only the low order 5 bits
+		are transferred.
+Format:		PSRM SIR, $C5, IM3
+Flags:		none affected
+Examples:	PSRM SX, $2, 3
+		; if $2=0, $3=1 and $4=2, then 2 is written to the SX register
+		PSRM SY, $2, 3
+		PSRM SZ, $2, 3
+
+#####################################################################
+3.11	Multiple byte arithmetic commands (16..64-bit), UNDOCUMENTED
+#####################################################################
+
+This group of instructions can perform arithmetic and logical operations on
+operands of size up to 64 bits (8 bytes). They are believed to modify the
+flags register according to the following rules:
+Z:  0 when all 16..64 bits are 0.
+C:  1 when a carry or borrow from the most significant bit occurs.
+LZ: 0 when the low-order 4 bits of the most significant byte are 0.
+UZ: 0 when the high-order 4 bits of the most significant byte are 0.
+
+-------------------
+
+Mnemonic:	INVM (invert multi byte)
+Purpose:	Converts the contents of the main register block specified
+		by the #1 operand (number of registers specified by the #2
+		operand IM3) to their ones complement.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		Z changes, C=1, LZ and UZ change
+Format:		INVM $C5, IM3 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	INVM $2, 6
+		INVM $2, 6, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	CMPM (complement multi byte)
+Purpose:	Converts the contents of the main register block specified
+		by the #1 operand (number of registers specified by the #2
+		operand IM3) to their two's complement.
+		An optional label in the #3 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		Z, C, LZ and UZ change
+		Carry is reset if result=0 (all registers are equal 0),
+		set if result<>0 (any of the registers is not equal 0).
+Format:		CMPM $C5, IM3 [ , JR LABEL ]
+		The JR tag of the #3 operand can be omitted.
+Examples:	CMPM $2, 6
+		CMPM $2, 6, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	ADBM (add bcd multi byte)
+Purpose:	opr1 (IM3) <- opr1 (IM3) + opr2 (IM3)
+		Performs bcd addition of the contents of the main register
+		block specified by the #2 operand (or indicated by the
+		specific index register specified by the #2 operand) to
+		the contents of the main register block specified by the
+		#1 operand. The number of registers is specified by the #3
+		operand IM3. The result is then written to the main register
+		block specified by the #1 operand.
+		An optional label in the #4 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		Z, C, LZ and UZ change
+Format:		ADBM $C5, $C5, IM3 [ , JR LABEL ]
+		The JR tag of the #4 operand can be omitted.
+Examples:	ADBM $4, $2, 6
+		ADBM $4, $2, 6, LABEL	;jump extension
+		ADBM $4, $SZ, 6
+		ADBM $4, $SZ, 6, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	ADBM (add bcd immediate multi byte)
+Purpose:	Performs bcd addition of the 5-bit immediate data contained in
+		the #2 operand IM5 to the contents of the main register block
+		specified by the #1 operand. The number of registers is
+		specified by the #3 operand IM3. The result is then written to
+		the main register block specified by the #1 operand.
+		An optional label in the #4 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		Z, C, LZ and UZ change
+Format:		ADBM $C5, IM5, IM3 [ , JR LABEL ]
+		The JR tag of the #4 operand can be omitted.
+Example:	ADBM $4, &H15 ,3
+		; example register contents before the addition:
+		; $4=&H89 $5=&H67 $6=&H45, represents the bcd number 456789
+		; after the addition of the immediate data &H15:
+		; $4=&H04 $5=&H68 $6=&H45, represents the bcd number 456804
+		ADBM $4, &H15, 3, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	ADBCM (add bcd check multi byte)
+Purpose:	opr1 (IM3) + opr2 (IM3)
+		Performs bcd addition of the contents of the main register
+		block specified by the #2 operand (or indicated by the
+		specific index register specified by the #2 operand) to
+		the contents of the main register block specified by the
+		#1 operand. The number of registers is specified by the #3
+		operand IM3. Only the status of the flags is changed and
+		the sum is not written anywhere.
+		An optional label in the #4 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		Z, C, LZ and UZ change
+Format:		ADBCM $C5, $C5, IM3 [ , JR LABEL ]
+		The JR tag of the #4 operand can be omitted.
+Examples:	ADBCM $4, $2, 6
+		ADBCM $4, $2, 6, LABEL	;jump extension
+		ADBCM $4, $SZ, 6
+		ADBCM $4, $SZ, 6, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	SBBM (sub bcd multi byte)
+Purpose:	opr1 (IM3) <- opr1 (IM3) + opr2 (IM3)
+		Performs bcd subtraction of the contents of the main register
+		block specified by the #2 operand (or indicated by the
+		specific index register specified by the #2 operand) from
+		the contents of the main register block specified by the
+		#1 operand. The number of registers is specified by the #3
+		operand IM3. The result is then written to the main register
+		block specified by the #1 operand.
+		An optional label in the #4 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		Z, C, LZ and UZ change
+Format:		SBBM $C5, $C5, IM3 [ , JR LABEL ]
+		The JR tag of the #4 operand can be omitted.
+Examples:	SBBM $4, $2 ,6
+		SBBM $4, $2, 6, LABEL	;jump extension
+		SBBM $4, $SZ, 6
+		SBBM $4, $SZ, 6, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	SBBM (sub bcd immediate multi byte)
+Purpose:	Performs bcd subtraction of the 5-bit immediate data contained
+		in the #2 operand IM5 to the contents of the main register
+		block specified by the #1 operand. The number of registers is
+		specified by the #3 operand IM3. The result is then written
+		to the main register block specified by the #1 operand.
+		An optional label in the #4 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		Z, C, LZ and UZ change
+Format:		SBBM $C5, IM5, IM3 [ , JR LABEL ]
+		The JR tag of the #4 operand can be omitted.
+Example:	SBBM $4, &H15, 3
+		; example register contents before the subtraction:
+		; $4=&H12 $5=&H34 $6=&H56, represents the bcd number 563412
+		; after the subtraction of the immediate data &H15:
+		; $4=&H97 $5=&H33 $6=&H56, represents the bcd number 563397
+		SBBM $4, &H15, 6, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	SBBCM (sub bcd check multi byte)
+Purpose:	opr1 (IM3) - opr2 (IM3)
+		Performs bcd subtraction of the contents of the main register
+		block specified by the #2 operand (or indicated by the
+		specific index register specified by the #2 operand) from
+		the contents of the main register block specified by the
+		#1 operand. The number of registers is specified by the #3
+		operand IM3. Only the status of the flags is changed and the
+		result of the subtraction is not written anywhere.
+		An optional label in the #4 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		Z, C, LZ and UZ change
+Format:		SBBCM $C5, $C5, IM3 [ , JR LABEL ]
+		The JR tag of the #4 operand can be omitted.
+Examples:	SBBCM $4, $2, 6
+		SBBCM $4, $2, 6, LABEL	;jump extension
+		SBBCM $4, $SZ, 6
+		SBBCM $4, $SZ, 6, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	ANM (and multi byte)
+Purpose:	opr1 (IM3) <- opr1 (IM3) and opr2 (IM3)
+		Calculates the logical product (AND) for the contents of
+		the main register block specified by the #1 operand and 
+		the contents of the main register block specified by the
+		#2 operand (or indicated by the specific index register
+		specified by the #2 operand). The number of registers is
+		specified by the #3 operand IM3. The result is then written
+		to the main register block specified by the #1 operand.
+		An optional label in the #4 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		Z changes, C=0, LZ and UZ change
+Format:		ANM $C5, $C5, IM3 [ , JR LABEL ]
+		The JR tag of the #4 operand can be omitted.
+Examples:	ANM $4, $2, 6
+		ANM $4, $2, 6, LABEL	;jump extension
+		ANM $4, $SZ, 6
+		ANM $4, $SZ, 6, LABEL 	;jump extension
+
+-------------------
+
+Mnemonic:	ANCM (and check multi byte)
+Purpose:	opr1 (IM3) and opr2 (IM3)
+		Calculates the logical product (AND) for the contents of
+		the main register block specified by the #1 operand and
+		the contents of the main register block specified by the
+		#2 operand (or indicated by the specific index register
+		specified by the #2 operand). The number of registers is
+		specified by the #3 operand IM3. Only the status of the flags
+		is changed and the result of the AND is not written anywhere.
+		An optional label in the #4 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		Z changes, C=0, LZ and UZ change
+Format:		ANCM $C5, $C5, IM3 [ , JR LABEL ]
+		The JR tag of the #4 operand can be omitted.
+Examples:	ANCM $4, $2, 6
+		ANCM $4, $2, 6, LABEL	;jump extension
+		ANCM $4, $SZ, 6
+		ANCM $4, $SZ, 6, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	NAM (nand multi byte)
+Purpose:	opr1 (IM3) <- opr1 (IM3) nand opr2 (IM3)
+		Takes the NAND (inverted AND) for the contents of the main
+		register block specified by the #1 operand and the contents
+		of the main register block specified by the #2 operand (or
+		indicated by the specific index register specified by the
+		#2 operand). The number of registers is specified by the #3
+		operand IM3. The result is then written in the main register
+		block specified by the #1 operand.
+		An optional label in the #4 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		Z changes, C=1, LZ and UZ change
+Format:		NAM $C5, $C5, IM3 [ , JR LABEL ]
+		The JR tag of the #4 operand can be omitted.
+Examples:	NAM $4, $2, 6
+		NAM $4, $2, 6, LABEL	;jump extension
+		NAM $4, $SZ, 6
+		NAM $4, $SZ, 6, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	NACM (nand check multi byte)
+Purpose:	opr1 (IM3) nand opr2 (IM3)
+		Takes the NAND (inverted AND) for the contents of the main
+		register block specified by the #1 operand and the contents
+		of the main register block specified by the #2 operand (or
+		indicated by the specific index register specified by the
+		#2 operand). The number of registers is specified by the #3
+		operand IM3. Only the status of the flags is changed and the
+		result of the NAND is not written anywhere.
+		An optional label in the #4 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		Z changes, C=1, LZ and UZ change
+Format:		NACM $C5, $C5, IM3 [ , JR LABEL ]
+		The JR tag of the #4 operand can be omitted.
+Examples:	NACM $4, $2, 6
+		NACM $4, $2, 6, LABEL	;jump extension
+		NACM $4, $SZ, 6
+		NACM $4, $SZ, 6, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	ORM (or multi byte)
+Purpose:	opr1 (IM3) <- opr1 (IM3) or opr2 (IM3)
+		Produces the logical sum (OR) for the contents of the main
+		register block specified by the #1 operand and the contents
+		of the main register block specified by the #2 operand (or
+		indicated by the specific index register specified by the
+		#2 operand). The number of registers is specified by the #3
+		operand IM3. The result is then written to the main register
+		block specified by the #1 operand.
+		An optional label in the #4 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		Z changes, C=1, LZ and UZ change
+Format:		ORM $C5, $C5, IM3 [ , JR LABEL ]
+		The JR tag of the #4 operand can be omitted.
+Examples:	ORM $4, $2, 6
+		ORM $4, $2, 6, LABEL	;jump extension
+		ORM $4, $SZ, 6
+		ORM $4, $SZ, 6, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	ORCM (or check multi byte)
+Purpose:	opr1 (IM3) or opr2 (IM3)
+		Produces the logical sum (OR) for the contents of the main
+		register block specified by the #1 operand and the contents
+		of the main register block specified by the #2 operand (or
+		indicated by the specific index register specified by the
+		#2 operand). The number of registers is specified by the #3
+		operand IM3. Only the status of the flags is changed and the
+		result of the OR is not written anywhere.
+		An optional label in the #4 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		Z changes, C=1, LZ and UZ change
+Format:		ORCM $C5, $C5, IM3 [ , JR LABEL ]
+		The JR tag of the #4 operand can be omitted.
+Examples:	ORCM $4, $2, 6
+		ORCM $4, $2, 6, LABEL	;jump extension
+		ORCM $4, $SZ, 6
+		ORCM $4, $SZ, 6, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	XRM (exclusive or multi byte)
+Purpose:	opr1 (IM3) <- opr1 (IM3) xor opr2 (IM3)
+		Takes the XOR (exclusive OR) for the contents of the main
+		register block specified by the #1 operand and the contents
+		of the main register block specified by the #2 operand (or
+		indicated by the specific index register specified by the
+		#2 operand). The number of registers is specified by the #3
+		operand IM3. The result is then written in the main register
+		block specified by the #1 operand.
+		An optional label in the #4 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		Z changes, C=0, LZ and UZ change
+Format:		XRM $C5, $C5, IM3 [ , JR LABEL ]
+		The JR tag of the #4 operand can be omitted.
+Examples:	XRM $4, $2, 6
+		XRM $4, $2, 6, LABEL	;jump extension
+		XRM $4, $SZ, 6
+		XRM $4, $SZ, 6, LABEL	;jump extension
+
+-------------------
+
+Mnemonic:	XRCM (exclusive or check multi byte)
+Purpose:	opr1 (IM3) xor opr2 (IM3)
+		Takes the XOR (exclusive OR) for the contents of the main
+		register block specified by the #1 operand and the contents
+		of the main register block specified by the #2 operand (or
+		indicated by the specific index register specified by the
+		#2 operand). The number of registers is specified by the #3
+		operand IM3. Only the status of the flags is changed and the
+		result is not written anywhere.
+		An optional label in the #4 operand specifies the relative
+		address (up to +/-127 bytes) to which a jump is made after
+		the execution of the instruction.
+Flags:		Z changes, C=0, LZ and UZ change
+Format:		XRCM $C5, $C5, IM3 [ , JR LABEL ]
+		The JR tag of the #4 operand can be omitted.
+Examples:	XRCM $4, $2, 6
+		XRCM $4, $2, 6, LABEL	;jump extension
+		XRCM $4, $SZ, 6
+		XRCM $4, $SZ, 6, LABEL	;jump extension
+
+######################################################################
+3.12	Multiple byte shift commands (16..64-bit), UNDOCUMENTED
+######################################################################
+
+Only the digit- and byte-shift instructions seem to have their multi-byte
+equivalents (DIUM, DIDM, BYUM and BIDM). The supposed multi-byte versions of
+the bit-shift/rotate instructions (BIUM, BIDM, ROUM and RODM) are executed
+either as BUP or BDN.
+
+Mnemonic:	DIUM (digit up multi byte)
+Purpose:	Shifts the contents of the main register block specified
+		by the #1 operand (number of registers specified by the #2
+		operand IM3) to the left in units of digits (4 bits). The
+		low-order digit bits of the low-order byte receive 0's.
+Flags:		Z changes, C=0, LZ and UZ change
+		The LZ and UZ bits are determined by the contents of the
+		$C5+(IM3-1) register.
+Format:		DIUM $C5, IM3
+Example:	DIUM $2,6
+
+	          _ $C5+(IM3-1) _               _ _ _ $C5 _ _ _
+	void <--  _ _ _ _ _ _ _ _  <-- ... <--  _ _ _ _ _ _ _ _  <-- "0000"
+	         MSB                                         LSB
+
+-------------------
+
+Mnemonic:	DIDM (digit down multi byte)
+Purpose:	Shifts the contents of the main register block specified
+		by the #1 operand (number of registers specified by the #2
+		operand IM3) to the right in units of digits (4 bits). The
+		high-order digit bits of the high-order byte receive O's.
+Flag:		Z changes, C=0, LZ and UZ change
+		The LZ and UZ bits are determined by the contents of the
+		$C5-(IM3-1) register.
+Format:		DIDM $C5, IM3
+Example:	DIDM $2,6
+
+	             _ _ _ $C5 _ _ _               _ $C5-(IM3-1) _
+	"0000"  -->  _ _ _ _ _ _ _ _  --> ... -->  _ _ _ _ _ _ _ _  -> void
+	            MSB                                         LSB
+
+-------------------
+
+Mnemonic:	BYUM (byte up multi byte)
+Purpose:	Shifts the contents of the main register block specified
+		by the #1 operand (number of registers specified by the #2
+		operand IM3) to the left in units of bytes. The low-order byte
+		receives 0's.
+Flags:		Z changes, C=0, LZ and UZ change
+		The LZ and UZ bits are determined by the contents of the
+		$C5+(IM3-1) register.
+Format:		BYUM $C5, IM3
+Example:	BYUM $2,6
+
+	          _ $C5+(IM3-1) _             _ _ _ $C5 _ _ _
+	void <--  _ _ _ _ _ _ _ _  <- ... <-  _ _ _ _ _ _ _ _  <--  "00000000"
+	         MSB                                       LSB
+
+-------------------
+
+Mnemonic:	BYDM (byte down multi byte)
+Purpose:	Shifts the contents of the main register block specified
+		by the #1 operand (number of registers specified by the #2
+		operand IM3) to the right in units of bytes. The high-order
+		byte receives O's.
+Flags:		Z changes, C=0, LZ and UZ change
+		The LZ and UZ bits are determined by the contents of the
+		$C5-(IM3-1) register.
+Format:		BYDM $C5, IM3
+Example:	BYDM $2
+
+	                 _ _ _ $C5 _ _ _             _ $C5-(IM3-1) _
+	"00000000"  -->  _ _ _ _ _ _ _ _  -> ... ->  _ _ _ _ _ _ _ _  --> void
+	                MSB                                       LSB
