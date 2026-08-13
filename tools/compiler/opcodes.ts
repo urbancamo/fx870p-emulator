@@ -312,21 +312,63 @@ function isImmediate(s: string): boolean {
 
 // ─── Encoding helpers ────────────────────────────────────────────────────────
 
-// Encode a 7-bit relative jump offset per HD61700 convention
+// ─── imm7 (relative branch) range ────────────────────────────────────────────
+//
+// `imm7Arg()` in src/emulator/exec.ts decodes the single offset byte as:
+//     let x = fetchByte();
+//     if (x & 0x80) x = 0x80 - x;      // raw 0x81..0xFF → -1..-127
+//     return (x + y) & 0xFFFF;         // y = PC after the opcode byte
+// so the reachable signed offsets are exactly -127..+127. Anything outside
+// that cannot be represented in the one byte `jr`/`jr cc` has available.
+
+export const IMM7_MIN_OFFSET = -127;
+export const IMM7_MAX_OFFSET = 127;
+
+/** Thrown when a relative branch's true distance cannot fit in one imm7 byte. */
+export class Imm7RangeError extends Error {
+  /** Duck-typing tag: survives `instanceof` failing across module realms. */
+  readonly isImm7RangeError = true;
+  constructor(
+    readonly base: number,
+    readonly target: number,
+    readonly offset: number,
+  ) {
+    super(
+      `relative branch out of range: offset ${offset} from &H${base.toString(16).toUpperCase().padStart(4, '0')} ` +
+      `to &H${target.toString(16).toUpperCase().padStart(4, '0')} ` +
+      `(imm7 can only reach ${IMM7_MIN_OFFSET}..+${IMM7_MAX_OFFSET})`,
+    );
+    this.name = 'Imm7RangeError';
+  }
+}
+
+export function isImm7RangeError(e: unknown): e is Imm7RangeError {
+  return e instanceof Imm7RangeError ||
+         (typeof e === 'object' && e !== null && (e as Imm7RangeError).isImm7RangeError === true);
+}
+
+/** True when `target` is reachable from `base` by a one-byte imm7 offset. */
+export function imm7InRange(base: number, target: number): boolean {
+  const offset = target - base;
+  return offset >= IMM7_MIN_OFFSET && offset <= IMM7_MAX_OFFSET;
+}
+
 // Encode a 7-bit imm7 offset for jr/conditional-jr-style instructions.
 // The `base` argument is the PC value that imm7Arg() will capture as `y` in
 // the emulator (i.e. the PC AFTER the opcode byte has been fetched, BEFORE
 // the offset byte is fetched). For byte-memory code this is instr_addr + 1;
 // for word-memory ROM code this is the instruction's own address.
+//
+// Throws Imm7RangeError rather than silently wrapping when the distance is
+// too large — the assembler catches that and relaxes the branch to a 3-byte
+// absolute `jp`. Silent wrapping used to emit a valid-looking byte that
+// jumped to a completely wrong address.
 function encodeImm7(base: number, target: number): number {
-  const pc = base;
-  const offset = (target - pc) & 0xFFFF;
-  if (offset === 0) return 0;
-  if (offset <= 0x7F) return offset;  // positive
-  // Negative: offset is like 0xFFxx, we need actual signed offset
-  const signed = target - pc;
-  if (signed < 0) return 0x80 + (-signed);  // HD61700: raw=0x80+|offset|, decoder does 0x80-raw
-  return offset & 0x7F;
+  const signed = target - base;
+  if (!imm7InRange(base, target)) throw new Imm7RangeError(base, target, signed);
+  if (signed === 0) return 0;
+  if (signed > 0) return signed;             // raw 0x01..0x7F
+  return 0x80 + (-signed);                   // raw 0x81..0xFF; decoder does 0x80-raw
 }
 
 // Find which primary opcode hosts an extension index

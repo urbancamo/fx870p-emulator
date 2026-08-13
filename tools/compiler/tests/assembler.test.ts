@@ -1,6 +1,6 @@
 // tools/compiler/tests/assembler.test.ts
 import { describe, it, expect } from 'vitest';
-import { encodeInstruction } from '../opcodes.js';
+import { encodeInstruction, Imm7RangeError } from '../opcodes.js';
 import { assemble } from '../assembler.js';
 import type { AsmLine } from '../asm-types.js';
 
@@ -525,6 +525,218 @@ describe('assembler', () => {
     ];
     const result = assemble(lines);
     expect(result.codeSize).toBe(1);
+  });
+});
+
+// ─── Task 4b: branch relaxation (jr → jp when out of imm7 range) ─────────────
+//
+// `jr`/`jr cc` carry a single imm7 offset byte reaching only ±127. Anything
+// further used to be silently wrapped into a valid-looking byte pointing at
+// the wrong address. The assembler now relaxes those into the 3-byte absolute
+// `jp`/`jp cc`, which uses the identical condition-code encoding (both
+// families land in the same `testCC()`, reading `opcode[0] & 7`).
+
+/** N filler bytes as a single `db` line (nothing when n <= 0). */
+function fill(n: number): AsmLine[] {
+  return n > 0 ? [{ mnemonic: 'db', operands: Array(n).fill('&H00').join(',') }] : [];
+}
+
+function branchSites(result: ReturnType<typeof assemble>) {
+  return result.lineResults.filter(r => /^(jr|jp)$/i.test(r.mnemonic));
+}
+
+describe('imm7 range checking', () => {
+  it('encodes the extreme in-range offsets', () => {
+    // +127: jr at 0, base = 1, target = 128
+    expect(Array.from(encodeInstruction('jr', '&H0080', 0))).toEqual([0xB7, 0x7F]);
+    // -127: jr at 0x1000, base = 0x1001, target = 0x0F82
+    expect(Array.from(encodeInstruction('jr', '&H0F82', 0x1000))).toEqual([0xB7, 0xFF]);
+  });
+
+  it('throws instead of wrapping one byte past the range', () => {
+    // +128
+    expect(() => encodeInstruction('jr', '&H0081', 0)).toThrow(Imm7RangeError);
+    // -128
+    expect(() => encodeInstruction('jr', '&H0F81', 0x1000)).toThrow(Imm7RangeError);
+    // The reviewer's original site: jr nz,&H1D4C at 0x1E1B (offset -208) used
+    // to emit 0x50 — a valid-looking *forward* jump of +80.
+    expect(() => encodeInstruction('jr', 'nz,&H1D4C', 0x1E1B)).toThrow(/out of range/);
+  });
+});
+
+describe('assembler branch relaxation', () => {
+  it('relaxes an over-long conditional backward branch into jp cc', () => {
+    // LOOP: nop / 200 filler bytes / jr z,LOOP
+    // The jr sits at 0x00C9; base 0x00CA, target 0x0000 → offset -202.
+    const lines: AsmLine[] = [
+      { mnemonic: 'ORG', operands: '&H0000' },
+      { label: 'LOOP', mnemonic: 'nop' },
+      ...fill(200),
+      { mnemonic: 'jr', operands: 'z,LOOP' },
+    ];
+    const result = assemble(lines);
+
+    const sites = branchSites(result);
+    expect(sites).toHaveLength(1);
+    const site = sites[0]!;
+
+    expect(site.relaxed).toBe(true);
+    expect(site.mnemonic).toBe('jp');
+    expect(site.bytes).toHaveLength(3);
+    // jp z = 0x30 (0x30 & 7 == 0 == z), i.e. within the 0x30-0x37 jp family,
+    // and carrying the same cc bits the jr z (0xB0) had.
+    expect(site.bytes[0]).toBe(0x30);
+    expect(site.bytes[0]! & 7).toBe(0xB0 & 7);
+    expect(site.bytes[1]).toBe(0x00); // target lo
+    expect(site.bytes[2]).toBe(0x00); // target hi
+
+    // …and the same bytes really are in the emitted binary at that address.
+    expect(Array.from(result.binary.slice(site.address, site.address + 3)))
+      .toEqual([0x30, 0x00, 0x00]);
+    expect(result.relaxedBranches).toBe(1);
+  });
+
+  it('relaxes an over-long unconditional branch into jp', () => {
+    const lines: AsmLine[] = [
+      { mnemonic: 'ORG', operands: '&H0000' },
+      { mnemonic: 'jr', operands: 'FAR' },
+      ...fill(200),
+      { label: 'FAR', mnemonic: 'nop' },
+    ];
+    const result = assemble(lines);
+    const site = branchSites(result)[0]!;
+    expect(site.relaxed).toBe(true);
+    // jp unconditional = 0x37, the same cc==7 slot jr unconditional (0xB7) used
+    expect(site.bytes[0]).toBe(0x37);
+    expect(site.bytes[0]! & 7).toBe(0xB7 & 7);
+    // FAR = 0x00CB (1 nop-free start + 3-byte jp + 200 filler), little-endian
+    expect(site.bytes.slice(1)).toEqual([0xCB, 0x00]);
+    expect(site.bytes[1]! | (site.bytes[2]! << 8))
+      .toBe(result.symbols.find(s => s.name === 'FAR')!.address);
+  });
+
+  it('leaves in-range branches as compact 2-byte jr encodings', () => {
+    // Every branch here is comfortably inside ±127, so nothing should change.
+    const lines: AsmLine[] = [
+      { mnemonic: 'ORG', operands: '&H0000' },
+      { label: 'TOP', mnemonic: 'nop' },
+      { mnemonic: 'jr', operands: 'z,FWD' },
+      ...fill(20),
+      { label: 'FWD', mnemonic: 'jr', operands: 'nz,TOP' },
+      { mnemonic: 'jr', operands: 'TOP' },
+      { mnemonic: 'rtn' },
+    ];
+    const result = assemble(lines);
+
+    const sites = branchSites(result);
+    expect(sites).toHaveLength(3);
+    expect(sites.every(s => !s.relaxed)).toBe(true);
+    expect(sites.every(s => s.bytes.length === 2)).toBe(true);
+    expect(result.relaxedBranches).toBe(0);
+    // Converged on the very first check — no wasted relayout.
+    expect(result.relaxationIterations).toBe(1);
+
+    // jr z,FWD at 0x0001: base 0x0002, FWD = 0x0017 → +21
+    expect(sites[0]!.bytes).toEqual([0xB0, 21]);
+    // jr nz,TOP at 0x0017: base 0x0018, TOP = 0 → -24 → 0x80 + 24 = 0x98
+    expect(sites[1]!.bytes).toEqual([0xB4, 0x98]);
+    // jr TOP at 0x0019: base 0x001A, TOP = 0 → -26 → 0x80 + 26 = 0x9A
+    expect(sites[2]!.bytes).toEqual([0xB7, 0x9A]);
+  });
+
+  it('relaxes only the branches that need it, leaving neighbours compact', () => {
+    const lines: AsmLine[] = [
+      { mnemonic: 'ORG', operands: '&H0000' },
+      { label: 'TOP', mnemonic: 'nop' },
+      { mnemonic: 'jr', operands: 'z,NEAR' },   // in range
+      { label: 'NEAR', mnemonic: 'nop' },
+      ...fill(200),
+      { mnemonic: 'jr', operands: 'nz,TOP' },   // out of range
+    ];
+    const result = assemble(lines);
+    const sites = branchSites(result);
+    expect(sites.map(s => s.bytes.length)).toEqual([2, 3]);
+    expect(sites.map(s => !!s.relaxed)).toEqual([false, true]);
+    expect(result.relaxedBranches).toBe(1);
+  });
+
+  it('iterates to a fixed point when one relaxation pushes others out of range', () => {
+    // Three partially-overlapping forward branches, sized so that each round
+    // of relaxation puts exactly one more over the edge:
+    //   round 1: B3 is at +128            → relaxed
+    //   round 2: B2 was at +127, now +128 → relaxed
+    //   round 3: B1 was at +126, now +128 → relaxed
+    // A single-shot "fix what pass 2 found" patch would stop after round 1
+    // and ship two corrupted branches.
+    const q1 = 97, q2 = 24, q3 = 0, q4 = 100, q5 = 27;
+    const lines: AsmLine[] = [
+      { mnemonic: 'ORG', operands: '&H0000' },
+      { label: 'B1', mnemonic: 'jr', operands: 'z,E1' },
+      ...fill(q1),
+      { label: 'B2', mnemonic: 'jr', operands: 'z,E2' },
+      ...fill(q2),
+      { label: 'B3', mnemonic: 'jr', operands: 'z,E3' },
+      ...fill(q3),
+      { label: 'E1', mnemonic: 'nop' },
+      ...fill(q4 - 1),
+      { label: 'E2', mnemonic: 'nop' },
+      ...fill(q5 - 1),
+      { label: 'E3', mnemonic: 'nop' },
+    ];
+    const result = assemble(lines);
+
+    expect(result.relaxedBranches).toBe(3);
+    // 3 cascading rounds + 1 final clean check. Anything less would mean the
+    // loop stopped before the cascade finished.
+    expect(result.relaxationIterations).toBe(4);
+
+    const sites = branchSites(result);
+    expect(sites.every(s => s.relaxed && s.bytes.length === 3)).toBe(true);
+
+    // Every relaxed branch must point at the *final* label address, not the
+    // pre-relaxation one — the whole point of re-laying-out each round.
+    const addrOf = (n: string) => result.symbols.find(s => s.name === n)!.address;
+    for (const [site, label] of [[sites[0]!, 'E1'], [sites[1]!, 'E2'], [sites[2]!, 'E3']] as const) {
+      expect(site.bytes[1]! | (site.bytes[2]! << 8)).toBe(addrOf(label));
+    }
+  });
+
+  it('keeps every label address consistent with the relaxed layout', () => {
+    // A label sitting after a relaxed branch must move by the extra byte.
+    const withoutRelax = assemble([
+      { mnemonic: 'ORG', operands: '&H0000' },
+      { label: 'TOP', mnemonic: 'nop' },
+      ...fill(20),
+      { mnemonic: 'jr', operands: 'z,TOP' },
+      { label: 'AFTER', mnemonic: 'nop' },
+    ]);
+    const withRelax = assemble([
+      { mnemonic: 'ORG', operands: '&H0000' },
+      { label: 'TOP', mnemonic: 'nop' },
+      ...fill(200),
+      { mnemonic: 'jr', operands: 'z,TOP' },
+      { label: 'AFTER', mnemonic: 'nop' },
+    ]);
+    const after = (r: ReturnType<typeof assemble>) =>
+      r.symbols.find(s => s.name === 'AFTER')!.address;
+
+    expect(after(withoutRelax)).toBe(1 + 20 + 2);
+    expect(after(withRelax)).toBe(1 + 200 + 3);   // 3, not 2 — jp is a byte longer
+    // The emitted binary length must agree with where AFTER was placed.
+    expect(withRelax.binary.length).toBe(after(withRelax) + 1);
+  });
+
+  it('errors clearly on an out-of-range jr suffix, which cannot be relaxed', () => {
+    // The `,jr LABEL` suffix form is welded into another instruction's
+    // encoding and has no absolute equivalent. codegen never emits one, but if
+    // it ever did, a loud failure beats a silently corrupted jump.
+    const lines: AsmLine[] = [
+      { mnemonic: 'ORG', operands: '&H0000' },
+      { mnemonic: 'ld', operands: '$1,&H05,jr FAR' },
+      ...fill(200),
+      { label: 'FAR', mnemonic: 'nop' },
+    ];
+    expect(() => assemble(lines)).toThrow(/out of range/);
   });
 });
 

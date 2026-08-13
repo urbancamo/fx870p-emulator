@@ -1,8 +1,19 @@
 // tools/compiler/assembler.ts
-// Two-pass HD61700 assembler: AsmLine[] → AssemblerOutput
+// Two-pass HD61700 assembler with branch relaxation: AsmLine[] → AssemblerOutput
+//
+// `jr`/`jr cc,label` encode the branch target as a single imm7 byte and can
+// only reach ±127 bytes. Rather than let an over-long branch silently wrap to
+// a wrong address, the assembler *relaxes* it into the same-semantics 3-byte
+// absolute `jp`/`jp cc,label` (identical condition-code encoding — both
+// opcode families dispatch into the same `testCC()` in src/emulator/exec.ts,
+// which reads `opcode[0] & 7`; 0xB0-0xB6 and 0x30-0x36 share those low bits).
+//
+// Because relaxing one branch grows the program by a byte, it can push other
+// branches across the same threshold, so layout + range-check iterate to a
+// fixed point before the final emit. See `assemble()` for the loop.
 
-import { encodeInstruction } from './opcodes.js';
-import type { AsmLine, AssemblerOutput, SymbolEntry } from './asm-types.js';
+import { encodeInstruction, isImm7RangeError } from './opcodes.js';
+import type { AsmLine, AssemblerOutput, AsmLineResult, SymbolEntry } from './asm-types.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -12,12 +23,6 @@ function parseHexOrDec(s: string): number {
   if (s.startsWith('0x') || s.startsWith('0X')) return parseInt(s.slice(2), 16);
   return parseInt(s, 10);
 }
-
-// Pseudo-mnemonics that direct the assembler but emit no code themselves
-const ASSEMBLER_DIRECTIVES = new Set(['org', 'equ']);
-
-// Mnemonics that reserve space only (no actual data bytes needed in pass 2)
-const VARIABLE_PSEUDO = new Set(['ds']);
 
 // Mnemonics whose output bytes count as data, not code
 const DATA_PSEUDO = new Set(['db', 'dw']);
@@ -46,11 +51,22 @@ function escapeRegex(s: string): string {
 // Estimate instruction size in bytes by calling encodeInstruction with placeholder addresses
 function estimateSize(mnemonic: string, operands: string): number {
   const m = mnemonic.toLowerCase();
-  if (ASSEMBLER_DIRECTIVES.has(m)) return 0;
+  if (m === 'org' || m === 'equ') return 0;
   // For db, don't stub operands — they contain string literals whose length
   // determines the byte count; stubbing would mangle the strings.
   // (dw always produces 2 bytes so stubbing is fine for it.)
-  const stubbed = m === 'db' ? operands : stubUnresolved(operands);
+  let stubbed: string;
+  if (m === 'db') {
+    stubbed = operands;
+  } else if (m === 'jr') {
+    // A `jr`'s size never depends on its target, but encodeImm7 now *throws*
+    // when the target is unreachable — so force the target to a trivially
+    // in-range placeholder rather than letting a literal operand (e.g.
+    // `jr &H1E23`) blow up and fall into the catch below as size 0.
+    stubbed = stubJrTarget(operands);
+  } else {
+    stubbed = stubUnresolved(operands);
+  }
   try {
     return encodeInstruction(m, stubbed, 0).length;
   } catch {
@@ -77,66 +93,154 @@ function stubUnresolved(operands: string): string {
   });
 }
 
-// ─── Main assembler ───────────────────────────────────────────────────────────
+// Rewrite `jr LABEL` / `jr cc,LABEL` so the target is &H0000 — reachable from
+// the pc=0 used for sizing, whatever the real operand was.
+function stubJrTarget(operands: string): string {
+  if (!operands) return operands;
+  const comma = operands.lastIndexOf(',');
+  return comma < 0 ? '&H0000' : `${operands.slice(0, comma)},&H0000`;
+}
 
-export function assemble(lines: AsmLine[]): AssemblerOutput {
-  // ── Pass 1: collect symbols and compute addresses ──────────────────────────
-  const symbolMap = new Map<string, number>(); // name → address (or EQU value)
-  const equSet = new Set<string>(); // names defined via EQU (not address labels)
+// ─── Layout (pass 1) ──────────────────────────────────────────────────────────
+
+interface Layout {
+  symbols: Map<string, number>;
+  equNames: Set<string>;
+  /** Address of each line's first emitted byte, parallel to `lines`. */
+  addrs: number[];
+}
+
+/**
+ * Walk the lines assigning addresses. `relaxed` holds the indices of `jr`
+ * lines that have already been decided to become 3-byte `jp`s, so they are
+ * sized accordingly.
+ */
+function layout(lines: AsmLine[], relaxed: ReadonlySet<number>): Layout {
+  const symbols = new Map<string, number>();
+  const equNames = new Set<string>();
+  const addrs = new Array<number>(lines.length).fill(0);
 
   let pc = 0;
 
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
     const mnem = line.mnemonic?.trim() ?? '';
     const mnemLower = mnem.toLowerCase();
     const operands = line.operands?.trim() ?? '';
 
     if (mnemLower === 'org') {
       pc = parseHexOrDec(operands);
+      addrs[i] = pc;
       // Label on an ORG line points to the new origin
-      if (line.label) {
-        symbolMap.set(line.label, pc);
-      }
+      if (line.label) symbols.set(line.label, pc);
       continue;
     }
+
+    addrs[i] = pc;
 
     if (mnemLower === 'equ') {
       // EQU: associate the label with a constant value
       if (line.label) {
-        const val = parseHexOrDec(operands);
-        symbolMap.set(line.label, val);
-        equSet.add(line.label);
+        symbols.set(line.label, parseHexOrDec(operands));
+        equNames.add(line.label);
       }
       continue;
     }
 
     // Record label address before computing instruction size
-    if (line.label) {
-      symbolMap.set(line.label, pc);
-    }
+    if (line.label) symbols.set(line.label, pc);
 
     if (!mnem) continue; // label-only or comment-only line
 
     if (mnemLower === 'ds') {
-      // Reserve N bytes
       const count = parseInt(operands, 10);
       pc += isNaN(count) ? 0 : count;
     } else {
-      pc += estimateSize(mnem, operands);
+      pc += estimateSize(emittedMnemonic(mnemLower, i, relaxed), operands);
     }
   }
 
+  return { symbols, equNames, addrs };
+}
+
+/** The mnemonic actually emitted for line `i` — `jr` becomes `jp` once relaxed. */
+function emittedMnemonic(mnemLower: string, i: number, relaxed: ReadonlySet<number>): string {
+  return mnemLower === 'jr' && relaxed.has(i) ? 'jp' : mnemLower;
+}
+
+/**
+ * Find `jr` lines whose true distance no longer fits in one imm7 byte, using
+ * the encoder itself as the range oracle so the check can never drift from
+ * what pass 2 will actually do.
+ */
+function findOverlongBranches(
+  lines: AsmLine[],
+  lay: Layout,
+  relaxed: ReadonlySet<number>,
+): number[] {
+  const found: number[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (relaxed.has(i)) continue;
+    const line = lines[i]!;
+    if ((line.mnemonic?.trim().toLowerCase() ?? '') !== 'jr') continue;
+    const resolved = resolveOperands(line.operands?.trim() ?? '', lay.symbols);
+    try {
+      encodeInstruction('jr', resolved, lay.addrs[i]!);
+    } catch (e) {
+      // Any other encoding failure is reported properly by the emit pass.
+      if (isImm7RangeError(e)) found.push(i);
+    }
+  }
+  return found;
+}
+
+// ─── Main assembler ───────────────────────────────────────────────────────────
+
+export function assemble(lines: AsmLine[]): AssemblerOutput {
+  // ── Branch relaxation: iterate layout + range-check to a fixed point ───────
+  //
+  // `relaxed` only ever grows, and it is bounded by the number of `jr` lines,
+  // so each non-converging iteration strictly shrinks the remaining candidate
+  // set. After at most `jrCount` upgrades every `jr` is a `jp` and the next
+  // check must come back empty — hence `jrCount + 1` iterations always
+  // suffice. The loop cannot oscillate: a relaxed branch is never un-relaxed.
+  const jrCount = lines.filter(l => (l.mnemonic?.trim().toLowerCase() ?? '') === 'jr').length;
+  const maxIterations = jrCount + 2;
+
+  const relaxed = new Set<number>();
+  let lay = layout(lines, relaxed);
+  let iterations = 1;
+  let converged = false;
+
+  for (; iterations <= maxIterations; iterations++) {
+    const overlong = findOverlongBranches(lines, lay, relaxed);
+    if (overlong.length === 0) { converged = true; break; }
+    for (const i of overlong) relaxed.add(i);
+    lay = layout(lines, relaxed);
+  }
+
+  if (!converged) {
+    throw new Error(
+      `Assembler error: branch relaxation failed to converge after ${maxIterations} iterations ` +
+      `(${relaxed.size}/${jrCount} branches relaxed). This should be impossible — please report it.`,
+    );
+  }
+
+  const symbolMap = lay.symbols;
+
   // ── Pass 2: emit binary ────────────────────────────────────────────────────
   const chunks: Uint8Array[] = [];
+  const lineResults: AsmLineResult[] = [];
   let codeSize = 0;
   let dataSize = 0;
   let variableSize = 0;
   const symbolEntries: SymbolEntry[] = [];
   const listingLines: string[] = [];
 
-  pc = 0;
+  let pc = 0;
 
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
     const mnem = line.mnemonic?.trim() ?? '';
     const mnemLower = mnem.toLowerCase();
     const operands = line.operands?.trim() ?? '';
@@ -144,6 +248,7 @@ export function assemble(lines: AsmLine[]): AssemblerOutput {
     if (mnemLower === 'org') {
       pc = parseHexOrDec(operands);
       listingLines.push(`               ORG  ${operands}`);
+      lineResults.push({ index: i, address: pc, bytes: [], mnemonic: mnem, operands });
       continue;
     }
 
@@ -151,7 +256,17 @@ export function assemble(lines: AsmLine[]): AssemblerOutput {
       if (line.label) {
         listingLines.push(`               ${line.label}  EQU  ${operands}`);
       }
+      lineResults.push({ index: i, address: pc, bytes: [], mnemonic: mnem, operands });
       continue;
+    }
+
+    // Layout and emit must agree byte-for-byte, or every label address is a
+    // lie. Catch a divergence here instead of shipping a subtly wrong binary.
+    if (pc !== lay.addrs[i]) {
+      throw new Error(
+        `Assembler internal error at line ${i} [${mnem} ${operands}]: ` +
+        `layout predicted &H${hex4(lay.addrs[i]!)} but emit reached &H${hex4(pc)}`,
+      );
     }
 
     if (!mnem) {
@@ -161,6 +276,7 @@ export function assemble(lines: AsmLine[]): AssemblerOutput {
       } else if (line.comment) {
         listingLines.push(`               ; ${line.comment}`);
       }
+      lineResults.push({ index: i, address: pc, bytes: [], mnemonic: '', operands: '' });
       continue;
     }
 
@@ -172,67 +288,63 @@ export function assemble(lines: AsmLine[]): AssemblerOutput {
     if (mnemLower === 'ds') {
       const count = parseInt(operands, 10);
       const n = isNaN(count) ? 0 : count;
-      const zeros = new Uint8Array(n);
-      chunks.push(zeros);
+      chunks.push(new Uint8Array(n));
       variableSize += n;
       pc += n;
       listingLines.push(`${hex4(lineAddr)}: ${hex4(n)}       ${mnem}  ${operands}`);
-    } else {
-      let bytes: Uint8Array;
-      try {
-        bytes = encodeInstruction(mnemLower, resolvedOps, pc);
-      } catch (e) {
-        throw new Error(`Assembler error at PC=${hex4(pc)} [${mnem} ${operands}]: ${(e as Error).message}`);
-      }
-      chunks.push(bytes);
-
-      if (DATA_PSEUDO.has(mnemLower)) {
-        dataSize += bytes.length;
-      } else {
-        codeSize += bytes.length;
-      }
-      pc += bytes.length;
-
-      const hexBytes = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
-      const label = line.label ? `${line.label}: ` : '';
-      listingLines.push(`${hex4(lineAddr)}: ${hexBytes.padEnd(12)} ${label}${mnem}  ${resolvedOps}`);
+      lineResults.push({ index: i, address: lineAddr, bytes: [], mnemonic: mnem, operands });
+      continue;
     }
+
+    const emitMnem = emittedMnemonic(mnemLower, i, relaxed);
+    let bytes: Uint8Array;
+    try {
+      bytes = encodeInstruction(emitMnem, resolvedOps, pc);
+    } catch (e) {
+      throw new Error(`Assembler error at PC=${hex4(pc)} [${mnem} ${operands}]: ${(e as Error).message}`);
+    }
+    chunks.push(bytes);
+
+    if (DATA_PSEUDO.has(mnemLower)) {
+      dataSize += bytes.length;
+    } else {
+      codeSize += bytes.length;
+    }
+    pc += bytes.length;
+
+    const shown = emitMnem === mnemLower ? mnem : emitMnem;
+    const relaxNote = emitMnem === mnemLower ? '' : '   ; relaxed from jr (target out of imm7 range)';
+    const hexBytes = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
+    const label = line.label ? `${line.label}: ` : '';
+    listingLines.push(`${hex4(lineAddr)}: ${hexBytes.padEnd(12)} ${label}${shown}  ${resolvedOps}${relaxNote}`);
+    lineResults.push({
+      index: i,
+      address: lineAddr,
+      bytes: Array.from(bytes),
+      mnemonic: shown,
+      operands: resolvedOps,
+      relaxed: emitMnem !== mnemLower,
+    });
   }
 
   // ── Build symbol list ──────────────────────────────────────────────────────
+  const dsLabels = new Set(
+    lines
+      .filter(l => l.label && (l.mnemonic?.trim().toLowerCase() ?? '') === 'ds')
+      .map(l => l.label!),
+  );
+
   for (const [name, address] of symbolMap) {
     let type: SymbolEntry['type'];
-    if (equSet.has(name)) {
+    if (lay.equNames.has(name)) {
       // Determine type based on what's at that address — treat EQU as data reference
       type = 'data';
+    } else if (dsLabels.has(name)) {
+      type = 'variable';
     } else {
-      // Simple heuristic: if any DS label, it's variable; otherwise code
       type = 'code';
     }
     symbolEntries.push({ name, address, type });
-  }
-
-  // Re-classify DS labels as 'variable'
-  pc = 0;
-  for (const line of lines) {
-    const mnemLower = (line.mnemonic?.trim() ?? '').toLowerCase();
-    const operands = line.operands?.trim() ?? '';
-
-    if (mnemLower === 'org') { pc = parseHexOrDec(operands); continue; }
-    if (mnemLower === 'equ') continue;
-    if (!line.mnemonic) continue;
-
-    if (line.label && mnemLower === 'ds') {
-      const entry = symbolEntries.find(s => s.name === line.label);
-      if (entry) entry.type = 'variable';
-    }
-
-    if (mnemLower === 'ds') {
-      const n = parseInt(operands, 10);
-      pc += isNaN(n) ? 0 : n;
-    } else {
-      pc += estimateSize(line.mnemonic!, operands);
-    }
   }
 
   // ── Concatenate all binary chunks ─────────────────────────────────────────
@@ -251,6 +363,9 @@ export function assemble(lines: AsmLine[]): AssemblerOutput {
     codeSize,
     dataSize,
     variableSize,
+    lineResults,
+    relaxedBranches: relaxed.size,
+    relaxationIterations: iterations,
   };
 }
 

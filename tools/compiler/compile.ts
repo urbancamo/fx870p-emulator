@@ -19,8 +19,7 @@ import { assemble } from './assembler.js';
 import { formatListing } from './listing.js';
 import type { ListingLine, ListingInput } from './listing.js';
 import { generateHexPayload } from './loader.js';
-import { encodeInstruction } from './opcodes.js';
-import type { AsmLine } from './asm-types.js';
+import type { AsmLine, AsmLineResult } from './asm-types.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -42,169 +41,59 @@ function nowString(): string {
 
 // ─── ListingLine builder ─────────────────────────────────────────────────────
 //
-// Converts AsmLine[] + the assembled binary into ListingLine[] suitable for
-// formatListing().  For each AsmLine we need the encoded bytes; instead of
-// unpacking the concatenated binary we re-encode each instruction individually.
+// The assembler already knows every line's final address and bytes — including
+// any `jr` it had to relax into a 3-byte `jp` — so the listing simply reads
+// them back off `AssemblerOutput.lineResults`. (This used to re-derive the
+// whole layout independently, which silently drifted from the real binary the
+// moment branch relaxation changed an instruction's size.)
 
 function buildListingLines(
   asmLines: AsmLine[],
-  symbolMap: Map<string, number>,
+  lineResults: AsmLineResult[],
 ): ListingLine[] {
+  const byIndex = new Map(lineResults.map(r => [r.index, r]));
   const result: ListingLine[] = [];
-  let pc = 0;
 
-  // Rebuild a local symbol map from the asm lines (ORG + labels) for resolving
-  // operands when re-encoding.  This mirrors the assembler's pass-1 logic.
-  const syms = new Map<string, number>(symbolMap);
-
-  // Helpers matching assembler internals
-  function parseHexOrDec(s: string): number {
-    s = s.trim();
-    if (s.startsWith('&H') || s.startsWith('&h')) return parseInt(s.slice(2), 16);
-    if (s.startsWith('0x') || s.startsWith('0X')) return parseInt(s.slice(2), 16);
-    return parseInt(s, 10);
-  }
-
-  function resolveOperands(operands: string): string {
-    if (!operands) return operands;
-    const names = [...syms.keys()].sort((a, b) => b.length - a.length);
-    let result = operands;
-    for (const name of names) {
-      const re = new RegExp(
-        `(?<![A-Za-z0-9_])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![A-Za-z0-9_])`,
-        'g',
-      );
-      result = result.replace(
-        re,
-        `&H${syms.get(name)!.toString(16).toUpperCase().padStart(4, '0')}`,
-      );
-    }
-    return result;
-  }
-
-  // Pass 1: collect symbol addresses (mirrors assembler pass 1)
-  let scanPc = 0;
-  for (const line of asmLines) {
+  for (let i = 0; i < asmLines.length; i++) {
+    const line = asmLines[i]!;
     const mnem = line.mnemonic?.trim() ?? '';
     const mnemLower = mnem.toLowerCase();
-    const operands = line.operands?.trim() ?? '';
-
-    if (mnemLower === 'org') {
-      scanPc = parseHexOrDec(operands);
-      if (line.label) syms.set(line.label, scanPc);
-      continue;
-    }
-    if (mnemLower === 'equ') {
-      if (line.label) syms.set(line.label, parseHexOrDec(operands));
-      continue;
-    }
-    if (line.label) syms.set(line.label, scanPc);
-    if (!mnem) continue;
-
-    if (mnemLower === 'ds') {
-      const n = parseInt(operands, 10);
-      scanPc += isNaN(n) ? 0 : n;
-    } else {
-      try {
-        // For db, don't stub operands — they contain string literals whose
-        // length determines the byte count; stubbing would mangle the strings.
-        const stubbed = mnemLower === 'db' ? operands : operands.replace(/(?<!&)\b([A-Za-z_][A-Za-z0-9_]*)\b/g, (m) => {
-          const known = new Set(['ix','iy','iz','us','ss','ky','sx','sy','sz',
-            'pe','pd','ib','ua','ia','ie','tm','z','nc','lz','uz','nz','c','nlz']);
-          return known.has(m.toLowerCase()) ? m : '&H0000';
-        });
-        scanPc += encodeInstruction(mnemLower, stubbed, 0).length;
-      } catch {
-        // skip unrecognised
-      }
-    }
-  }
-
-  // Pass 2: build listing lines
-  for (const line of asmLines) {
-    const mnem = line.mnemonic?.trim() ?? '';
-    const mnemLower = mnem.toLowerCase();
-    const operands = line.operands?.trim() ?? '';
 
     // BASIC annotation lines
     if (line.basicLine !== undefined) {
       result.push({
-        address: -1,
-        bytes: [],
-        label: '',
-        mnemonic: '',
-        operands: '',
-        comment: '',
+        address: -1, bytes: [], label: '', mnemonic: '', operands: '', comment: '',
         basicLine: line.basicLine,
       });
       continue;
     }
 
-    // ORG / EQU directives — skip (no bytes emitted)
-    if (mnemLower === 'org') {
-      pc = parseHexOrDec(operands);
-      continue;
-    }
-    if (mnemLower === 'equ') continue;
+    // ORG / EQU directives — no bytes emitted
+    if (mnemLower === 'org' || mnemLower === 'equ') continue;
+
+    const emitted = byIndex.get(i);
 
     // Comment-only line (no mnemonic, no label)
     if (!mnem && !line.label) {
       result.push({
-        address: -1,
-        bytes: [],
-        label: '',
-        mnemonic: '',
-        operands: '',
+        address: -1, bytes: [], label: '', mnemonic: '', operands: '',
         comment: line.comment ?? '',
       });
       continue;
     }
 
-    // Label-only line
-    if (!mnem && line.label) {
-      result.push({
-        address: pc,
-        bytes: [],
-        label: line.label,
-        mnemonic: '',
-        operands: '',
-        comment: line.comment ?? '',
-      });
-      continue;
-    }
+    const comment = emitted?.relaxed
+      ? `${line.comment ? line.comment + ' ' : ''}[jr relaxed to jp]`
+      : line.comment ?? '';
 
-    const lineAddr = pc;
-    const resolvedOps = resolveOperands(operands);
-
-    if (mnemLower === 'ds') {
-      const n = parseInt(operands, 10);
-      const size = isNaN(n) ? 0 : n;
-      result.push({
-        address: lineAddr,
-        bytes: [],          // DS reserves space; no bytes to show
-        label: line.label ?? '',
-        mnemonic: mnem,
-        operands,
-        comment: line.comment ?? '',
-      });
-      pc += size;
-    } else {
-      let bytes: number[] = [];
-      try {
-        bytes = Array.from(encodeInstruction(mnemLower, resolvedOps, lineAddr));
-        pc += bytes.length;
-      } catch {
-        // emit with no bytes if encoding fails
-      }
-      result.push({
-        address: lineAddr,
-        bytes,
-        label: line.label ?? '',
-        mnemonic: mnem,
-        operands,
-        comment: line.comment ?? '',
-      });
-    }
+    result.push({
+      address: emitted?.address ?? -1,
+      bytes: emitted?.bytes ?? [],
+      label: line.label ?? '',
+      mnemonic: emitted?.mnemonic || mnem,
+      operands: line.operands?.trim() ?? '',
+      comment,
+    });
   }
 
   return result;
@@ -240,12 +129,8 @@ function main(): void {
   // 4. Assemble to binary
   const assembled = assemble(asmProgram.lines);
 
-  // 5. Build listing lines
-  // Build a symbol map from the assembler output for operand resolution
-  const symbolMap = new Map<string, number>(
-    assembled.symbols.map(s => [s.name, s.address]),
-  );
-  const listingLines = buildListingLines(asmProgram.lines, symbolMap);
+  // 5. Build listing lines from what the assembler actually emitted
+  const listingLines = buildListingLines(asmProgram.lines, assembled.lineResults);
 
   // 6. Format listing
   const listingInput: ListingInput = {
