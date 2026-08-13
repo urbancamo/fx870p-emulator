@@ -187,7 +187,11 @@ function findOverlongBranches(
     try {
       encodeInstruction('jr', resolved, lay.addrs[i]!);
     } catch (e) {
-      // Any other encoding failure is reported properly by the emit pass.
+      // ONLY a genuine range failure is a relaxation candidate. Anything else
+      // — most importantly an undefined label, which resolves to NaN and
+      // would otherwise look "out of range" to every numeric comparison — is
+      // left alone here and reported by the emit pass, with its PC and
+      // original operands, as the real error it is.
       if (isImm7RangeError(e)) found.push(i);
     }
   }

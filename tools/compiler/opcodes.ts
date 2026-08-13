@@ -347,7 +347,37 @@ export function isImm7RangeError(e: unknown): e is Imm7RangeError {
          (typeof e === 'object' && e !== null && (e as Imm7RangeError).isImm7RangeError === true);
 }
 
-/** True when `target` is reachable from `base` by a one-byte imm7 offset. */
+/**
+ * Thrown when a branch target never resolved to a number at all — typically an
+ * undefined label, which `resolveOperands` leaves as a bare identifier that
+ * `parseHex` then turns into NaN.
+ *
+ * This MUST be distinct from Imm7RangeError. Every comparison against NaN is
+ * false, so an unresolved target would otherwise look exactly like "too far
+ * away" to `imm7InRange`, and the assembler's relaxation pass would happily
+ * "fix" a typo'd label by emitting `jp cc,&H0000` — a jump into ROM0 — while
+ * the listing claimed the branch had merely been relaxed.
+ */
+export class UnresolvedTargetError extends Error {
+  /** Duck-typing tag, mirroring Imm7RangeError. */
+  readonly isUnresolvedTargetError = true;
+  constructor(readonly target: number) {
+    super('branch target did not resolve to an address (undefined symbol?)');
+    this.name = 'UnresolvedTargetError';
+  }
+}
+
+export function isUnresolvedTargetError(e: unknown): e is UnresolvedTargetError {
+  return e instanceof UnresolvedTargetError ||
+         (typeof e === 'object' && e !== null &&
+          (e as UnresolvedTargetError).isUnresolvedTargetError === true);
+}
+
+/**
+ * True when `target` is reachable from `base` by a one-byte imm7 offset.
+ * Returns false for NaN/Infinity — callers must rule those out first if they
+ * need to tell "unreachable" apart from "not a number" (see encodeImm7).
+ */
 export function imm7InRange(base: number, target: number): boolean {
   const offset = target - base;
   return offset >= IMM7_MIN_OFFSET && offset <= IMM7_MAX_OFFSET;
@@ -363,7 +393,13 @@ export function imm7InRange(base: number, target: number): boolean {
 // too large — the assembler catches that and relaxes the branch to a 3-byte
 // absolute `jp`. Silent wrapping used to emit a valid-looking byte that
 // jumped to a completely wrong address.
+//
+// A target that isn't a number at all raises UnresolvedTargetError instead, so
+// the relaxation pass can never mistake a bad label for a long branch.
 function encodeImm7(base: number, target: number): number {
+  if (!Number.isFinite(target) || !Number.isFinite(base)) {
+    throw new UnresolvedTargetError(target);
+  }
   const signed = target - base;
   if (!imm7InRange(base, target)) throw new Imm7RangeError(base, target, signed);
   if (signed === 0) return 0;
@@ -498,9 +534,13 @@ function tryEncode(
     }
 
     case Kind.JR: {
-      // Unconditional jr &H1234
+      // Unconditional jr &H1234.
+      // 0xB7 is the only Kind.JR entry and `jr` has no register/indirect form,
+      // so a single operand that isn't an immediate can only be an unresolved
+      // label. Let it reach encodeImm7 (rather than bailing out to a vague
+      // "Cannot encode") so it raises the same UnresolvedTargetError the
+      // conditional form does.
       if (parts.length !== 1) return null;
-      if (!isImmediate(parts[0]!)) return null;
       const target = parseHex(parts[0]!);
       bytes.push(index);
       bytes.push(encodeImm7(pc + 1, target));

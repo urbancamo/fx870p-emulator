@@ -1,6 +1,11 @@
 // tools/compiler/tests/assembler.test.ts
 import { describe, it, expect } from 'vitest';
-import { encodeInstruction, Imm7RangeError } from '../opcodes.js';
+import {
+  encodeInstruction,
+  Imm7RangeError,
+  UnresolvedTargetError,
+  isImm7RangeError,
+} from '../opcodes.js';
 import { assemble } from '../assembler.js';
 import type { AsmLine } from '../asm-types.js';
 
@@ -562,6 +567,27 @@ describe('imm7 range checking', () => {
     // to emit 0x50 — a valid-looking *forward* jump of +80.
     expect(() => encodeInstruction('jr', 'nz,&H1D4C', 0x1E1B)).toThrow(/out of range/);
   });
+
+  // An unresolved label reaches parseHex as a bare identifier and becomes NaN.
+  // Every comparison against NaN is false, so `imm7InRange` says "not in
+  // range" — which must NOT be conflated with a genuine long branch, or the
+  // assembler's relaxation pass silently "fixes" a typo by jumping to &H0000.
+  it('reports an unresolved target as its own error, not a range failure', () => {
+    const grab = (fn: () => unknown): unknown => {
+      try { fn(); } catch (e) { return e; }
+      throw new Error('expected a throw');
+    };
+
+    for (const ops of ['nz,NOSUCHLABEL', 'NOSUCHLABEL']) {
+      const err = grab(() => encodeInstruction('jr', ops, 0x1CD0));
+      expect(err).toBeInstanceOf(UnresolvedTargetError);
+      // The property the relaxation oracle depends on:
+      expect(isImm7RangeError(err)).toBe(false);
+      expect((err as Error).message).toMatch(/did not resolve/);
+      // Must not masquerade as a distance problem.
+      expect((err as Error).message).not.toMatch(/out of range/);
+    }
+  });
 });
 
 describe('assembler branch relaxation', () => {
@@ -724,6 +750,41 @@ describe('assembler branch relaxation', () => {
     expect(after(withRelax)).toBe(1 + 200 + 3);   // 3, not 2 — jp is a byte longer
     // The emitted binary length must agree with where AFTER was placed.
     expect(withRelax.binary.length).toBe(after(withRelax) + 1);
+  });
+
+  it('fails loudly on an undefined branch label instead of relaxing it to &H0000', () => {
+    // Regression: `resolveOperands` leaves an unknown symbol as a bare
+    // identifier, `parseHex` makes it NaN, and every numeric comparison
+    // against NaN is false — so an undefined label used to look identical to
+    // "too far away". The relaxation pass then emitted `jp cc,&H0000` (a jump
+    // into ROM0) and the listing claimed `[jr relaxed to jp]`, turning a
+    // typo'd label into a silently mis-routed branch.
+    for (const ops of ['nz,NOSUCHLABEL', 'NOSUCHLABEL']) {
+      const lines: AsmLine[] = [
+        { mnemonic: 'ORG', operands: '&H1CD0' },
+        { mnemonic: 'nop' },
+        { mnemonic: 'jr', operands: ops },
+        { mnemonic: 'rtn' },
+      ];
+      // Names the PC and the offending operand, and says what's actually wrong.
+      expect(() => assemble(lines)).toThrow(/did not resolve to an address/);
+      expect(() => assemble(lines)).toThrow(/NOSUCHLABEL/);
+      // Crucially, it does not pass itself off as a range/relaxation issue.
+      expect(() => assemble(lines)).not.toThrow(/out of range/);
+    }
+  });
+
+  it('still relaxes a real long branch that happens to sit beside a good label', () => {
+    // Guards the fix from over-correcting: adding the NaN check must not make
+    // genuinely-out-of-range branches stop relaxing.
+    const result = assemble([
+      { mnemonic: 'ORG', operands: '&H0000' },
+      { label: 'LOOP', mnemonic: 'nop' },
+      ...fill(200),
+      { mnemonic: 'jr', operands: 'z,LOOP' },
+    ]);
+    expect(result.relaxedBranches).toBe(1);
+    expect(branchSites(result)[0]!.bytes).toEqual([0x30, 0x00, 0x00]);
   });
 
   it('errors clearly on an out-of-range jr suffix, which cannot be relaxed', () => {
