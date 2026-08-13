@@ -167,10 +167,19 @@ describe("Task 4b: the reviewer's FOR repro", () => {
     expect(site.bytes[0]).toBe(0x37);
     expect(site.bytes[1]! | (site.bytes[2]! << 8)).toBe(forTop);
 
+    // Cross-check lineResults against the actual emitted binary — the two
+    // views (metadata vs. bytes) have to agree, and only this assertion
+    // exercises the binary directly. `assembled.binary` is indexed from 0 at
+    // ORG's operand (0x1CD0 here), not from address 0, so site.address (an
+    // absolute address) needs that offset subtracted.
+    const off = site.address - ORIGIN;
+    expect(Array.from(assembled.binary.slice(off, off + 3)))
+      .toEqual([0x37, forTop & 0xFF, (forTop >> 8) & 0xFF]);
+
     // And the corrupt encoding is gone: the pre-Task-4b code wrapped this
     // offset silently instead of relaxing, producing a 2-byte `jr` (0xB7) with
     // a bogus positive offset rather than a 3-byte absolute `jp`.
-    expect(site.bytes[0]).not.toBe(0xB7);
+    expect(Array.from(assembled.binary.slice(off, off + 1))).not.toEqual([0xB7]);
   });
 
   it('completes with S=6', () => {

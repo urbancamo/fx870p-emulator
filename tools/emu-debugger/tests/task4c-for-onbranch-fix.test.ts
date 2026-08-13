@@ -129,24 +129,16 @@ describe('Task 4c: emitOnBranch (ON GOTO / ON GOSUB) uses the correct ROM operan
     expectResult(run, 'VAR_A', 2, 'ON X GOTO 100,200,300 with X=2');
   }, 120_000);
 
-  // FINDING (Task 4c, out of scope for this task's three fix sites):
-  // ON...GOSUB only ever correctly dispatches to its FIRST target.
-  // `emitOnBranch`'s GOSUB branch (codegen.ts:1313-1319, untouched by this
-  // fix per the brief) emits, per target i: `jr nz,<skipLabel>` where
-  // skipLabel is the single shared end-of-statement label — not the next
-  // target's comparison block. So the very first non-match (selector != 1)
-  // branches straight past every remaining target to the end of the ON
-  // statement, silently doing nothing. Confirmed empirically by probing
-  // X=1,2,3 against `ON X GOSUB 100,200,300`: X=1 (first target) correctly
-  // sets VAR_A=1; X=2 and X=3 both leave VAR_A=0 (untouched) — the ON
-  // statement is skipped entirely, no target runs. ON...GOTO does not share
-  // this defect (its `jr z,L<target>` falls through to the next comparison
-  // on a non-match rather than jumping away), which is why the GOTO case
-  // above passes. Fixing this means changing the `jr nz,skipLabel` target to
-  // the next per-target compareLabel — a control-flow change to code the
-  // brief explicitly says to leave untouched ("only the staging above it
-  // changes"), so it is reported here rather than fixed.
-  it.skip('ON X GOSUB selects the 2nd target and returns to fall through to END', () => {
+  it('ON X GOSUB selects the 2nd target and returns to fall through to END', () => {
+    // FIX (Task 4c, follow-up after independent review): emitOnBranch's
+    // GOSUB branch used to emit, per target i, `jr nz,<skipLabel>` where
+    // skipLabel is the single shared end-of-statement label — not the next
+    // target's comparison block. So the very first non-match (selector != 1)
+    // branched straight past every remaining target to the end of the ON
+    // statement, silently doing nothing. Each target now gets its own label
+    // and a non-match falls through to the NEXT target's comparison instead
+    // (codegen.ts's emitOnBranch, `compareLabels`). See the X=1/2/3 sweep
+    // below for full confirmation.
     const source =
       '10 X=2\n20 ON X GOSUB 100,200,300\n30 GOTO 900\n' +
       '100 A=1\n110 RETURN\n' +
@@ -155,5 +147,22 @@ describe('Task 4c: emitOnBranch (ON GOTO / ON GOSUB) uses the correct ROM operan
       '900 END\n';
     const run = compileAndRun(source, 'L900');
     expectResult(run, 'VAR_A', 2, 'ON X GOSUB 100,200,300 with X=2');
+  }, 120_000);
+
+  it('ON X GOSUB dispatches correctly for every target (X=1,2,3 sweep)', () => {
+    // Gut-check matching the reviewer's ON GOTO X=1/2/3/4 sweep: before the
+    // fix above, only X=1 (the first target) worked — X=2 and X=3 left
+    // VAR_A untouched (0) because the first non-match escaped straight to
+    // the end of the ON statement instead of trying the next target.
+    for (const x of [1, 2, 3]) {
+      const source =
+        `10 X=${x}\n20 ON X GOSUB 100,200,300\n30 GOTO 900\n` +
+        '100 A=1\n110 RETURN\n' +
+        '200 A=2\n210 RETURN\n' +
+        '300 A=3\n310 RETURN\n' +
+        '900 END\n';
+      const run = compileAndRun(source, 'L900');
+      expectResult(run, 'VAR_A', x, `ON X GOSUB 100,200,300 with X=${x}`);
+    }
   }, 120_000);
 });

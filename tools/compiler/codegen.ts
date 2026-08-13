@@ -1056,13 +1056,23 @@ class CodeGen {
 
       // Compare: loop again while counter <= limit
       //
-      // NOTE: this compiler has no negative-STEP direction-sensing. STEP
-      // parses fine as a general expression (unary minus works — see
-      // emitUnaryExpr), so `FOR I=10 TO 1 STEP -1` compiles without error,
-      // but this test is unconditionally `<=`, which is only correct for a
-      // positive (or default/omitted) step. A descending loop would need
-      // `>=` chosen at runtime based on step's sign; that's new scope, not
-      // part of this fix (see task-4c brief).
+      // NOTE: this compiler has no negative-STEP direction-sensing — this
+      // test is unconditionally `<=`, which is only correct for a positive
+      // (or default/omitted) step. A descending loop would need `>=` chosen
+      // at runtime based on step's sign; that's new scope, not part of this
+      // fix (see task-4c brief).
+      //
+      // `FOR I=10 TO 1 STEP -1` does parse (STEP takes a general Expression,
+      // and unary minus is a real AST node), but it does NOT compile to a
+      // correctly-negated step: emitUnaryExpr negates via `xr $10,&H80`,
+      // which flips bit 7 of BCD byte 0 — the low mantissa byte — not the
+      // sign. The actual sign lives in byte 8 (register $18) as +5 on the
+      // exponent-high digit (bcd.ts SIGN_OFFSET; read correctly by
+      // emitSignTest's `anc $18,&H04` above). So today, negative STEP is
+      // broken twice over — even a hypothetical `>=`-on-negative-step fix
+      // here would have nothing correct to test against, since the "-1"
+      // constant it would inspect isn't actually negative. Fixing that is
+      // emitUnaryExpr's bug, not this one; not touched here.
       this.emitVariableLoad(loopVar);
       this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push counter[0..7]' });
       this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push counter[8]' });
@@ -1288,9 +1298,21 @@ class CodeGen {
     const selectorRef: VarRef = { name: `_ON_SEL_${this.labelIndex}`, isString: false };
     this.emitVariableStore(selectorRef);
 
+    // Pre-allocate one label per target, marking where that target's own
+    // comparison block begins. For ON GOSUB, a non-matching target must fall
+    // through to the NEXT target's comparison rather than jumping straight to
+    // the shared end-of-statement label — otherwise the very first non-match
+    // abandons every remaining target (see task-4c report §4). ON GOTO
+    // doesn't need these: a non-match there already falls through naturally
+    // to the next target's setup code with no escape jump in between.
+    const compareLabels = stmt.targets.map(() => this.uniqueLabel('ON_CMP'));
+
     for (let i = 0; i < stmt.targets.length; i++) {
       const targetLine = stmt.targets[i].line;
-      const compareLabel = this.uniqueLabel('ON_CMP');
+
+      if (stmt.kind === 'gosub') {
+        this.code.push({ label: compareLabels[i]! });
+      }
 
       // Load selector
       this.emitVariableLoad(selectorRef);
@@ -1311,9 +1333,12 @@ class CodeGen {
       if (stmt.kind === 'goto') {
         this.code.push({ mnemonic: 'jr', operands: `z,L${targetLine}`, comment: `ON GOTO ${targetLine}` });
       } else {
-        // ON GOSUB: jump to a small trampoline that calls and falls through
-        this.code.push({ label: compareLabel });
-        this.code.push({ mnemonic: 'jr', operands: `nz,${skipLabel}` });
+        // ON GOSUB: a non-match falls through to the next target's
+        // comparison block (or, on the last target, to the shared end —
+        // "no match" is a legal, silent no-op, matching ON GOTO's behavior
+        // when the selector is out of range).
+        const nextLabel = i + 1 < stmt.targets.length ? compareLabels[i + 1]! : skipLabel;
+        this.code.push({ mnemonic: 'jr', operands: `nz,${nextLabel}`, comment: `not target ${i + 1} → try next` });
         this.code.push({ mnemonic: 'cal', operands: `L${targetLine}`, comment: `ON GOSUB ${targetLine}` });
         this.code.push({ mnemonic: 'jp', operands: skipLabel });
       }
