@@ -1047,38 +1047,35 @@ class CodeGen {
       this.emitVariableLoad(stepRef);
       this.code.push({ mnemonic: 'pps',  operands: '$27',   comment: 'pop counter[8] → $27' });
       this.code.push({ mnemonic: 'ppsm', operands: '$19,8', comment: 'pop counter[0..7] → $19-$26' });
-      // Swap so left=counter in acc, right=step in temp
-      this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push step[0..7]' });
-      this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push step[8]' });
-      this.code.push({ mnemonic: 'ldm',  operands: '$10,$19,8', comment: 'acc[0..7] = counter' });
-      this.code.push({ mnemonic: 'ld',   operands: '$18,$27',   comment: 'acc[8] = counter[8]' });
-      this.code.push({ mnemonic: 'pps',  operands: '$27',       comment: 'pop step[8] → $27' });
-      this.code.push({ mnemonic: 'ppsm', operands: '$19,8',     comment: 'pop step[0..7] → $19-$26' });
-      this.emitRomCall(ROM.FP_ADD, 'counter + step');
+      this.code.push({ mnemonic: 'ldm',  operands: '$0,$10,8',  comment: 'step[0..7] -> $0-$7' });
+      this.code.push({ mnemonic: 'ld',   operands: '$8,$18',    comment: 'step[8] -> $8' });
+      this.code.push({ mnemonic: 'ldm',  operands: '$10,$19,8', comment: 'counter[0..7] -> $10-$17' });
+      this.code.push({ mnemonic: 'ld',   operands: '$18,$27',   comment: 'counter[8] -> $18' });
+      this.emitRomCallFp(ROM.FP_ADD, 'counter + step');
       this.emitVariableStore(loopVar);
 
-      // Compare: counter - limit
+      // Compare: loop again while counter <= limit
+      //
+      // NOTE: this compiler has no negative-STEP direction-sensing. STEP
+      // parses fine as a general expression (unary minus works — see
+      // emitUnaryExpr), so `FOR I=10 TO 1 STEP -1` compiles without error,
+      // but this test is unconditionally `<=`, which is only correct for a
+      // positive (or default/omitted) step. A descending loop would need
+      // `>=` chosen at runtime based on step's sign; that's new scope, not
+      // part of this fix (see task-4c brief).
       this.emitVariableLoad(loopVar);
       this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push counter[0..7]' });
       this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push counter[8]' });
       this.emitVariableLoad(limitRef);
       this.code.push({ mnemonic: 'pps',  operands: '$27',   comment: 'pop counter[8] → $27' });
       this.code.push({ mnemonic: 'ppsm', operands: '$19,8', comment: 'pop counter[0..7] → $19-$26' });
-      // Swap so left=counter in acc, right=limit in temp
-      this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push limit[0..7]' });
-      this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push limit[8]' });
-      this.code.push({ mnemonic: 'ldm',  operands: '$10,$19,8', comment: 'acc[0..7] = counter' });
-      this.code.push({ mnemonic: 'ld',   operands: '$18,$27',   comment: 'acc[8] = counter[8]' });
-      this.code.push({ mnemonic: 'pps',  operands: '$27',       comment: 'pop limit[8] → $27' });
-      this.code.push({ mnemonic: 'ppsm', operands: '$19,8',     comment: 'pop limit[0..7] → $19-$26' });
-      this.emitRomCall(ROM.FP_SUB, 'counter - limit');
-
-      // If counter <= limit, loop back (jump if not positive)
-      this.code.push({
-        mnemonic: 'jr',
-        operands: `nz,${loop.topLabel}`,
-        comment: 'loop if counter <= limit',
-      });
+      this.code.push({ mnemonic: 'ldm',  operands: '$0,$10,8',  comment: 'limit[0..7] -> $0-$7' });
+      this.code.push({ mnemonic: 'ld',   operands: '$8,$18',    comment: 'limit[8] -> $8' });
+      this.code.push({ mnemonic: 'ldm',  operands: '$10,$19,8', comment: 'counter[0..7] -> $10-$17' });
+      this.code.push({ mnemonic: 'ld',   operands: '$18,$27',   comment: 'counter[8] -> $18' });
+      this.emitRomCallFp(ROM.FP_SUB, 'counter - limit');
+      this.emitComparisonBranch('<=', loop.endLabel);
+      this.code.push({ mnemonic: 'jr', operands: loop.topLabel, comment: 'loop back (counter <= limit)' });
 
       // End label
       this.code.push({ label: loop.endLabel, comment: `ENDFOR ${varName}` });
@@ -1297,22 +1294,18 @@ class CodeGen {
 
       // Load selector
       this.emitVariableLoad(selectorRef);
-      // Push selector
       this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: `push selector[0..7]` });
       this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push selector[8]' });
       // Load comparison value (i+1)
       this.emitNumberLiteral(i + 1);
-      // Pop selector to temp
+      // Pop selector to $19-$27
       this.code.push({ mnemonic: 'pps',  operands: '$27',   comment: 'pop selector[8] → $27' });
       this.code.push({ mnemonic: 'ppsm', operands: '$19,8', comment: 'pop selector[0..7] → $19-$26' });
-      // Swap so acc=selector, temp=(i+1), then subtract
-      this.code.push({ mnemonic: 'phsm', operands: '$17,8',     comment: 'push (i+1)[0..7]' });
-      this.code.push({ mnemonic: 'phs',  operands: '$18',        comment: 'push (i+1)[8]' });
-      this.code.push({ mnemonic: 'ldm',  operands: '$10,$19,8',  comment: 'acc[0..7] = selector' });
-      this.code.push({ mnemonic: 'ld',   operands: '$18,$27',    comment: 'acc[8] = selector[8]' });
-      this.code.push({ mnemonic: 'pps',  operands: '$27',        comment: 'pop (i+1)[8] → $27' });
-      this.code.push({ mnemonic: 'ppsm', operands: '$19,8',      comment: 'pop (i+1)[0..7] → $19-$26' });
-      this.emitRomCall(ROM.FP_SUB, `selector - ${i + 1}`);
+      this.code.push({ mnemonic: 'ldm',  operands: '$0,$10,8',  comment: '(i+1)[0..7] -> $0-$7' });
+      this.code.push({ mnemonic: 'ld',   operands: '$8,$18',    comment: '(i+1)[8] -> $8' });
+      this.code.push({ mnemonic: 'ldm',  operands: '$10,$19,8', comment: 'selector[0..7] -> $10-$17' });
+      this.code.push({ mnemonic: 'ld',   operands: '$18,$27',   comment: 'selector[8] -> $18' });
+      this.emitRomCallFp(ROM.FP_SUB, `selector - ${i + 1}`);
 
       // Jump to target if zero (selector == i+1)
       if (stmt.kind === 'goto') {

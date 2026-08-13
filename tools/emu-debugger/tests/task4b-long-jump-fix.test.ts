@@ -140,31 +140,17 @@ describe("Task 4b: the reviewer's FOR repro", () => {
   // true distance of -208, which wrapped to +80 and sent the CPU into the
   // middle of an instruction (exit `illegal` at PC=0x1E40).
   //
-  // That branch is now correct — asserted below — but the program still does
-  // not finish with S=6, because `emitNext` has two further defects that have
-  // nothing to do with branch range. Both were verified by temporarily
-  // patching codegen.ts and re-running this file:
-  //
-  //   1. codegen.ts:1057,1074 call `emitRomCall` for FP_ADD/FP_SUB instead of
-  //      `emitRomCallFp`, and never stage the right-hand operand into $0-$8.
-  //      `emitRomCallFp`'s own comment (codegen.ts:779-789) spells out why
-  //      that is fatal: `ldw $2,<addr>` clobbers $2-$3 and the ROM_CALL
-  //      wrapper's `ldw $0,&H5323` clobbers $0-$1, i.e. the operand. Task 2b
-  //      fixed this convention in emitBinaryExpr/emitCondition but not in
-  //      emitFor/emitNext. Symptom: runs away into ROM, 21952 instructions,
-  //      exit `returned` at 0x2D40 with garbage in VAR_S.
-  //   2. With (1) patched the loop runs cleanly (670 instructions) but ends
-  //      one iteration early — S=3 rather than 6 — because the exit test at
-  //      codegen.ts:1077 is a bare `jr nz,<top>` ("counter <> limit") where
-  //      BASIC needs "counter <= limit", i.e. the `<=` classification
-  //      `emitComparisonBranch` already implements.
-  //
-  // Fixing either is a codegen change, explicitly out of scope for this task
-  // (which is assembler-only). This is left as a byte-level assertion plus a
-  // skipped end-to-end case so the follow-up is not lost.
+  // That branch is now correct — asserted below. The program used to still
+  // not finish with S=6 because `emitNext` had two further defects that had
+  // nothing to do with branch range: it staged operands using the old
+  // pre-Task-2b convention and called plain `emitRomCall` instead of
+  // `emitRomCallFp` (clobbering the operand), and its loop-continuation test
+  // was a bare `jr nz,<top>` ("counter <> limit") instead of "counter <=
+  // limit". Both were fixed in Task 4c (see codegen.ts's emitNext), which is
+  // why the end-to-end case below now runs for real instead of being skipped.
   const REPRO = '10 S=0\n20 FOR I=1 TO 3\n30 S=S+I\n40 NEXT I\n50 END\n';
 
-  it("relaxes NEXT's over-long back-edge to a jp cc aimed at the loop top", () => {
+  it("relaxes NEXT's over-long back-edge to a jp aimed at the loop top", () => {
     const assembled = assemble(generate(parse(REPRO)).lines);
     const forTop = assembled.symbols.find(s => s.name === 'FOR_I_1')!.address;
 
@@ -172,17 +158,22 @@ describe("Task 4b: the reviewer's FOR repro", () => {
     expect(relaxed).toHaveLength(1);
     const site = relaxed[0]!;
 
-    // `jr nz` was 0xB4; `jp nz` is 0x34 — same cc bits, absolute target.
-    expect(site.bytes[0]).toBe(0x34);
-    expect(site.bytes[0]! & 7).toBe(0xB4 & 7);
+    // Task 4c restructured NEXT's tail to end in emitComparisonBranch('<=', ...)
+    // followed by an unconditional `jr,<top>` back-edge (codegen.ts:1078) —
+    // the `<=` classification itself is a short forward jump that never needs
+    // relaxing, so the over-long branch this test exercises is now that
+    // unconditional back-edge. Unconditional `jr` is opcode 0xB7; its relaxed
+    // absolute form is unconditional `jp`, opcode 0x37.
+    expect(site.bytes[0]).toBe(0x37);
     expect(site.bytes[1]! | (site.bytes[2]! << 8)).toBe(forTop);
 
-    // And the corrupt encoding is gone: the old code emitted 0xB4 0x50 here.
-    expect(Array.from(assembled.binary.slice(site.address, site.address + 2)))
-      .not.toEqual([0xB4, 0x50]);
+    // And the corrupt encoding is gone: the pre-Task-4b code wrapped this
+    // offset silently instead of relaxing, producing a 2-byte `jr` (0xB7) with
+    // a bogus positive offset rather than a 3-byte absolute `jp`.
+    expect(site.bytes[0]).not.toBe(0xB7);
   });
 
-  it.skip('completes with S=6 — blocked on the two emitNext defects above', () => {
+  it('completes with S=6', () => {
     const run = compileAndRun(REPRO, 'L50');
     expectResult(run, 'VAR_S', 6, 'FOR I=1 TO 3: S=S+I');
   }, 120_000);
