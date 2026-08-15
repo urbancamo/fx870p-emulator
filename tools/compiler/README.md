@@ -64,13 +64,20 @@ Example:
 
 ```
 HD61700 Cross Assembler - FX-870P BASIC Compiler                                                                              Page 1
-Source: hello.bas  Date: 2026-08-11 23:47  Size: 130 bytes
+Source: hello.bas  Date: 2026-08-15 06:49  Size: 144 bytes
 
 Addr  Hex Code         Label        Assembly                         Comment
 ----- ---------------- ------------ -------------------------------- ---------------------------------------------------------------
+                                                                     prologue: disable interrupts (see MODE110, rom1a.src:5306)
+1CD0  57 20 00                      pst ie,&H00                      ; IE=0: bank-switch pipeline is not interrupt-safe
+                                                                     prologue: force OUTDV=0 (LCD)
+1CD3  D1 02 39 17                   ldw $2,&H1739                    ; OUTDV addr
+1CD7  96 02                         pre ix,$2
+1CD9  42 00 00                      ld $0,&H00                       ; LCD device code
+1CDC  64 00 00                      std $0,(ix+&H00)                 ; write OUTDV
                                                                      ; === BASIC Line 10: 10 CLS ===
-1CDC  D1 02 DF 2A                   ldw $2,&H2ADF                    ; CLS
-1CE0  77 33 1D                      cal ROM_CALL
+1CDF  D1 02 DF 2A                   ldw $2,&H2ADF                    ; CLS
+1CE3  77 36 1D                      cal ROM_CALL
 ```
 
 Addresses start at `&H1CD0` (see "Memory Layout" below), not `&H0000` — every compiled program is `ORG`'d there.
@@ -133,16 +140,26 @@ BASIC source
 
 The compiler does **not** reimplement the BASIC runtime. Instead, generated code calls into the FX-870P's ROM for all high-level operations: PRINT, INPUT, floating-point arithmetic, string handling, etc. This follows the same pattern used by CosmicV4 (a machine language game for the VX-4).
 
-The ROM call wrapper at the end of every compiled program:
+Numeric values (constants, variables, and all arithmetic results) use the ROM's own 9-byte BCD floating-point format — see `bcd.ts` for the encoding (13 significant digits, biased exponent, sign folded into the exponent's hundreds digit) and the design spec at
+`docs/superpowers/specs/2026-08-12-compiler-bcd-arithmetic-design.md`. `+`, `-`, `*`, `/`, `MOD`, and all six comparison operators are implemented by calling the ROM's real floating-point routines — no arithmetic is reimplemented in the compiler itself.
+
+Every compiled program's first instruction disables interrupts (`PST IE,&H00`) for the program's whole run, matching what the ROM itself does when BASIC launches machine code via `MODE110`. This isn't an optimisation — every ROM call relies on a one-instruction bank-switch pipeline delay that an interrupt landing at the wrong moment can corrupt (see the comment in `codegen.ts`'s `generate()` for the full mechanism). `IE` is deliberately not restored at the end; `MODE110`'s own return path does that.
+
+Two ROM call wrappers exist, both emitted at the end of every compiled program:
 
 ```asm
-ROM_CALL:    LDW  $0,&H5323      ; BIOS2 return context
-             PHSW $1              ; push return address
-             PST  UA,&H54        ; bank switch to Bank0
-             JP   $2              ; jump to ROM routine
+ROM_CALL:     LDW  $0,&H5323      ; BIOS2 return context
+              PHSW $1              ; push return address
+              PST  UA,&H54        ; bank switch to Bank0
+              JP   $2              ; jump to ROM routine
+
+ROM_CALL_FP:  LDW  $28,&H5323     ; BIOS2 return context (FP-safe: avoids $0-$8)
+              PHSW $29             ; push return address
+              PST  UA,&H54        ; bank switch to Bank0
+              JP   $19             ; jump to ROM routine
 ```
 
-To call a ROM routine, the compiler loads its address into `$2` and jumps to `ROM_CALL`.
+Most ROM calls (PRINT, CLS, BEEP, etc.) go through `ROM_CALL`: load the routine's address into `$2` and jump to it. Calls that carry a floating-point right-hand operand (arithmetic, comparisons, MOD) go through `ROM_CALL_FP` instead — `ROM_CALL`'s own preamble would clobber registers `$0-$3`, which is exactly where the ROM's FP routines expect that operand to be staged (left operand in `$10-$18`, right operand in `$0-$8`).
 
 ## Memory Layout
 
@@ -209,7 +226,12 @@ Test fixtures in `tools/compiler/tests/fixtures/` cover arithmetic, strings, con
 
 ## Known Limitations
 
-- **BCD constants**: Numeric constants use simplified integer loads, not full 9-byte BCD encoding. This means floating-point literals like `3.14` won't load correctly yet.
-- **ROM addresses**: Many builtin function addresses (SIN, COS, TAN, etc.) are placeholders (`&H0000`). These need to be mapped from the ROM annotations in `reference/fx870p-rom-annotations.md`.
+BCD constants and arithmetic — `+`, `-`, `*`, `/`, `MOD`, and all six comparisons, plus `DATA` values and `IF`/`WHILE`/`FOR` conditions — are fully implemented and empirically verified against the real ROM (see `bcd.ts`, `tools/emu-debugger/tests/arithmetic-bcd.test.ts`, and `public/basic/emulator/PRIMES.BAS`, which compiles and correctly finds the 100th prime). Remaining known gaps:
+
+- **Unary minus is broken**: `-X` XORs a mantissa bit instead of setting the BCD sign (which lives in a different byte — see `bcd.ts`'s `SIGN_OFFSET`). `A=-5` silently produces a wrong positive value, not `-5`. `0-X` (binary subtraction) is unaffected and works correctly.
+- **`INPUT` doesn't work from compiled code**: its ROM address is the BASIC interpreter's own `INPUT` *command* handler, which parses source text and isn't callable from machine code — the same class of bug `PRINT` had until it was fixed to use the ROM's internal numeric-formatting routines instead. Not yet fixed for `INPUT`; see the comment on `ROM.INPUT` in `codegen.ts`.
+- **`FOR` loops always execute their body at least once**, even when the initial value already fails the end condition (e.g. `FOR I=5 TO 1` should run zero times). The loop-continuation test only runs after the first pass; there's no upfront guard.
+- **Integer division (`\`)** isn't wired up — only `MOD` is, which happens to need the same underlying ROM entry point's setup.
+- **ROM addresses**: Many builtin function addresses (SIN, COS, TAN, SQR, INT, etc.) are placeholders (`&H0000`). These need to be mapped from the ROM annotations in `reference/fx870p-rom-annotations.md`.
 - **Addressing modes**: Some complex programs may hit remaining edge cases where the code generator emits instruction forms that the assembler can't encode.
 - **No optimisation**: The compiler emits straightforward code with no peephole optimisation or register allocation beyond the fixed convention.
