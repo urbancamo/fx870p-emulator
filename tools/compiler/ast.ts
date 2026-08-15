@@ -101,6 +101,14 @@ export type Expression =
   | FnCallExpr
   | ArrayAccessExpr;
 
+// hasDecimalPoint: true iff the source literal's raw text contained a '.'
+// (e.g. "5.0"), independent of `value` — 5.0 and 5 both parse to value: 5
+// but must stay distinguishable for type-inference.ts's eligibility rule,
+// which is syntactic, not semantic. NOTE: `tools/` is not covered by any
+// tsconfig `include` (see tsconfig.app.json/tsconfig.node.json), so this
+// field is NOT enforced by the type-checker outside an editor's ad-hoc
+// TS server — a future NumberLiteral construction site that omits it will
+// silently read as `undefined` (falsy) at runtime rather than fail a build.
 export interface NumberLiteral { type: 'number'; value: number; hasDecimalPoint: boolean }
 export interface StringLiteral { type: 'string'; value: string }
 export interface HexLiteral { type: 'hex-literal'; value: number }

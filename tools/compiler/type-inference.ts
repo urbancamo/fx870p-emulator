@@ -28,7 +28,11 @@ export function inferIntegerEligibility(program: Program): Set<string> {
       everAssigned.add(expr.ref.name);
       return true;
     }
-    if (expr.type === 'binary' && ['+', '-', '*', 'mod', '/'].includes(expr.op)) {
+    if (expr.type === 'binary' && ['+', '-', '*', 'mod'].includes(expr.op)) {
+      // '/' is deliberately excluded: +/-/*/MOD are integer-closed (both
+      // operands integer implies an integer result), but division is not
+      // (5/2 = 2.5). A variable assigned only from A/B is therefore never
+      // provably whole from its syntax alone, even when A and B both are.
       return isIntegerExpr(expr.left) && isIntegerExpr(expr.right);
     }
     return false;
@@ -104,44 +108,47 @@ export function inferIntegerEligibility(program: Program): Set<string> {
   // order-independent, since BASIC line numbers don't imply evaluation
   // order for a variable referenced before its own later disqualifying
   // assignment, e.g. inside a GOSUB target that appears after its callers).
-  let changed = true;
-  while (changed) {
-    changed = false;
-    function exprTouchesIneligible(expr: Expression): boolean {
-      if (expr.type === 'variable' && !expr.ref.isString) {
-        return expr.ref.indices !== undefined || ineligible.has(expr.ref.name);
-      }
-      if (expr.type === 'binary') return exprTouchesIneligible(expr.left) || exprTouchesIneligible(expr.right);
-      return false;
+  //
+  // Convergence is driven by ineligible.size growth rather than a
+  // manually-set "changed" flag: ineligible only ever grows and Set.add is
+  // idempotent, so checking size before/after each sweep guarantees
+  // termination even if an individual branch below forgets to gate its
+  // ineligible.add() call behind an "is this actually new" check — that
+  // exact omission (an unconditional add on every sweep in the `for`
+  // branch) previously caused an infinite loop for programs like
+  // `FOR I=1 TO N` where N is bcd-only.
+  function exprTouchesIneligible(expr: Expression): boolean {
+    if (expr.type === 'variable' && !expr.ref.isString) {
+      return expr.ref.indices !== undefined || ineligible.has(expr.ref.name);
     }
-    function recheckAssignment(name: string, expr: Expression): void {
-      if (!ineligible.has(name) && exprTouchesIneligible(expr)) {
-        ineligible.add(name);
-        changed = true;
-      }
-    }
-    function recheckStatement(stmt: Statement): void {
-      switch (stmt.type) {
-        case 'let':
-          if (!stmt.variable.isString && !stmt.variable.indices) {
-            recheckAssignment(stmt.variable.name, stmt.expr);
-          }
-          break;
-        case 'for':
-          if (!stmt.variable.isString && !stmt.variable.indices) {
-            recheckAssignment(stmt.variable.name, stmt.from);
-            if (exprTouchesIneligible(stmt.to)) { ineligible.add(stmt.variable.name); changed = true; }
-            if (stmt.step && exprTouchesIneligible(stmt.step)) { ineligible.add(stmt.variable.name); changed = true; }
-          }
-          break;
-        case 'if':
-          for (const s of stmt.thenBranch) recheckStatement(s);
-          if (stmt.elseBranch) for (const s of stmt.elseBranch) recheckStatement(s);
-          break;
-      }
-    }
-    for (const [, stmts] of program.lines) for (const stmt of stmts) recheckStatement(stmt);
+    if (expr.type === 'binary') return exprTouchesIneligible(expr.left) || exprTouchesIneligible(expr.right);
+    return false;
   }
+  function recheckStatement(stmt: Statement): void {
+    switch (stmt.type) {
+      case 'let':
+        if (!stmt.variable.isString && !stmt.variable.indices) {
+          if (exprTouchesIneligible(stmt.expr)) ineligible.add(stmt.variable.name);
+        }
+        break;
+      case 'for':
+        if (!stmt.variable.isString && !stmt.variable.indices) {
+          if (exprTouchesIneligible(stmt.from)) ineligible.add(stmt.variable.name);
+          if (exprTouchesIneligible(stmt.to)) ineligible.add(stmt.variable.name);
+          if (stmt.step && exprTouchesIneligible(stmt.step)) ineligible.add(stmt.variable.name);
+        }
+        break;
+      case 'if':
+        for (const s of stmt.thenBranch) recheckStatement(s);
+        if (stmt.elseBranch) for (const s of stmt.elseBranch) recheckStatement(s);
+        break;
+    }
+  }
+  let sizeBefore: number;
+  do {
+    sizeBefore = ineligible.size;
+    for (const [, stmts] of program.lines) for (const stmt of stmts) recheckStatement(stmt);
+  } while (ineligible.size !== sizeBefore);
 
   const eligible = new Set<string>();
   for (const name of everAssigned) if (!ineligible.has(name)) eligible.add(name);
