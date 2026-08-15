@@ -165,8 +165,16 @@ describe('codegen - expressions', () => {
   });
 
   it('generates PRINT with expression', () => {
+    // Numeric PRINT is the ROM's own two-step numeric-item sequence
+    // (rom1a.src:3F63/3F66): &H131F formats the FP value in $10-$18 into a
+    // string ($15,$16 = pointer, $17 = length), &H97D5 displays it.
+    // It must NOT call &H3EF1 — that is the BASIC PRINT *statement* handler,
+    // which parses source text from IZ and ends in SN Error when reached from
+    // compiled code.
     const asm = mnemonics('10 PRINT 42');
-    expect(asm.some(l => l.includes('&H3EF1'))).toBe(true);
+    expect(asm.some(l => l.includes('&H131F'))).toBe(true);
+    expect(asm.some(l => l.includes('&H97D5'))).toBe(true);
+    expect(asm.some(l => l.includes('&H3EF1'))).toBe(false);
   });
 
   it('generates INPUT', () => {

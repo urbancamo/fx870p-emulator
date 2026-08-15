@@ -25,7 +25,14 @@ const ROM = {
   FP_MUL:    '&H0607',
   FP_DIV:    '&H0646',
   MOD:       '&H105F',
-  PRINT:     '&H3EF1',
+  // Numeric output is a two-step ROM sequence, not a single "print a number"
+  // entry point. &H3EF1 (used here before) is the BASIC *PRINT statement*
+  // handler: it parses BASIC source text from IZ, so calling it from compiled
+  // code walks off into the interpreter and ends at &H2B70 (SN Error).
+  // The routine pair below is what &H3EF1 itself uses for a numeric item
+  // (rom1a.src:3F53-3F66).
+  FMT_NUM:   '&H131F',  // format the FP value in $10-$18 -> string; returns $15,$16 = ptr, $17 = length (rom1a.src:131F, ends 143B-1440)
+  PRLB1:     '&H97D5',  // display the string of length $17 pointed to by $15,$16 (rom1a.src:97D5)
   INPUT:     '&H3DEE',
   OUTCR:     '&H2AE8',
   OUTCH:     '&H2AF1',
@@ -121,6 +128,37 @@ class CodeGen {
     // Origin 0x1CD0 — Bank1 area that's reachable via BASIC POKE/MODE110,
     // same address used by CosmicV4. BASIC POKE can't reach Bank1 0x0000.
     this.code.push({ mnemonic: 'ORG', operands: '&H1CD0' });
+
+    // 1a. Prologue: disable interrupts for the whole program.
+    //
+    // This is NOT an optimisation — it is required for correctness, and it is
+    // exactly what the ROM itself does when BASIC launches a machine-code
+    // routine via MODE110 (rom1a.src:5306 `pst ie,$31`, i.e. IE := 0, with
+    // rom1a.src:5318 `pst ie,$0` restoring it on return).
+    //
+    // Why: every bank switch relies on the HD61700's one-instruction UA
+    // pipeline delay. `pst ua,X` does not affect the fetch of the *next*
+    // instruction (fetchOpcode in src/emulator/def.ts uses `delayed_ua`), only
+    // the one after it. Both our ROM_CALL wrapper (`pst UA,&H54` / `jp $2`)
+    // and the ROM's own return trampoline (rom1a.src:5324 `pst ua,&H55` /
+    // 5327 `rtn`) depend on that. Taking an interrupt on the shadowed
+    // instruction destroys the pipeline state: cpuRun()'s interrupt dispatch
+    // does not preserve `delayed_ua`, and fetchOpcode overwrites it with the
+    // *new* UA on the very first ISR fetch, so after `rtni` the shadowed
+    // instruction is re-fetched from the wrong bank and the CPU executes
+    // whatever bytes happen to live at that address in the other bank.
+    //
+    // Note `pst ie,&H00` also clears any already-latched interrupt requests:
+    // r8Write case 5 in src/emulator/exec.ts does `setIb(ib & ((v >> 3) |
+    // 0xE0))` and `setIserv(iserv & (v >> 3))`, so nothing can be pending.
+    //
+    // IE is deliberately NOT restored here: on the real entry path MODE110's
+    // own return dispatcher (Bank0:&H5313) restores the caller's IE, and
+    // re-enabling it ourselves would have to happen either side of the final
+    // `pst ua,&H54` / `rtn` bank switch — i.e. inside the very window this
+    // disable exists to protect.
+    this.code.push({ comment: 'prologue: disable interrupts (see MODE110, rom1a.src:5306)' });
+    this.code.push({ mnemonic: 'pst', operands: 'ie,&H00', comment: 'IE=0: bank-switch pipeline is not interrupt-safe' });
 
     // 1b. Prologue: force OUTDV=0 (LCD). The loader's OPEN "COM0:.." leaves
     // OUTDV=8 (comm device), so PRINT routines would route to COM0 instead
@@ -862,10 +900,17 @@ class CodeGen {
           const strInfo = this.allocString(item.value.value);
           this.emitPrintStringLoop(strInfo.label, item.value.value);
         } else {
-          // Evaluate expression into FP accumulator
+          // Evaluate expression into the FP accumulator ($10-$18), then run
+          // the ROM's own numeric-item output pair: format to a string in
+          // WORK1, then display it. Mirrors rom1a.src:3F53/3F63/3F66 minus the
+          // interpreter-only bookkeeping (&H1088 expression eval, &H22A4
+          // last-answer store) that compiled code has no use for.
+          // $15-$17 (the pointer/length handed from one call to the other) are
+          // untouched by emitRomCall's `ldw $2,...` and by the ROM_CALL
+          // wrapper, which only writes $0/$1.
           this.emitExpression(item.value);
-          // Call PRINT ROM handler (&H3EF1) for numeric values
-          this.emitRomCall(ROM.PRINT, 'PRINT value');
+          this.emitRomCall(ROM.FMT_NUM, 'format FP value -> string ($15,$16 ptr, $17 len)');
+          this.emitRomCall(ROM.PRLB1, 'display the formatted string');
         }
         trailingSep = false;
       } else if (item.type === 'separator') {
@@ -966,13 +1011,12 @@ class CodeGen {
   private emitInput(stmt: InputStatement): void {
     // Display prompt if present
     if (stmt.prompt) {
+      // Use the same proven OUTCH character loop PRINT uses for string
+      // literals. (This previously loaded the string address into $10 and
+      // called &H3EF1 — the BASIC PRINT *statement* handler, which parses
+      // source text from IZ and ignores $10 entirely.)
       const strInfo = this.allocString(stmt.prompt);
-      this.code.push({
-        mnemonic: 'ldw',
-        operands: `$10,${strInfo.label}`,
-        comment: `INPUT prompt: "${stmt.prompt}"`,
-      });
-      this.emitRomCall(ROM.PRINT, 'display prompt');
+      this.emitPrintStringLoop(strInfo.label, stmt.prompt);
     }
 
     // Call INPUT for each variable

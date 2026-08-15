@@ -31,8 +31,17 @@ describe('hello.bas at 0x1CD0', () => {
     setDelayedUa(0x55);
     sess.setEntry(0x1CD0);
 
-    // Break just before the blocking wait-for-key ROM call at 0x1D28.
-    sess.addBreakpoint(0x1D28);
+    // Break just before the blocking wait-for-key ROM call. Derive the
+    // address from the symbol table rather than hardcoding it: the pause
+    // sequence emitPauseAtEnd() emits is `L_PRSD<n>: ldw $2,&H03A4 / cal
+    // ROM_CALL`, and the last L_PRSD label in the program is its done-label.
+    // (Hardcoding it meant a 3-byte prologue change silently turned this into
+    // a run-to-max-cycles test.)
+    const waitKey = Math.max(
+      ...assembled.symbols.filter(s => s.name.startsWith('L_PRSD')).map(s => s.address),
+    );
+    expect(Number.isFinite(waitKey)).toBe(true);
+    sess.addBreakpoint(waitKey);
 
     const result = sess.run({ maxCycles: 20_000_000 });
 
