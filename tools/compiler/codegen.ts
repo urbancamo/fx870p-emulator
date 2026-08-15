@@ -198,6 +198,9 @@ class CodeGen {
     // 3. ROM_CALL wrapper
     this.emitRomCallWrapper();
 
+    // 3a. Integer fast-path helpers (BCD <-> int16)
+    this.emitIntFastPathWrapper();
+
     // 4. DATA table — collected DATA values emitted as DB/DW directives
     if (program.dataValues.length > 0) {
       this.code.push({ comment: 'DATA table' });
@@ -891,6 +894,248 @@ class CodeGen {
       mnemonic: 'jp',
       operands: '$19',
       comment: 'jump to ROM routine',
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Integer fast path — shared BCD <-> int16 conversion subroutines
+  //
+  // These two routines are the foundation of the native-integer fast path:
+  // everything downstream of them (native adw/sbw arithmetic, comparisons,
+  // FOR/NEXT stepping) works on a plain signed 16-bit value rather than on the
+  // ROM's 9-byte BCD floating-point format.
+  //
+  // ── Calling convention ───────────────────────────────────────────────────
+  //
+  //   BCD_TO_INT16   in : $10-$18  9-byte BCD value (the usual accumulator)
+  //                  out: $0/$1    signed int16, little-endian ($0 = low byte)
+  //                       $9       0 = converted exactly, 1 = NOT convertible
+  //                  $10-$18 are NOT modified (the caller still needs them to
+  //                  fall back to the BCD path), and neither is anything above
+  //                  $9. Clobbers $0-$9 and the flags.
+  //
+  //   INT16_TO_BCD   in : $0/$1    signed int16
+  //                  out: $10-$18  9-byte BCD encoding of that value
+  //                  Clobbers $0-$9 and the flags; $19-$31 are untouched.
+  //
+  // `$9 = 1` from BCD_TO_INT16 means "this value is not an integer in
+  // -32768..32767" and the caller MUST take the BCD path. It fires for a value
+  // whose magnitude is >= 32768 (or > 32768 when negative), for |v| < 1 and
+  // non-zero, and for any value with a non-zero digit past the decimal point —
+  // so a type-inference bug that mis-classifies a variable degrades to "slow
+  // but correct", never to a wrong answer. Callers must test it: nothing else
+  // in the sequence detects an operand that never fitted in 16 bits to begin
+  // with (the post-arithmetic carry check only sees the *result* overflow).
+  //
+  // ── Register choice ──────────────────────────────────────────────────────
+  //
+  // Both routines confine themselves to $0-$9. That window is safe here for
+  // the same reason emitRomCallFp's $19/$20 + $28/$29 choice is safe -- it is
+  // dead at the point of use, and provably not one of the registers the ROM
+  // or the rest of this compiler needs preserved:
+  //
+  //   * $30/$31 are ROM globals ($31 = 0, $30 = 1, with SX -> $31 and
+  //     SY -> $30) read by the FP routines, both interrupt service routines,
+  //     and this compiler's own `psr sx,31` addressing. Never touched here.
+  //   * $19-$27 hold the pushed-back left operand of a binary expression, and
+  //     $19/$20 + $28/$29 are emitRomCallFp's own wrapper registers. All are
+  //     left alone, so a fast path that has to bail out can still stage its
+  //     operands for a ROM_CALL_FP exactly as the BCD path does.
+  //   * $10-$18 are the FP accumulator. BCD_TO_INT16 only reads them (it works
+  //     on a 3-register copy in $6-$8), which is what makes the BCD fallback
+  //     possible after a decode.
+  //   * $0-$8 are the *second* FP operand window, but only from the moment a
+  //     call site stages them until the ROM call itself. A conversion never
+  //     spans that window: either the fast path completes natively, or it
+  //     bails out and stages $0-$8 afterwards from the untouched BCD copies.
+  //
+  // Every instruction below was checked against its handler in
+  // src/emulator/exec.ts rather than inferred from the mnemonic; the
+  // non-obvious ones are cited at the point of use.
+  // -------------------------------------------------------------------------
+
+  private emitIntFastPathWrapper(): void {
+    this.emitBcdToInt16Routine();
+    this.emitInt16ToBcdRoutine();
+  }
+
+  // BCD ($10-$18) -> signed int16 ($0/$1), status in $9.
+  //
+  // For an integer-valued BCD number the biased exponent gives the integer
+  // digit count directly: `n = biasedExponent - 100 + 1` (see bcd.ts), so with
+  // bytes[8]'s sign marker stripped the value is an int16 candidate only when
+  // bytes[8] == 1 and bytes[7] <= 4 (i.e. biased exponent 100..104, 1..5
+  // integer digits). The digits themselves are then accumulated left to right,
+  // `acc = acc*10 + digit`, straight out of the mantissa nibbles.
+  private emitBcdToInt16Routine(): void {
+    const push = (mnemonic: string, operands: string, comment?: string, label?: string): void => {
+      this.code.push({ label, mnemonic, operands, comment });
+    };
+
+    this.code.push({ comment: 'BCD_TO_INT16: $10-$18 (BCD) -> $0/$1 (int16), $9 = 0 ok / 1 not an int16' });
+    this.code.push({
+      label: 'BCD_TO_INT16',
+      mnemonic: 'ld', operands: '$2,$17',
+      comment: 'bytes[7] = low two digits of the biased exponent',
+    });
+    push('or',  '$2,$18',  'Z_bit set when (bytes[7] | bytes[8]) != 0');
+    // setFlagsB (exec.ts) sets Z_bit when the result is NON-zero, so `jr z` is
+    // "branch if the result was zero" — inverted from a conventional CPU.
+    push('jr',  'z,B2I_ZERO', 'both exponent bytes zero -> the value is exactly 0');
+    push('ld',  '$4,&H00', '$4 = sign flag (0 = positive)');
+    push('ld',  '$2,$18');
+    // adSb_08: `sbc` compares without writing back, and sets C when the
+    // subtraction borrowed ((y >>> 0) > 0xFF for a negative result).
+    push('sbc', '$2,&H05', 'C (borrow) when bytes[8] < 5, i.e. positive');
+    push('jr',  'c,B2I_EXP');
+    push('sb',  '$2,&H05', 'strip the negative marker bcd.ts folds into bytes[8]');
+    push('ld',  '$4,&H01', 'negative');
+    push('sbc', '$2,&H01', 'hundreds digit of the biased exponent must be exactly 1', 'B2I_EXP');
+    push('jr',  'nz,B2I_FAIL', '0 -> |v| < 1; > 1 -> far past int16 range');
+    push('sbc', '$17,&H05', 'and the low two digits must be 00..04 (1..5 integer digits)');
+    push('jr',  'nc,B2I_FAIL', 'no borrow -> bytes[7] >= 5 -> more than 5 digits');
+    push('ld',  '$5,$17');
+    push('ad',  '$5,&H01', '$5 = n = integer digit count (1..5)');
+    // d1..d6 live in the top three mantissa bytes: bytes[6] low nibble is d1,
+    // then alternating high/low nibbles down through bytes[4]. Copying them
+    // keeps the caller's accumulator intact for the BCD fallback.
+    push('ldm', '$6,$14,3', 'working copy of bytes[4],[5],[6]');
+    push('ldw', '$0,&H0000', 'acc = 0');
+    // acc = acc*10 built from word doubling: 2a -> 4a -> 8a, plus the saved 2a.
+    // The digit-shift family (diu/did/dium/didm) shifts by a NIBBLE, i.e. x16,
+    // not x10, so it cannot do this step.
+    push('adw', '$0,$0', 'acc *= 2', 'B2I_LOOP');
+    push('jr',  'c,B2I_FAIL', 'adwSbw_88 sets C when the true sum exceeds 0xFFFF');
+    push('ldw', '$2,$0', 'tmp = 2*acc');
+    push('adw', '$0,$0', 'acc *= 4');
+    push('jr',  'c,B2I_FAIL');
+    push('adw', '$0,$0', 'acc *= 8');
+    push('jr',  'c,B2I_FAIL');
+    push('adw', '$0,$2', 'acc = 8*acc + 2*acc = 10*acc');
+    push('jr',  'c,B2I_FAIL');
+    push('ld',  '$2,$8');
+    push('an',  '$2,&H0F', 'next mantissa digit');
+    push('ld',  '$3,&H00', 'widen it to a word so adw can add it');
+    push('adw', '$0,$2', 'acc = 10*acc + digit');
+    push('jr',  'c,B2I_FAIL');
+    push('ld',  '$8,&H00', 'drop the digit just consumed (keeps the tail test exact)');
+    // dium_DA shifts a register range up by one nibble, ascending from the
+    // named register, so the next digit lands in $8's low nibble.
+    push('dium', '$6,3', 'next digit -> low nibble of $8');
+    push('sb',  '$5,&H01');
+    push('jr',  'nz,B2I_LOOP');
+    // Whole-number check: an integer's mantissa is all zeros past digit n. If
+    // anything survives, the stored value had a fractional part and the caller
+    // must use the BCD path.
+    push('ld',  '$2,$6');
+    push('or',  '$2,$7');
+    push('or',  '$2,$8');
+    push('or',  '$2,$10');
+    push('or',  '$2,$11');
+    push('or',  '$2,$12');
+    push('or',  '$2,$13');
+    push('jr',  'nz,B2I_FAIL', 'a digit past the units place -> not a whole number');
+    push('anc', '$1,&H80', 'magnitude >= 32768?');
+    push('jr',  'z,B2I_SIGN', 'no -> in range for either sign');
+    push('anc', '$4,$4');
+    push('jr',  'z,B2I_FAIL', 'positive and >= 32768 -> out of range');
+    push('ldw', '$2,&H8000');
+    push('sbcw', '$0,$2', 'negative: only -32768 exactly is still in range');
+    push('jr',  'nz,B2I_FAIL');
+    push('anc', '$4,$4', undefined, 'B2I_SIGN');
+    push('jr',  'z,B2I_OK', 'positive -> done');
+    // cmpwInvw_9B with bit 6 of the operand byte clear is a two's complement
+    // negate of the register pair (0x8000 negates to itself, which is right).
+    push('cmpw', '$0', 'negate: acc = -acc');
+    push('ld',  '$9,&H00', 'status = converted', 'B2I_OK');
+    push('rtn', '');
+    push('ldw', '$0,&H0000', undefined, 'B2I_ZERO');
+    push('ld',  '$9,&H00');
+    push('rtn', '');
+    push('ld',  '$9,&H01', 'status = not representable as an int16', 'B2I_FAIL');
+    push('rtn', '');
+  }
+
+  // Signed int16 ($0/$1) -> BCD ($10-$18).
+  //
+  // Binary -> BCD by the software form of double dabble: 16 times, double the
+  // BCD field (adbm, which is a carry-propagating *BCD* add) and add the bit
+  // shifted out of the top of the magnitude. Doubling always leaves an even
+  // units digit, so the `+1` can never produce a BCD carry.
+  //
+  // That builds the digits right-aligned — units in the low nibble of bytes[4]
+  // — which is the correct mantissa layout for a 5-digit number shifted two
+  // nibbles too far down. Normalising is then just "shift up a nibble while
+  // the leading digit is zero", with the shift count giving the exponent.
+  private emitInt16ToBcdRoutine(): void {
+    const push = (mnemonic: string, operands: string, comment?: string, label?: string): void => {
+      this.code.push({ label, mnemonic, operands, comment });
+    };
+
+    this.code.push({ comment: 'INT16_TO_BCD: $0/$1 (int16) -> $10-$18 (BCD)' });
+    this.code.push({
+      label: 'INT16_TO_BCD',
+      mnemonic: 'ldw', operands: '$10,&H0000',
+      comment: 'clear the 9-byte accumulator (this is also the encoding of 0)',
+    });
+    push('ldw', '$12,&H0000');
+    push('ldw', '$14,&H0000');
+    push('ldw', '$16,&H0000');
+    push('ld',  '$18,&H00');
+    // logicW_8C sets Z_bit when either byte of the pair is non-zero.
+    push('orcw', '$0,$0');
+    push('jr',  'z,I2B_RET', 'zero -> the all-zero BCD encoding, already written');
+    push('ld',  '$5,&H00', '$5 = sign flag');
+    push('anc', '$1,&H80');
+    push('jr',  'z,I2B_ABS', 'high bit clear -> positive');
+    push('cmpw', '$0', 'magnitude = -value (-32768 negates to 0x8000 = 32768)');
+    push('ld',  '$5,&H01');
+    push('ld',  '$4,&H10', '16 bits, most significant first', 'I2B_ABS');
+    // adbm is the multi-byte BCD add (adbmSbbm_C8); dst == src doubles the
+    // field with carry propagation across all three bytes.
+    push('adbm', '$14,$14,3', 'BCD field *= 2 (6 digits)', 'I2B_BIT');
+    // biuw_98 shifts the pair left one bit and sets C from the old bit 15.
+    // (Its `did`/`bid` down-counterparts operate on the pair ENDING at the
+    // named register, which is why the up-form is used here.)
+    push('biuw', '$0', 'magnitude <<= 1, C = the bit shifted out');
+    push('jr',  'nc,I2B_NEXT');
+    push('adb', '$14,&H01', '+1 in BCD: the units digit is even, so it cannot carry');
+    push('sb',  '$4,&H01', undefined, 'I2B_NEXT');
+    push('jr',  'nz,I2B_BIT');
+    push('ld',  '$4,&H05', '5 digit positions, before normalising');
+    push('anc', '$16,&H0F', 'leading digit of the 5-digit field', 'I2B_NORM');
+    push('jr',  'nz,I2B_EXP', 'non-zero -> normalised');
+    push('dium', '$14,3', 'drop one leading zero digit');
+    push('sb',  '$4,&H01');
+    push('jr',  'nz,I2B_NORM', '($4 can only reach 0 for a zero value, handled above)');
+    push('ld',  '$17,$4', undefined, 'I2B_EXP');
+    push('sb',  '$17,&H01', 'bytes[7] = digit count - 1 (biased exponent 100..104)');
+    push('ld',  '$18,&H01', 'bytes[8] = hundreds digit of the biased exponent');
+    push('anc', '$5,$5');
+    push('jr',  'z,I2B_RET');
+    push('ld',  '$18,&H06', 'negative: bcd.ts folds +5 into bytes[8]');
+    push('rtn', '', undefined, 'I2B_RET');
+  }
+
+  // Call sites for the two routines above. Kept as helpers so the calling
+  // convention is documented in exactly one place. They have no caller inside
+  // codegen yet — the first one arrives with the `+`/`-` fast path, which is
+  // also what the round-trip test in
+  // tools/emu-debugger/tests/intfast-conversion.test.ts stands in for until
+  // then (it splices the same two `cal`s into a compiled program).
+  private emitBcdToInt16(comment?: string): void {
+    this.code.push({
+      mnemonic: 'cal',
+      operands: 'BCD_TO_INT16',
+      comment: comment ?? 'BCD $10-$18 -> int16 $0/$1 ($9 != 0 => must use the BCD path)',
+    });
+  }
+
+  private emitInt16ToBcd(comment?: string): void {
+    this.code.push({
+      mnemonic: 'cal',
+      operands: 'INT16_TO_BCD',
+      comment: comment ?? 'int16 $0/$1 -> BCD $10-$18',
     });
   }
 

@@ -28,11 +28,28 @@ import { assemble } from '../../compiler/assembler.js';
 import { numberToBcd9 } from '../../compiler/bcd.js';
 import { EmulatorSession } from '../session.js';
 import { setUa, setDelayedUa, setIserv } from '../../../src/emulator/def.js';
+import type { AsmLine, AsmLineResult } from '../../compiler/asm-types.js';
 
 const ORIGIN = 0x1CD0;
 
 function hex(bytes: Uint8Array | number[]): string {
   return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
+}
+
+// Every compiled program now carries the shared BCD <-> int16 conversion
+// routines (codegen.ts's emitIntFastPathWrapper), and two of *their* internal
+// branches are legitimately out of imm7 range and always relaxed. These tests
+// are about the relaxation of branches the BASIC program itself generates, so
+// the shared runtime's own branches are filtered out rather than baked into a
+// whole-program count that any future shared code would invalidate again.
+const SHARED_RUNTIME_LABEL = /^(B2I_|I2B_)/;
+
+function programRelaxations(lines: AsmLine[], results: AsmLineResult[]): AsmLineResult[] {
+  return results.filter(r => {
+    if (!r.relaxed) return false;
+    const target = (lines[r.index]?.operands ?? '').split(',').pop()!.trim();
+    return !SHARED_RUNTIME_LABEL.test(target);
+  });
 }
 
 /** Ten statements, each adding 1 to S — ~700 bytes of BCD-constant loads. */
@@ -45,13 +62,16 @@ interface RunResult {
   pc: number;
   instructions: number;
   relaxedBranches: number;
+  /** Relaxed branches emitted for the BASIC source itself (see above). */
+  programRelaxedBranches: number;
   relaxationIterations: number;
   read: (label: string) => Uint8Array;
 }
 
 /** Compile `source`, load it at 0x1CD0, and run until `stopLabel` is reached. */
 function compileAndRun(source: string, stopLabel: string): RunResult {
-  const assembled = assemble(generate(parse(source)).lines);
+  const lines = generate(parse(source)).lines;
+  const assembled = assemble(lines);
   const addressOf = (name: string): number => {
     const entry = assembled.symbols.find(s => s.name === name);
     if (!entry) throw new Error(`symbol ${name} not found`);
@@ -78,6 +98,7 @@ function compileAndRun(source: string, stopLabel: string): RunResult {
     pc: result.pc,
     instructions: result.instructionsExecuted,
     relaxedBranches: assembled.relaxedBranches,
+    programRelaxedBranches: programRelaxations(lines, assembled.lineResults).length,
     relaxationIterations: assembled.relaxationIterations,
     read: (label: string) => sess.getMemory(addressOf(label), 9),
   };
@@ -103,7 +124,7 @@ describe('Task 4b: a relaxed branch reaches the right address at runtime', () =>
     // computed the wrong absolute target, this either crashes or never
     // terminates. Body adds 10 per pass; 3 passes → S = 30, then S<30 fails.
     const run = compileAndRun(`10 S=0\n20 WHILE S<30\n${bigBody()}130 WEND\n140 END\n`, 'L140');
-    expect(run.relaxedBranches).toBe(1);
+    expect(run.programRelaxedBranches).toBe(1);
     expectResult(run, 'VAR_S', 30, 'WHILE S<30 with a 10-statement body');
   }, 120_000);
 
@@ -112,7 +133,7 @@ describe('Task 4b: a relaxed branch reaches the right address at runtime', () =>
     // very first test and must land exactly past WEND. An off-target landing
     // would run some of the body and leave S != 5.
     const run = compileAndRun(`10 S=5\n20 WHILE S<0\n${bigBody()}130 WEND\n140 END\n`, 'L140');
-    expect(run.relaxedBranches).toBe(1);
+    expect(run.programRelaxedBranches).toBe(1);
     expectResult(run, 'VAR_S', 5, 'WHILE S<0 (never entered), big body skipped');
   }, 120_000);
 
@@ -120,7 +141,7 @@ describe('Task 4b: a relaxed branch reaches the right address at runtime', () =>
     // Regression guard for the common case: branches that fit must stay
     // compact 2-byte `jr`s and keep working exactly as before.
     const run = compileAndRun('10 S=0\n20 WHILE S<3\n30 S=S+1\n40 WEND\n50 END\n', 'L50');
-    expect(run.relaxedBranches).toBe(0);
+    expect(run.programRelaxedBranches).toBe(0);
     expectResult(run, 'VAR_S', 3, 'small WHILE, all branches in range');
   }, 120_000);
 
@@ -151,10 +172,11 @@ describe("Task 4b: the reviewer's FOR repro", () => {
   const REPRO = '10 S=0\n20 FOR I=1 TO 3\n30 S=S+I\n40 NEXT I\n50 END\n';
 
   it("relaxes NEXT's over-long back-edge to a jp aimed at the loop top", () => {
-    const assembled = assemble(generate(parse(REPRO)).lines);
+    const lines = generate(parse(REPRO)).lines;
+    const assembled = assemble(lines);
     const forTop = assembled.symbols.find(s => s.name === 'FOR_I_1')!.address;
 
-    const relaxed = assembled.lineResults.filter(r => r.relaxed);
+    const relaxed = programRelaxations(lines, assembled.lineResults);
     expect(relaxed).toHaveLength(1);
     const site = relaxed[0]!;
 

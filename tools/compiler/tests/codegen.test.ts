@@ -44,6 +44,16 @@ describe('codegen - core', () => {
     expect(romCallLine).toBeDefined();
   });
 
+  it('emits the BCD_TO_INT16 and INT16_TO_BCD shared subroutines once per program', () => {
+    const asm = generate(parse('10 A=5\n20 END\n'));
+    const emitted = asm.lines.map(l => l.label).filter(Boolean);
+    expect(emitted).toContain('BCD_TO_INT16');
+    expect(emitted).toContain('INT16_TO_BCD');
+    // emitted exactly once, not once per call site
+    expect(emitted.filter(l => l === 'BCD_TO_INT16').length).toBe(1);
+    expect(emitted.filter(l => l === 'INT16_TO_BCD').length).toBe(1);
+  });
+
   it('generates CLS as ROM call', () => {
     const asm = mnemonics('10 CLS');
     expect(asm.some(l => l.includes('&H2ADF'))).toBe(true);
