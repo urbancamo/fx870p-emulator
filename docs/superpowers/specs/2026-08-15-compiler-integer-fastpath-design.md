@@ -52,6 +52,9 @@ In scope:
   existing BCD path (recomputing from the same BCD-stored operand bytes) whenever
   the true result wouldn't fit in a 16-bit signed integer, or (for `/`
   specifically) whenever the division isn't exact.
+- Making the classification visible in the `.lst` listing output, so a developer
+  can see which variables in their program actually got the fast path without
+  reading generated assembly (see `tools/compiler/listing.ts` changes below).
 
 Out of scope:
 - Arrays. Array elements are always `bcd-only`, unchanged from today.
@@ -90,6 +93,26 @@ variable, walks every assignment site in the whole program and decides
   another, it's `bcd-only` everywhere, including the integer-looking assignment.
 - Output: a `Set<string>` of integer-eligible variable names, consumed by
   `codegen.ts`.
+
+### `tools/compiler/listing.ts` changes
+
+The `.lst` output already has a `Symbol Table:` section (`formatListing()`, built
+from `ListingInput.symbols`). A new `Integer-Eligible Variables:` section goes
+alongside it, listing variable names split by classification — e.g.:
+
+```
+Integer-Eligible Variables:
+  K  N  C
+
+BCD-Only Variables:
+  X  Y
+```
+
+This is the inference pass's `Set<string>` output made directly visible, so a
+developer can see at a glance which variables in their program actually got the
+fast path without needing to read generated assembly. `ListingInput` gains an
+`integerEligible: Set<string>` field, threaded through from `type-inference.ts`'s
+result via `compile.ts` the same way `symbols` already flows from the assembler.
 
 ### `tools/compiler/codegen.ts` changes
 
