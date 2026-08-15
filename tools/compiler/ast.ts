@@ -101,7 +101,7 @@ export type Expression =
   | FnCallExpr
   | ArrayAccessExpr;
 
-export interface NumberLiteral { type: 'number'; value: number }
+export interface NumberLiteral { type: 'number'; value: number; hasDecimalPoint: boolean }
 export interface StringLiteral { type: 'string'; value: string }
 export interface HexLiteral { type: 'hex-literal'; value: number }
 export interface VariableExpr { type: 'variable'; ref: VarRef }

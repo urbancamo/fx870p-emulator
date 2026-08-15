@@ -1092,7 +1092,7 @@ function parsePrimary(stream: TokenStream): Expression {
   // Number literal
   if (tok.type === TokenType.Number) {
     stream.advance();
-    return { type: 'number', value: parseFloat(tok.value) };
+    return { type: 'number', value: parseFloat(tok.value), hasDecimalPoint: tok.value.includes('.') };
   }
 
   // String literal
@@ -1126,7 +1126,7 @@ function parsePrimary(stream: TokenStream): Expression {
   }
 
   // Fallback — unexpected token, do not consume; return 0
-  return { type: 'number', value: 0 };
+  return { type: 'number', value: 0, hasDecimalPoint: false };
 }
 
 // Keywords that should NOT be consumed when encountered in expression context
@@ -1150,7 +1150,7 @@ function parseKeywordExpr(stream: TokenStream): Expression {
 
   // Statement keywords must not be consumed as expressions — return 0 without advancing
   if (STATEMENT_KEYWORDS.has(kw)) {
-    return { type: 'number', value: 0 };
+    return { type: 'number', value: 0, hasDecimalPoint: false };
   }
 
   // Zero-arg builtins that don't take parentheses
@@ -1214,7 +1214,7 @@ function parseKeywordExpr(stream: TokenStream): Expression {
   }
 
   // Unknown keyword in expression context — do NOT consume; return 0 as sentinel
-  return { type: 'number', value: 0 };
+  return { type: 'number', value: 0, hasDecimalPoint: false };
 }
 
 // Parse an identifier in expression context: variable or array access
