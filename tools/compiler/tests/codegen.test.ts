@@ -178,6 +178,11 @@ describe('codegen - expressions', () => {
   });
 
   it('generates INPUT', () => {
+    // NOTE: &H3DEE is known broken (see ROM.INPUT's comment in codegen.ts) —
+    // it's the BASIC INPUT *command* handler, not a callable routine, the
+    // same defect class PRINT had before it was fixed to use &H131F/&H97D5.
+    // This only pins the current (wrong) codegen shape so a future fix has
+    // a test to update, not a claim that INPUT works from compiled code.
     const asm = mnemonics('10 INPUT A');
     expect(asm.some(l => l.includes('&H3DEE'))).toBe(true);
   });

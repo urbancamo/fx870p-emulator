@@ -33,6 +33,14 @@ const ROM = {
   // (rom1a.src:3F53-3F66).
   FMT_NUM:   '&H131F',  // format the FP value in $10-$18 -> string; returns $15,$16 = ptr, $17 = length (rom1a.src:131F, ends 143B-1440)
   PRLB1:     '&H97D5',  // display the string of length $17 pointed to by $15,$16 (rom1a.src:97D5)
+  // KNOWN BROKEN, same defect class as PRINT's old &H3EF1: &H3DEE is the
+  // BASIC INPUT *command* handler (rom1a.src:3DEE, "cal &H5044 ;FC Error if
+  // BASIC interpreter not in RUN mode"), not a callable numeric-input
+  // routine. Calling it from compiled code will not work. Not yet fixed —
+  // no program in this library uses INPUT from compiled code yet. Whoever
+  // fixes this should look for the internal routine pair &H3DEE's own
+  // command handler calls to actually read a value, the same way &H3EF1's
+  // internal &H131F/&H97D5 pair was found for PRINT.
   INPUT:     '&H3DEE',
   OUTCR:     '&H2AE8',
   OUTCH:     '&H2AF1',
