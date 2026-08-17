@@ -15,6 +15,7 @@ import type {
 import type { AsmLine, AsmProgram } from './asm-types.js';
 import { numberToBcd9 } from './bcd.js';
 import { inferIntegerEligibility } from './type-inference.js';
+import { analyzeLoopShadowEligibility } from './loop-shadow-eligibility.js';
 
 // ---------------------------------------------------------------------------
 // ROM entry points
@@ -115,6 +116,29 @@ interface ForLoopInfo {
 }
 
 // ---------------------------------------------------------------------------
+// Loop-shadow tracking
+// ---------------------------------------------------------------------------
+
+/**
+ * The four RAM slots a shadowed FOR loop owns. These are compiler-internal
+ * storage, NOT BASIC variables: counter/limit/step are native signed int16
+ * (2 bytes each, little-endian) and `active` is a 1-byte runtime flag. They
+ * are deliberately kept out of `CodeGen.variables`, whose every entry is a
+ * 9-byte BCD value or a 256-byte string buffer.
+ *
+ * The role is the label SUFFIX, not a prefix, so the naming is injective:
+ * with `SHADOW_LIMIT_K` a BASIC variable literally named `LIMIT_K` would
+ * collide with loop K's limit slot, whereas `SHADOW_<var>_LIM` cannot collide
+ * with `SHADOW_<other var>_<role>` for any other variable name.
+ */
+interface ShadowSlots {
+  counter: string;
+  limit: string;
+  step: string;
+  active: string;
+}
+
+// ---------------------------------------------------------------------------
 // Code generator state
 // ---------------------------------------------------------------------------
 
@@ -132,9 +156,20 @@ class CodeGen {
   private fnDefs = new Map<string, { params: string[]; body: Expression }>();
   private currentSegment = 0;
   private integerEligible: Set<string> = new Set();
+  /** Per-FOR-statement verdict from the static loop-shadow scan (Task 2). */
+  private shadowEligibility: Map<ForStatement, boolean> = new Map();
+  /** Allocated shadow slots, keyed by loop-counter variable name. */
+  private shadowSlots = new Map<string, ShadowSlots>();
+  /** Currently-open shadowed loops, innermost last. */
+  private shadowStack: Array<{ varName: string } & ShadowSlots> = [];
+  /** BASIC line number currently being emitted (for shadow bookkeeping). */
+  private currentLine = 0;
+  /** Every loop that actually got shadow slots, in emission order. */
+  private shadowedLoopsFound: { varName: string; line: number }[] = [];
 
   generate(program: Program): AsmProgram {
     this.integerEligible = inferIntegerEligibility(program);
+    this.shadowEligibility = analyzeLoopShadowEligibility(program, this.integerEligible);
 
     // 1. ORG directive
     // Origin 0x1CD0 — Bank1 area that's reachable via BASIC POKE/MODE110,
@@ -186,6 +221,7 @@ class CodeGen {
     const sortedLineNums = [...program.lines.keys()].sort((a, b) => a - b);
     for (const lineNum of sortedLineNums) {
       const stmts = program.lines.get(lineNum)!;
+      this.currentLine = lineNum;
       const source = this.reconstructSource(lineNum, stmts);
 
       // Emit BASIC source annotation on the label line
@@ -282,6 +318,22 @@ class CodeGen {
           operands: String(info.size),
           comment: `${info.type} variable`,
         });
+      }
+    }
+
+    // 7a. Loop-shadow storage (DS directives).
+    //
+    // Deliberately its own block rather than extra entries in `this.variables`:
+    // these are 1- and 2-byte compiler-internal int16/flag slots, never 9-byte
+    // BCD, and must never be mistaken for a BASIC variable by anything that
+    // assumes every `this.variables` entry is 9 or 256 bytes wide.
+    if (this.shadowSlots.size > 0) {
+      this.code.push({ comment: 'Loop-shadow storage (int16 counter/limit/step + active flag)' });
+      for (const [, slots] of this.shadowSlots) {
+        this.code.push({ label: slots.counter, mnemonic: 'DS', operands: '2', comment: 'shadow: counter (int16)' });
+        this.code.push({ label: slots.limit,   mnemonic: 'DS', operands: '2', comment: 'shadow: limit (int16)' });
+        this.code.push({ label: slots.step,    mnemonic: 'DS', operands: '2', comment: 'shadow: step (int16)' });
+        this.code.push({ label: slots.active,  mnemonic: 'DS', operands: '1', comment: 'shadow: active flag (0/1)' });
       }
     }
 
@@ -628,6 +680,90 @@ class CodeGen {
     } else {
       this.code.push({ mnemonic: 'stm', operands: `$10,(ix+$sx),${n}`,  comment: `store ${n} bytes` });
     }
+  }
+
+  // -------------------------------------------------------------------------
+  // Loop-shadow slot access
+  //
+  // ── Why these exist ──────────────────────────────────────────────────────
+  //
+  // There is NO direct-absolute memory addressing on this CPU. Every mnemonic
+  // that looks like it takes an address (`st_10`/`stw_90`, Kind.REGDIRJR)
+  // actually takes the address out of a REGISTER PAIR, and the multi-byte and
+  // displacement forms all go through IX/IZ. So `stw $0,SHADOW_K_CNT` is not
+  // an encoding this assembler can produce; a shadow slot is reached exactly
+  // the way emitVarLoad9/emitVarStore9 reach a variable — load the label as a
+  // 16-bit immediate, `pre` it into IX, and use a zero displacement.
+  //
+  // ── Calling convention (Tasks 4 and 5 depend on this) ────────────────────
+  //
+  //   emitShadowStore16(label)      in : $0/$1  int16 to store ($0 = low byte)
+  //   emitShadowLoad16(label)       out: $0/$1  int16 read from the slot
+  //   emitShadowStore8(label, reg)  in : reg    byte to store
+  //   emitShadowLoad8(label, reg)   out: reg    byte read from the slot
+  //
+  //   ALL FOUR clobber $2/$3, IX and SX, and nothing else. $2/$3 is the
+  //   address scratch pair: `ldw $r,imm16` is ldw_D1 in src/emulator/exec.ts,
+  //
+  //       mr[regArg(x)]     = fetchByte();
+  //       mr[regArg(x + 1)] = fetchByte();
+  //
+  //   i.e. it writes the named register AND the next one. A caller must
+  //   therefore never park a live value in $3 (nor $2) across one of these,
+  //   which is the same reason emitVarStoreN sources its bytes from $10.
+  //   `reg` must likewise not be $2 or $3.
+  //
+  //   `pre ix,$2` (pre_96) only READS $2/$3, and `psr sx,31` (psr_15) only
+  //   writes the SX selector, so neither disturbs any general register.
+  //
+  // The slots live at `ua >> 4` — the IX data segment — which is the same
+  // segment stm/ldm reach a 9-byte variable through, so a shadow slot and a
+  // BASIC variable are always in the same bank as each other.
+  // -------------------------------------------------------------------------
+
+  /** Emit the `ldw`/`pre`/`psr` preamble that points IX at `label`, displacement 0. */
+  private emitShadowAddress(label: string, comment?: string): void {
+    if (comment) this.code.push({ comment });
+    this.code.push({ mnemonic: 'ldw', operands: `$2,${label}`, comment: 'shadow slot address' });
+    this.code.push({ mnemonic: 'pre', operands: 'ix,$2',       comment: 'IX = slot address' });
+    this.code.push({ mnemonic: 'psr', operands: 'sx,31',       comment: '$sx -> $31 (= 0): displacement 0' });
+  }
+
+  /** Store the int16 in $0/$1 into a 2-byte shadow slot. */
+  private emitShadowStore16(label: string, comment?: string): void {
+    this.emitShadowAddress(label, comment);
+    this.code.push({ mnemonic: 'stw', operands: '$0,(ix+$sx)', comment: `${label} <- $0/$1` });
+  }
+
+  /**
+   * Load a 2-byte shadow slot into $0/$1.
+   *
+   * No caller inside codegen yet — the shadowed `NEXT` tail (Task 4) and the
+   * in-body counter substitution (Task 5) are what read the slots back. Kept
+   * here, next to the store it mirrors, for the same reason emitBcdToInt16 and
+   * emitInt16ToBcd were: the addressing convention is documented in one place.
+   */
+  private emitShadowLoad16(label: string, comment?: string): void {
+    this.emitShadowAddress(label, comment);
+    this.code.push({ mnemonic: 'ldw', operands: '$0,(ix+$sx)', comment: `$0/$1 <- ${label}` });
+  }
+
+  /** Store the byte in `reg` into a 1-byte shadow slot. `reg` must not be $2/$3. */
+  private emitShadowStore8(label: string, reg: string, comment?: string): void {
+    this.emitShadowAddress(label, comment);
+    this.code.push({ mnemonic: 'st', operands: `${reg},(ix+$sx)`, comment: `${label} <- ${reg}` });
+  }
+
+  /**
+   * Load a 1-byte shadow slot into `reg`. `reg` must not be $2/$3.
+   * The SHADOW_ACTIVE test Tasks 4/5 need is this followed by `anc reg,reg` +
+   * `jr z,<bcd path>` — logic_0C's setFlagsB sets Z_bit when the result is
+   * NON-zero, so `jr z` is "branch if the flag was 0", i.e. not shadowing.
+   * No caller yet, for the same reason as emitShadowLoad16 above.
+   */
+  private emitShadowLoad8(label: string, reg: string, comment?: string): void {
+    this.emitShadowAddress(label, comment);
+    this.code.push({ mnemonic: 'ld', operands: `${reg},(ix+$sx)`, comment: `${reg} <- ${label}` });
   }
 
   // -------------------------------------------------------------------------
@@ -1315,11 +1451,91 @@ class CodeGen {
     }
     this.emitVariableStore(stepRef);
 
+    // --- Loop-shadow entry -------------------------------------------------
+    //
+    // Only for a loop the static scan (Task 2) proved safe. Everything above is
+    // untouched: the plain 9-byte BCD stores of initial value, limit and step
+    // still happen unconditionally, so the BCD state a non-shadowed NEXT — and
+    // any runtime fallback to the BCD path — reads is exactly what it was.
+    //
+    // This block is emitted BEFORE `topLabel`, not after. NEXT jumps back to
+    // topLabel, so anything placed after it runs once per ITERATION; the decode
+    // has to run once per LOOP. Re-decoding the BCD counter every iteration
+    // would not just waste the saving, it would be wrong once Task 4 makes the
+    // native counter the live one — every iteration would reset the shadow
+    // counter from a BCD variable nobody is updating any more.
+    if (this.shadowEligibility.get(stmt)) {
+      const slots = this.allocShadowSlots(varName);
+      // Control-flow labels deliberately avoid the `SHADOW_` prefix: that
+      // prefix is the shadow *storage* namespace, and a branch target sharing
+      // it would make "is this label a shadow slot?" ambiguous for the listing
+      // and for anything else scanning the symbol table.
+      const offLabel  = this.uniqueLabel(`FORSHADOW_OFF_${varName}`);
+      const doneLabel = this.uniqueLabel(`FORSHADOW_ON_${varName}`);
+
+      // Decode counter, limit and step, bailing out to "not shadowing" on the
+      // first one that is not an exact int16.
+      //
+      // The plan's draft instead accumulated BCD_TO_INT16's $9 status across
+      // all three decodes with `or $2,$9`. That cannot work: $2/$3 is the
+      // address scratch pair every variable load and every shadow store writes
+      // (ldw_D1 in src/emulator/exec.ts writes the named register AND the next
+      // one), so the accumulator would be destroyed before the second decode
+      // ran. Branching out on the first failure keeps no value live across a
+      // call at all, which is why it is done this way.
+      const decode = (ref: VarRef, slot: string, what: string): void => {
+        this.emitVariableLoad(ref);
+        this.emitBcdToInt16(`decode ${what} for shadow`);
+        this.emitShadowStore16(slot, `shadow: stash decoded ${what}`);
+        // `anc` (0x04) is the compare-only AND — logic_0C skips the write-back
+        // when bit 3 of the opcode is clear — and setFlagsB sets Z_bit when the
+        // result is NON-zero. So this pair reads "branch if $9 was non-zero",
+        // i.e. BCD_TO_INT16 rejected the value. Same idiom as the routine's own
+        // `anc $4,$4` / `jr z`.
+        this.code.push({ mnemonic: 'anc', operands: '$9,$9', comment: `${what} decode status` });
+        this.code.push({ mnemonic: 'jr', operands: `nz,${offLabel}`, comment: 'not an int16 -> no shadowing' });
+      };
+
+      this.code.push({ comment: `loop-shadow entry for ${varName}: decode counter/limit/step` });
+      decode(stmt.variable, slots.counter, 'counter');
+      decode(limitRef,      slots.limit,   'limit');
+      decode(stepRef,       slots.step,    'step');
+
+      // $9 is dead here (the branch above was its last reader) and sits outside
+      // the $2/$3 address pair, so it survives emitShadowStore8's own `ldw $2`.
+      this.code.push({ mnemonic: 'ld', operands: '$9,&H01', comment: 'all three decoded -> shadowing active' });
+      this.code.push({ mnemonic: 'jr', operands: doneLabel });
+      this.code.push({ label: offLabel, mnemonic: 'ld', operands: '$9,&H00', comment: 'a decode failed -> stay on the BCD path' });
+      this.code.push({ label: doneLabel });
+      this.emitShadowStore8(slots.active, '$9', `${slots.active} <- shadowing on/off`);
+
+      this.shadowStack.push({ varName, ...slots });
+      this.shadowedLoopsFound.push({ varName, line: this.currentLine });
+    }
+
     // Loop top label
     this.code.push({ label: topLabel, comment: `FOR ${varName} loop top` });
 
     // Push loop info for matching NEXT
     this.forStack.push({ varName, topLabel, endLabel });
+  }
+
+  /**
+   * Close the shadow bookkeeping for the loop `NEXT` is ending, mirroring the
+   * `forStack.splice` next to it. Returns the loop's slots when it was a
+   * shadowed loop, or undefined when it was not.
+   *
+   * Emits nothing — Task 4 is what adds the shadowed `NEXT` tail (native step
+   * and compare, plus the BCD re-sync on exit) and will use this return value
+   * to decide which tail to emit. The pop itself belongs here regardless, so
+   * that `shadowStack` really does mean "loops open right now" for every
+   * consumer, including Task 5's in-body substitution.
+   */
+  private popShadowLoop(varName: string): ({ varName: string } & ShadowSlots) | undefined {
+    for (let i = this.shadowStack.length - 1; i >= 0; i--) {
+      if (this.shadowStack[i]!.varName === varName) return this.shadowStack.splice(i, 1)[0];
+    }
+    return undefined;
   }
 
   private emitNext(stmt: NextStatement): void {
@@ -1391,7 +1607,11 @@ class CodeGen {
       // End label
       this.code.push({ label: loop.endLabel, comment: `ENDFOR ${varName}` });
 
-      // Remove from stack
+      // Remove from stack. `loop.varName`, not the requested `varName`:
+      // findForLoop falls back to the innermost loop when the name doesn't
+      // match, and the shadow bookkeeping must close the loop that was
+      // actually closed.
+      this.popShadowLoop(loop.varName);
       this.forStack.splice(loopIdx, 1);
     }
   }
@@ -2104,6 +2324,29 @@ class CodeGen {
       this.variables.set(key, info);
     }
     return this.variables.get(key)!;
+  }
+
+  // -------------------------------------------------------------------------
+  // Loop-shadow slot allocation
+  //
+  // Mirrors allocVariable's shape but has its own map and its own 2-/1-byte
+  // sizes; see the ShadowSlots doc comment for why it must not extend
+  // `this.variables`. Two FOR loops driven by the same counter share one set of
+  // slots, exactly as they share one VAR_ slot — they can never be open at the
+  // same time, and each loop re-decodes into the slots at its own entry.
+  // -------------------------------------------------------------------------
+
+  private allocShadowSlots(varName: string): ShadowSlots {
+    if (!this.shadowSlots.has(varName)) {
+      const v = varName.toUpperCase();
+      this.shadowSlots.set(varName, {
+        counter: `SHADOW_${v}_CNT`,
+        limit:   `SHADOW_${v}_LIM`,
+        step:    `SHADOW_${v}_STP`,
+        active:  `SHADOW_${v}_ACT`,
+      });
+    }
+    return this.shadowSlots.get(varName)!;
   }
 
   // -------------------------------------------------------------------------

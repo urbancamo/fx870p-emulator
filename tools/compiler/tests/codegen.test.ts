@@ -492,3 +492,151 @@ describe('codegen - integer eligibility', () => {
     expect(asm.lines.length).toBeGreaterThan(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Task 3: loop-shadow slot allocation + emitFor's entry-time decode
+// ---------------------------------------------------------------------------
+//
+// NOTE on the sample program used here. The task brief's draft test used
+// `10 FOR K=1 TO 10 / 20 PRINT K / 30 NEXT K` as the *positive* case, but that
+// loop is NOT shadow-eligible under the analysis as actually merged: commit
+// 4235a19 ("revert PRINT relaxation in loop-shadow eligibility scan") made a
+// bare `PRINT K` a disqualifying use of the counter, because PRINT hands the
+// counter to a ROM routine as a 9-byte BCD value. `S=S+K` is the smallest body
+// that keeps the counter in a fast-path operand position, so that is the
+// positive case below; the `PRINT K` program is pinned as a negative case so
+// the divergence from the brief stays visible rather than silently rotting.
+
+/** Shadow-eligible: the counter is only ever a direct fast-path operand. */
+const SHADOW_LOOP = '10 FOR K=1 TO 10\n20 S=S+K\n30 NEXT K\n40 END\n';
+
+/** The DS-reserved shadow slots, i.e. the shadow *storage* namespace. */
+function shadowLabels(asm: { lines: AsmLine[] }): string[] {
+  return asm.lines
+    .filter(l => l.mnemonic === 'DS' && l.label?.startsWith('SHADOW_'))
+    .map(l => l.label!);
+}
+
+describe('codegen - loop shadow slots', () => {
+  it('emits shadow slot storage and an entry-time decode+SHADOW_ACTIVE sequence for a shadow-eligible FOR loop', () => {
+    const asm = generate(parse(SHADOW_LOOP));
+    const lbls = asm.lines.map(l => l.label).filter(Boolean) as string[];
+    // shadow slots exist as DS reservations, distinct from VAR_K
+    expect(lbls.some(l => l.includes('SHADOW') && l.includes('K'))).toBe(true);
+    expect(lbls).toContain('VAR_K'); // unchanged: the counter still gets its normal BCD slot too
+    // BCD_TO_INT16 is called at least 3 times at loop entry (counter, limit, step)
+    const decodeCalls = asm.lines.filter(l => l.mnemonic === 'cal' && l.operands === 'BCD_TO_INT16').length;
+    expect(decodeCalls).toBeGreaterThanOrEqual(3);
+  });
+
+  it('does NOT emit shadow slots for a statically disqualified loop (array index in body)', () => {
+    const asm = generate(parse('10 DIM A(20)\n20 FOR K=1 TO 10\n30 PRINT A(K)\n40 NEXT K\n50 END\n'));
+    const lbls = asm.lines.map(l => l.label).filter(Boolean) as string[];
+    expect(lbls.some(l => l.includes('SHADOW') && l.includes('K'))).toBe(false);
+  });
+
+  it('does NOT emit shadow slots when the counter is printed (Task 2 disqualifies a BCD-consuming use)', () => {
+    const asm = generate(parse('10 FOR K=1 TO 10\n20 PRINT K\n30 NEXT K\n40 END\n'));
+    expect(shadowLabels(asm)).toEqual([]);
+  });
+
+  it('reserves exactly four slots per shadowed loop: three DS 2 int16 slots and one DS 1 flag', () => {
+    const asm = generate(parse(SHADOW_LOOP));
+    const ds = asm.lines.filter(l => l.mnemonic === 'DS' && l.label?.startsWith('SHADOW_'));
+    expect(ds.length).toBe(4);
+    expect(ds.filter(l => l.operands === '2').length).toBe(3); // counter, limit, step
+    expect(ds.filter(l => l.operands === '1').length).toBe(1); // active flag
+  });
+
+  it('keeps the shadow DS block separate from the 9-byte BASIC variable block', () => {
+    const asm = generate(parse(SHADOW_LOOP));
+    // No shadow slot may be sized like a BASIC variable (9 bytes) or a string
+    // (256), and no VAR_ label may end up sized like a shadow slot.
+    for (const l of asm.lines.filter(x => x.mnemonic === 'DS')) {
+      if (l.label?.startsWith('SHADOW_')) expect(['1', '2']).toContain(l.operands);
+      if (l.label?.startsWith('VAR_')) expect(['9', '256']).toContain(l.operands);
+    }
+    // The shadow block carries its own header comment, i.e. it is emitted by
+    // its own loop rather than folded into the variable table's.
+    const idx = asm.lines.findIndex(l => !l.mnemonic && l.comment?.includes('Loop-shadow storage'));
+    expect(idx).toBeGreaterThan(0);
+  });
+
+  it('decodes into the shadow slots BEFORE the loop-top label, so it runs once per loop, not once per iteration', () => {
+    const asm = generate(parse(SHADOW_LOOP));
+    const topIdx = asm.lines.findIndex(l => l.label?.startsWith('FOR_K'));
+    const lastDecode = asm.lines.map((l, i) => ({ l, i }))
+      .filter(({ l }) => l.mnemonic === 'cal' && l.operands === 'BCD_TO_INT16')
+      .map(({ i }) => i)
+      .pop();
+    expect(topIdx).toBeGreaterThan(0);
+    expect(lastDecode).toBeDefined();
+    expect(lastDecode!).toBeLessThan(topIdx);
+  });
+
+  it('reaches every shadow slot through IX-indexed addressing, never a bare absolute label operand', () => {
+    const asm = generate(parse(SHADOW_LOOP));
+    const shadowNames = new Set(shadowLabels(asm));
+    expect(shadowNames.size).toBe(4);
+    for (const line of asm.lines) {
+      if (!line.mnemonic || line.mnemonic === 'DS') continue;
+      const ops = line.operands ?? '';
+      for (const name of shadowNames) {
+        if (!new RegExp(`(?<![A-Za-z0-9_])${name}(?![A-Za-z0-9_])`).test(ops)) continue;
+        // The ONLY instruction allowed to name a shadow slot is the address
+        // load that feeds `pre ix,$2`. Anything else (e.g. `stw $0,SHADOW_K`)
+        // would be a direct-absolute memory operand, which this CPU has no
+        // encoding for.
+        expect(`${line.mnemonic} ${ops}`).toBe(`ldw $2,${name}`);
+      }
+    }
+  });
+
+  it('never computes a value into $3, which `ldw $2,LABEL` clobbers as the high half of the address pair', () => {
+    const asm = generate(parse(SHADOW_LOOP));
+    // ldw_D1 in src/emulator/exec.ts writes mr[reg] AND mr[reg+1], so any
+    // value parked in $3 across an address load is destroyed.
+    const start = asm.lines.findIndex(l => l.comment?.includes('loop-shadow entry'));
+    expect(start).toBeGreaterThan(0);
+    const end = asm.lines.findIndex(l => l.label?.startsWith('FOR_K'));
+    for (const line of asm.lines.slice(start, end)) {
+      if (line.mnemonic === 'ld' || line.mnemonic === 'ldw') {
+        expect(line.operands?.startsWith('$3,')).toBeFalsy();
+      }
+    }
+  });
+
+  it('stores a definite 0 or 1 into the SHADOW_ACTIVE flag on both paths', () => {
+    const asm = generate(parse(SHADOW_LOOP));
+    const activeLabel = shadowLabels(asm).find(l => l.includes('ACT'));
+    expect(activeLabel).toBeDefined();
+    const text = asm.lines.map(l => `${l.mnemonic ?? ''} ${l.operands ?? ''}`);
+    expect(text).toContain('ld $9,&H01');
+    expect(text).toContain('ld $9,&H00');
+    // ...and a single-byte store of that register through the IX path
+    expect(text).toContain('st $9,(ix+$sx)');
+  });
+
+  it('allocates one shared set of slots when the same counter drives two separate loops', () => {
+    const asm = generate(parse(
+      '10 FOR K=1 TO 10\n20 S=S+K\n30 NEXT K\n40 FOR K=1 TO 5\n50 S=S+K\n60 NEXT K\n70 END\n',
+    ));
+    expect(asm.lines.filter(l => l.mnemonic === 'DS' && l.label?.startsWith('SHADOW_')).length).toBe(4);
+    // but both loops still decode at their own entry
+    expect(asm.lines.filter(l => l.mnemonic === 'cal' && l.operands === 'BCD_TO_INT16').length).toBe(6);
+  });
+
+  it('keeps the SHADOW_ prefix exclusively for storage, so no branch target can be mistaken for a slot', () => {
+    const asm = generate(parse(SHADOW_LOOP));
+    const nonStorage = asm.lines
+      .filter(l => l.label?.startsWith('SHADOW_') && l.mnemonic !== 'DS')
+      .map(l => l.label!);
+    expect(nonStorage).toEqual([]);
+  });
+
+  it('emits no shadow machinery at all for a program with no eligible loop', () => {
+    const asm = generate(parse('10 A=5\n20 END\n'));
+    expect(shadowLabels(asm)).toEqual([]);
+    expect(asm.lines.some(l => l.mnemonic === 'cal' && l.operands === 'BCD_TO_INT16')).toBe(false);
+  });
+});
