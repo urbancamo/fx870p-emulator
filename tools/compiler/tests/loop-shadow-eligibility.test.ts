@@ -53,6 +53,18 @@ describe('analyzeLoopShadowEligibility', () => {
     expect(result.get(forStmts[0])).toBe(false);
   });
 
+  it('condition 3: disqualified when the counter is used as an array index in an INPUT target', () => {
+    const { result, forStmts } = analyze('10 DIM A(20)\n20 FOR K=1 TO 10\n30 INPUT A(K)\n40 NEXT K\n50 END\n');
+    expect(result.get(forStmts[0])).toBe(false);
+  });
+
+  it('condition 3: disqualified when the counter is used as an array index in a READ target', () => {
+    const { result, forStmts } = analyze(
+      '10 DIM A(20)\n20 FOR K=1 TO 10\n30 READ A(K)\n40 NEXT K\n50 END\n60 DATA 1,2,3,4,5,6,7,8,9,10\n'
+    );
+    expect(result.get(forStmts[0])).toBe(false);
+  });
+
   it('condition 3: disqualified when the counter is combined via a non-fast-path op (integer divide)', () => {
     const { result, forStmts } = analyze('10 FOR K=2 TO 10\n20 X=100/K\n30 NEXT K\n40 END\n');
     expect(result.get(forStmts[0])).toBe(false);
@@ -80,6 +92,11 @@ describe('analyzeLoopShadowEligibility', () => {
 
   it('condition 4: GOSUB out of the loop body does NOT disqualify (it returns)', () => {
     const { result, forStmts } = analyze('10 FOR K=1 TO 10\n20 GOSUB 100\n30 NEXT K\n40 END\n100 PRINT "hi"\n110 RETURN\n');
+    expect(result.get(forStmts[0])).toBe(true);
+  });
+
+  it('condition 4: ON...GOSUB out of the loop body does NOT disqualify (it returns, same as plain GOSUB)', () => {
+    const { result, forStmts } = analyze('10 FOR K=1 TO 10\n20 ON 1 GOSUB 100\n30 NEXT K\n40 END\n100 PRINT "hi"\n110 RETURN\n');
     expect(result.get(forStmts[0])).toBe(true);
   });
 

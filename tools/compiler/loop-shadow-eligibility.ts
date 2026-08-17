@@ -138,12 +138,21 @@ function statementShape(stmt: Statement): { exprs: Expression[]; writes: string[
     case 'while':
       return { exprs: [stmt.condition], writes: [] };
     case 'input': case 'read':
-      return { exprs: [], writes: stmt.variables.filter(v => !v.isString && !v.indices).map(v => v.name) };
+      return {
+        // Target indices (e.g. the K in `INPUT A(K)`) are a real use of the
+        // counter -- an array index -- and must be checked the same way
+        // 'let' checks its own assignment target's indices.
+        exprs: stmt.variables.flatMap(v => v.indices ?? []),
+        writes: stmt.variables.filter(v => !v.isString && !v.indices).map(v => v.name),
+      };
     case 'input-file':
-      return { exprs: [stmt.filenum], writes: stmt.variables.filter(v => !v.isString && !v.indices).map(v => v.name) };
+      return {
+        exprs: [stmt.filenum, ...stmt.variables.flatMap(v => v.indices ?? [])],
+        writes: stmt.variables.filter(v => !v.isString && !v.indices).map(v => v.name),
+      };
     case 'line-input-file':
       return {
-        exprs: [stmt.filenum],
+        exprs: [stmt.filenum, ...(stmt.variable.indices ?? [])],
         writes: stmt.variable.isString || stmt.variable.indices ? [] : [stmt.variable.name],
       };
     case 'dim':
@@ -248,6 +257,11 @@ function walkProgram(program: Program, onLoopClosed: (loop: OpenLoop, nextLine: 
 function bodyContainsOutOfSpanJump(body: Statement[], forLine: number, nextLine: number): boolean {
   for (const stmt of body) {
     if (stmt.type === 'goto' && (stmt.target < forLine || stmt.target > nextLine)) return true;
+    // `on-branch` with kind 'gosub' (ON...GOSUB) is deliberately NOT checked
+    // here, same reasoning as plain GOSUB below the loop -- it always
+    // returns to the following statement (or falls through in place if the
+    // selector is out of range) rather than permanently leaving the loop,
+    // so it can never cause the loop-exit BCD re-sync to go unreached.
     if (stmt.type === 'on-branch' && stmt.kind === 'goto') {
       for (const t of stmt.targets) if (t.line < forLine || t.line > nextLine) return true;
     }
