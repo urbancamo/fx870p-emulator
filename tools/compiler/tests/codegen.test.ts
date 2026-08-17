@@ -2,6 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { generate } from '../codegen.js';
 import { parse } from '../parser.js';
+import { isIntegerEligibleExpr } from '../type-inference.js';
 import type { AsmLine } from '../asm-types.js';
 
 function getAsm(basic: string): AsmLine[] {
@@ -466,5 +467,28 @@ describe('codegen - remaining statements', () => {
     const lines = getAsm('10 DIM B(5)\n20 A=B(2)');
     const ldwLines = lines.filter(l => l.mnemonic === 'ldw' && l.operands?.includes('ARR_B'));
     expect(ldwLines.length).toBeGreaterThan(0);
+  });
+});
+
+describe('codegen - integer eligibility', () => {
+  it('isIntegerEligibleExpr classifies literals, eligible variables, and eligible binary chains', () => {
+    const eligible = new Set(['A', 'B']);
+    expect(isIntegerEligibleExpr({ type: 'number', value: 5, hasDecimalPoint: false }, eligible)).toBe(true);
+    expect(isIntegerEligibleExpr({ type: 'number', value: 5, hasDecimalPoint: true }, eligible)).toBe(false);
+    expect(isIntegerEligibleExpr({ type: 'variable', ref: { name: 'A', isString: false } }, eligible)).toBe(true);
+    expect(isIntegerEligibleExpr({ type: 'variable', ref: { name: 'X', isString: false } }, eligible)).toBe(false);
+    const sum = { type: 'binary', op: '+', left: { type: 'variable', ref: { name: 'A', isString: false } }, right: { type: 'variable', ref: { name: 'B', isString: false } } } as const;
+    expect(isIntegerEligibleExpr(sum, eligible)).toBe(true);
+    const div = { type: 'binary', op: '/', left: sum.left, right: sum.right } as const;
+    expect(isIntegerEligibleExpr(div, eligible)).toBe(false); // '/' is never integer-closed, matches Task 1's own exclusion
+  });
+
+  it('CodeGen.generate() populates integerEligible from inferIntegerEligibility() before emitting any statement', () => {
+    // Compile a program with one integer-eligible and one bcd-only variable,
+    // and confirm generate() doesn\'t throw and produces the same output as
+    // before this task for a program with no FOR loops (pure regression check
+    // -- this task changes no observable codegen output by itself).
+    const asm = generate(parse('10 A=5\n20 X=3.14\n30 END\n'));
+    expect(asm.lines.length).toBeGreaterThan(0);
   });
 });

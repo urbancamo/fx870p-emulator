@@ -14,6 +14,7 @@ import type {
 } from './ast.js';
 import type { AsmLine, AsmProgram } from './asm-types.js';
 import { numberToBcd9 } from './bcd.js';
+import { inferIntegerEligibility } from './type-inference.js';
 
 // ---------------------------------------------------------------------------
 // ROM entry points
@@ -130,8 +131,11 @@ class CodeGen {
   private arrays = new Map<string, { label: string; totalBytes: number }>();
   private fnDefs = new Map<string, { params: string[]; body: Expression }>();
   private currentSegment = 0;
+  private integerEligible: Set<string> = new Set();
 
   generate(program: Program): AsmProgram {
+    this.integerEligible = inferIntegerEligibility(program);
+
     // 1. ORG directive
     // Origin 0x1CD0 — Bank1 area that's reachable via BASIC POKE/MODE110,
     // same address used by CosmicV4. BASIC POKE can't reach Bank1 0x0000.

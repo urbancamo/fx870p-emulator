@@ -154,3 +154,25 @@ export function inferIntegerEligibility(program: Program): Set<string> {
   for (const name of everAssigned) if (!ineligible.has(name)) eligible.add(name);
   return eligible;
 }
+
+/**
+ * Pure predicate: is `expr`, given an already-computed integer-eligible set,
+ * itself provably a whole number? Same structural rule as
+ * inferIntegerEligibility's internal isIntegerExpr, but with no side effects
+ * and taking the eligible set as input rather than building it. Shared by
+ * loop-shadow-eligibility.ts and codegen.ts's shadow-aware fast path.
+ */
+export function isIntegerEligibleExpr(expr: Expression, integerEligible: Set<string>): boolean {
+  if (expr.type === 'number') {
+    return Number.isInteger(expr.value) && !expr.hasDecimalPoint;
+  }
+  if (expr.type === 'variable' && !expr.ref.isString && !expr.ref.indices) {
+    return integerEligible.has(expr.ref.name);
+  }
+  if (expr.type === 'binary' && ['+', '-', '*', 'mod'].includes(expr.op)) {
+    // '/' excluded: never integer-closed (5/2=2.5), matching
+    // inferIntegerEligibility's own exclusion and its documented reasoning.
+    return isIntegerEligibleExpr(expr.left, integerEligible) && isIntegerEligibleExpr(expr.right, integerEligible);
+  }
+  return false;
+}
