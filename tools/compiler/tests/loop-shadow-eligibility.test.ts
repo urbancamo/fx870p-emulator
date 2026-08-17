@@ -22,7 +22,7 @@ describe('analyzeLoopShadowEligibility', () => {
 
   it('eligible: PRIMES.BAS-shaped loop with a runtime (non-literal) limit and an in-body comparison referencing the counter', () => {
     const { result, forStmts } = analyze(
-      '10 N=100\n20 FOR K=2 TO N-1\n30 IF N MOD K = 0 THEN GOTO 50\n40 PRINT K\n50 NEXT K\n60 END\n'
+      '10 N=100\n20 FOR K=2 TO N-1\n30 IF N MOD K = 0 THEN GOTO 50\n50 NEXT K\n60 END\n'
     );
     expect(result.get(forStmts[0])).toBe(true);
   });
@@ -59,7 +59,7 @@ describe('analyzeLoopShadowEligibility', () => {
   });
 
   it('condition 3: eligible when the counter appears nested inside a fast-path expression', () => {
-    const { result, forStmts } = analyze('10 N=100\n20 FOR K=1 TO 10\n30 IF (K+1)*2>N THEN GOTO 50\n40 PRINT K\n50 NEXT K\n60 END\n');
+    const { result, forStmts } = analyze('10 N=100\n20 FOR K=1 TO 10\n30 IF (K+1)*2>N THEN GOTO 50\n50 NEXT K\n60 END\n');
     expect(result.get(forStmts[0])).toBe(true);
   });
 
@@ -74,7 +74,7 @@ describe('analyzeLoopShadowEligibility', () => {
   });
 
   it('condition 4: eligible when a GOTO inside the body only jumps within the loop span', () => {
-    const { result, forStmts } = analyze('10 FOR K=1 TO 10\n20 IF K=5 THEN GOTO 25\n25 PRINT K\n30 NEXT K\n40 END\n');
+    const { result, forStmts } = analyze('10 FOR K=1 TO 10\n20 IF K=5 THEN GOTO 25\n25 PRINT "x"\n30 NEXT K\n40 END\n');
     expect(result.get(forStmts[0])).toBe(true);
   });
 

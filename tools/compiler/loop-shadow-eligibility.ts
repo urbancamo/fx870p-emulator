@@ -80,47 +80,20 @@ function violatesCounterUsage(expr: Expression, counterName: string, integerElig
   return false; // number, string, hex-literal
 }
 
-/**
- * Same check as `violatesCounterUsage`, EXCEPT: a bare (unindexed) reference
- * to the counter as the WHOLE expression is safe here. PRINT always
- * materializes its printed value through the ROM's BCD-based print routine
- * regardless of what the source expression looked like, so codegen can
- * convert the shadowed int16 counter back to BCD at the print call site --
- * `PRINT K` doesn't need K to already be a direct operand of a fast-path op.
- * Anything else (the counter nested inside an array index, a builtin/FN
- * argument, a non-fast-path binary, etc.) is unchanged from the ordinary
- * rule: no safe context exists there.
- *
- * Deliberately scoped to exactly `PrintStatement`'s printed `value` items --
- * the only context the eligibility tests actually exercise this in. Every
- * other expression slot (including `PRINT`'s own `TAB()` column and `USING`
- * expressions, and all of `PrintFileStatement`) stays on the strict rule:
- * relaxing further without a test proving it's safe risks exactly the
- * silent-wrong-answer failure mode this module exists to prevent.
- */
-function violatesCounterUsageAsPrintArg(expr: Expression, counterName: string, integerEligible: Set<string>): boolean {
-  if (expr.type === 'variable' && expr.ref.name === counterName && !expr.ref.indices) return false;
-  return violatesCounterUsage(expr, counterName, integerEligible);
-}
-
 const UNKNOWN = Symbol('unknown-statement-shape');
 
 /**
  * Every Expression slot a statement directly holds (NOT recursing into
  * nested statement lists like `if`'s branches -- the body-walk below handles
  * that separately), plus every scalar VarRef a statement directly writes to.
- * `exprs` are checked with the strict rule (`violatesCounterUsage`);
- * `printExprs` (currently only a PRINT statement's printed `value` items)
- * are checked with the relaxed rule (`violatesCounterUsageAsPrintArg`) that
- * additionally permits a bare counter reference. Exhaustive over every
- * Statement variant in ast.ts as of this writing. A FUTURE statement type
- * not listed here falls into the `default` case and returns UNKNOWN, which
- * the caller treats as an automatic disqualification -- silence must never
- * be mistaken for safety in this specific check (an unhandled statement
- * type could hide a write to, or an unsafe use of, the counter that this
- * scan would otherwise miss).
+ * Exhaustive over every Statement variant in ast.ts as of this writing. A
+ * FUTURE statement type not listed here falls into the `default` case and
+ * returns UNKNOWN, which the caller treats as an automatic disqualification
+ * -- silence must never be mistaken for safety in this specific check (an
+ * unhandled statement type could hide a write to, or an unsafe use of, the
+ * counter that this scan would otherwise miss).
  */
-function statementShape(stmt: Statement): { exprs: Expression[]; printExprs?: Expression[]; writes: string[] } | typeof UNKNOWN {
+function statementShape(stmt: Statement): { exprs: Expression[]; writes: string[] } | typeof UNKNOWN {
   switch (stmt.type) {
     case 'let':
       return {
@@ -130,12 +103,10 @@ function statementShape(stmt: Statement): { exprs: Expression[]; printExprs?: Ex
     case 'print':
       return {
         exprs: [
+          ...stmt.items.filter(i => i.type === 'expr').map(i => (i as { value: Expression }).value),
           ...stmt.items.filter(i => i.type === 'tab').map(i => (i as { col: Expression }).col),
           ...(stmt.using ? [stmt.using] : []),
         ],
-        // Printed VALUES get the relaxed check (see violatesCounterUsageAsPrintArg)
-        // -- TAB()/USING expressions do not, since no test establishes they're safe.
-        printExprs: stmt.items.filter(i => i.type === 'expr').map(i => (i as { value: Expression }).value),
         writes: [],
       };
     case 'print-file':
@@ -319,12 +290,6 @@ export function analyzeLoopShadowEligibility(program: Program, integerEligible: 
       }
       for (const expr of shape.exprs) {
         if (violatesCounterUsage(expr, varName, integerEligible)) {
-          result.set(forStmt, false);
-          return;
-        }
-      }
-      for (const expr of shape.printExprs ?? []) {
-        if (violatesCounterUsageAsPrintArg(expr, varName, integerEligible)) {
           result.set(forStmt, false);
           return;
         }
