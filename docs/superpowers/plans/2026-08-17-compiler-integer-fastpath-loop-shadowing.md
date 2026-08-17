@@ -911,15 +911,18 @@ This is the task that actually makes `IF K+K>N` (or any other counter-touching e
     expect(operands.some(o => o!.includes('SHADOW_K'))).toBe(true); // reads the shadow slot directly
   });
 
-  it('an expression NOT touching the counter inside a shadowed loop is completely unaffected', () => {
-    const asm = generate(parse('10 S=0\n20 FOR K=1 TO 10\n30 S=S+1\n40 NEXT K\n50 END\n'));
-    // S=S+1 never references K -- this must compile identically to how it
-    // would outside any loop at all.
-    const withoutLoop = generate(parse('10 S=0\n20 S=S+1\n30 END\n'));
-    // (structural comparison of just the S=S+1 codegen fragment -- exact
-    // assertion mechanics left to the implementer, since it depends on how
-    // easy it is to isolate that fragment from surrounding label noise;
-    // at minimum assert no SHADOW reference appears near the S=S+1 lines)
+  it('an expression NOT touching the counter inside a shadowed loop adds no shadow references of its own', () => {
+    // Baseline: a shadowed loop with an EMPTY body -- every SHADOW reference
+    // in this output comes purely from emitFor's entry decode/SHADOW_ACTIVE
+    // setup and emitNext's dual-tail machinery, none from body content.
+    const baseline = generate(parse('10 FOR K=1 TO 10\n20 NEXT K\n30 END\n'));
+    // Same loop, with a body statement that never references K.
+    const withBody = generate(parse('10 S=0\n20 FOR K=1 TO 10\n30 S=S+1\n40 NEXT K\n50 END\n'));
+    const shadowRefCount = (asm: { lines: { label?: string; operands?: string }[] }) =>
+      asm.lines.filter(l => (l.label ?? '').includes('SHADOW') || (l.operands ?? '').includes('SHADOW')).length;
+    // S=S+1 must contribute exactly zero additional shadow references beyond
+    // the loop's own fixed entry/exit machinery.
+    expect(shadowRefCount(withBody)).toBe(shadowRefCount(baseline));
   });
 ```
 
