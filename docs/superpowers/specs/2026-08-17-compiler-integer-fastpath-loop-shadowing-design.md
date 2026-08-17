@@ -121,38 +121,88 @@ counter, limit, step — using labels like `SHADOW_${varName}`, `SHADOW_LIMIT_${
 (a `DS` directive per entry), just a separate map so a 2-byte slot can never be
 mistaken for a 9-byte variable anywhere downstream.
 
+Each shadowed loop also gets a fourth, 1-byte slot, `SHADOW_ACTIVE_${varName}` — see
+"Runtime shadow-active flag" below. Same map, same `DS 1` mechanism.
+
+### Runtime shadow-active flag (new — resolves a gap the first draft of this design missed)
+
+Whether shadowing can actually be used for a given loop is only fully known at
+**runtime**, not compile time. The eligibility scan (statically) proves the counter,
+limit, and step are always whole numbers — but not that they're always within
+16-bit range. `FOR K=2 TO N-1` (exactly `PRIMES.BAS`'s own shape) has a limit whose
+value isn't known until the program runs; if `N-1` turns out to be ≥32768,
+`BCD_TO_INT16` correctly refuses to decode it (Task 2's existing `$9` status flag).
+
+So a statically shadow-eligible loop still needs a **runtime** decision at entry,
+recorded in the 1-byte `SHADOW_ACTIVE_${varName}` flag: 1 if all three of
+counter/limit/step decoded successfully, 0 if any one of them didn't. Every piece of
+codegen that would otherwise unconditionally trust the shadow — `NEXT`'s tail, and
+each in-body expression touching the counter — must check this flag at runtime and
+choose between the native-shadow code shape and today's unmodified BCD code shape.
+
+This deliberately does **not** duplicate the loop body. Only two things get a second
+code shape, both compiler-generated (not user source), so the size cost is small and
+bounded regardless of how large the loop body is:
+- `NEXT`'s own tail (fixed-size, ~20-30 instructions either way, emitted once per
+  shadowed loop).
+- Each individual expression that directly references the counter (per condition 3
+  of the eligibility scan) — not the whole statement it's part of, and never an
+  unrelated statement elsewhere in the loop body.
+
 ### `codegen.ts`: `emitFor` / `emitNext` changes
 
 - `emitFor`: after the existing BCD stores of initial value/limit/step (unchanged —
   the BCD form of the counter must still exist for the disqualified-loop case, and
   for the counter to be readable in its normal BCD form immediately after loop
-  entry, before any shadow sync), check the eligibility map. If shadow-eligible,
-  additionally decode all three (via Task 2's existing `emitBcdToInt16` helper) into
-  the three shadow slots. Push the loop's shadow state onto a new stack (parallel to
-  the existing `forStack`) so `emitBinaryExpr`/`emitComparisonBranch` can look up
-  "is this variable name the counter of a currently-active shadowed loop."
-- `emitNext`, shadowed case: replace the current `FP_ADD`-based increment and
-  BCD-staged comparison (codegen.ts:1339-1379) with a native `adw` of the counter
-  shadow by the step shadow, then a native compare against the limit shadow. On the
-  branch where the loop is done (comparison fails), encode the counter shadow back
-  to BCD (`emitInt16ToBcd`) and store it, so code after the loop sees a correct,
-  up-to-date value — matching today's behavior for a disqualified loop exactly. On
-  the branch where the loop continues, no BCD traffic at all. Pop the shadow stack
-  entry when the loop is done. Limit and step shadows are never encoded back to
-  BCD — condition 2 already guarantees nothing outside `NEXT`'s own machinery ever
-  reads `_FOR_LIMIT_${var}`/`_FOR_STEP_${var}` in their BCD form, so only the
-  counter's BCD copy needs to be current after the loop.
-- `emitNext`, disqualified case: entirely unchanged — today's BCD codegen, byte-for-byte.
+  entry, before any shadow sync), check the eligibility map. If statically
+  shadow-eligible, additionally attempt to decode all three (via Task 2's existing
+  `emitBcdToInt16` helper) into the three shadow slots, checking `$9` after each.
+  Set `SHADOW_ACTIVE_${varName}` to 1 only if all three succeeded, 0 otherwise. Push
+  the loop's shadow state (variable name, shadow slot labels, the active-flag label)
+  onto a new stack (parallel to the existing `forStack`) regardless of the flag's
+  runtime value — `emitBinaryExpr`/`emitComparisonBranch` need to know a loop *has*
+  shadow slots to check the flag against, even on a run where the flag ends up 0.
+- `emitNext`, statically-shadow-eligible loop: emit a runtime check of
+  `SHADOW_ACTIVE_${varName}` selecting between two tails:
+  - **Active:** native `adw` of the counter shadow by the step shadow, then a native
+    compare against the limit shadow. On the branch where the loop is done
+    (comparison fails), encode the counter shadow back to BCD (`emitInt16ToBcd`) and
+    store it, so code after the loop sees a correct, up-to-date value — matching
+    today's behavior for a disqualified loop exactly. On the branch where the loop
+    continues, no BCD traffic at all.
+  - **Not active:** today's unmodified `FP_ADD`-based increment and BCD-staged
+    comparison (codegen.ts:1339-1379), byte-for-byte.
+  Pop the shadow stack entry when the loop is done, on either branch. Limit and step
+  shadows are never encoded back to BCD — condition 2 already guarantees nothing
+  outside `NEXT`'s own machinery ever reads `_FOR_LIMIT_${var}`/`_FOR_STEP_${var}` in
+  their BCD form, so only the counter's BCD copy needs to be current after the loop.
+- `emitNext`, statically-disqualified loop: entirely unchanged — today's BCD codegen,
+  byte-for-byte, no flag check at all (there's no shadow stack entry to check).
 
 ### `codegen.ts`: `emitBinaryExpr` / `emitComparisonBranch` changes
 
 Before falling through to existing logic, check whether an operand is a `VarRef`
-naming the counter of a currently-active shadowed loop (top of the new shadow
-stack, or any active entry — a loop body can reference an outer shadowed loop's
-counter too). If so, use the shadow slot's int16 value directly (a cheap `ldw`)
-instead of decoding from BCD. This only ever fires for operations the eligibility
-scan already proved are among integer-eligible operands, so no new overflow-fallback
-paths are needed beyond what those operations already require.
+naming the counter of a loop currently on the shadow stack (top of the stack, or any
+active entry — a loop body can reference an outer shadowed loop's counter too). If
+so, emit a runtime check of that loop's `SHADOW_ACTIVE_${varName}` flag:
+- **Active:** read the shadow slot directly (a cheap `ldw`) instead of decoding from
+  BCD, then proceed with the native op.
+- **Not active:** fall through to exactly today's codegen for that operand
+  (`emitExpression` as normal, decoding from `VAR_${varName}`'s BCD storage) — this
+  is always correct in the not-active case, since `VAR_${varName}` was never left
+  stale to begin with (the loop is running `NEXT`'s not-active tail, which keeps BCD
+  current every iteration, same as an ordinary unshadowed loop).
+
+**Overflow fallback must not reload the variable's BCD memory when the operand came
+from the shadow.** In the active branch, if the native op itself overflows, the
+counter's `VAR_${varName}` memory is stale by design (only refreshed at loop exit) —
+reloading it would silently use a wrong value. Instead, on overflow, call
+`emitInt16ToBcd()` on the shadow value(s) actually in play to refresh `$10-$18` (and
+the accumulator for a non-counter operand, if any) directly, then stage those freshly
+encoded bytes for the ROM call — never touch `VAR_${varName}`'s memory to do this.
+This only ever fires for operations the eligibility scan already proved are among
+integer-eligible operands, so no *new class* of overflow condition is introduced —
+only this one correction to where the fallback gets its BCD bytes from.
 
 ### `tools/compiler/listing.ts` changes
 
@@ -184,12 +234,17 @@ loop-shadow-eligibility.ts ─► Map<FOR statement, shadow-eligible?>
     |                              |
     v                              v
 codegen.ts:
-  emitFor    — shadow-eligible? decode counter/limit/step once into RAM shadow slots
-  NEXT loop  — shadowed: native adw + native compare, no BCD, every iteration
-             — not shadowed: unchanged FP_ADD + BCD compare, every iteration
-  loop body  — counter ref in fast-path-eligible op? read shadow directly (ldw)
-  loop exit  — shadowed: encode shadow → BCD once, store
-             — not shadowed: already up to date (unchanged)
+  emitFor    — shadow-eligible (static)? attempt decode counter/limit/step into
+               RAM shadow slots; SHADOW_ACTIVE = 1 iff all 3 decodes fit int16
+  NEXT loop  — check SHADOW_ACTIVE at runtime:
+               active:     native adw + native compare, no BCD, every iteration
+               not active: unchanged FP_ADD + BCD compare, every iteration
+  loop body  — counter ref in a fast-path-eligible op? check SHADOW_ACTIVE:
+               active:     read shadow directly (ldw); overflow? encode shadow
+                           (not VAR_x's stale memory) to BCD, then ROM call
+               not active: today's codegen, unchanged (VAR_x is never stale here)
+  loop exit  — active:     encode shadow → BCD once, store
+             — not active / not shadow-eligible: already up to date (unchanged)
 ```
 
 ## Testing & Verification Strategy
@@ -202,18 +257,32 @@ codegen shape alone doesn't prove correctness; real execution does.
    classifies correctly. Include the adversarial break-idiom case (`GOTO` past
    `NEXT`) and a body write to the counter (`K=K+5` inside the loop) as explicit
    regression cases, since both were the specific gaps found while designing this.
-2. **Codegen tests**: a shadowed loop's `NEXT` emits native `adw`/compare, not
-   `FP_ADD`/BCD staging; a disqualified loop's codegen is byte-for-byte identical to
-   today's (a real regression check, not just "still produces some output").
+2. **Codegen tests**: a statically shadow-eligible loop's `NEXT` emits both tails
+   (native `adw`/compare AND the unchanged `FP_ADD`/BCD staging) gated by a
+   `SHADOW_ACTIVE` check; a statically disqualified loop's codegen is byte-for-byte
+   identical to today's (a real regression check, not just "still produces some
+   output" — this loop should never even reference a `SHADOW_ACTIVE` flag).
 3. **Real emulator tests** (`EmulatorSession`), required cases:
    - Shadowed loop runs to completion with the correct final counter value, and the
      counter's BCD form is correct immediately after the loop (read via a normal,
      non-fast-path statement placed right after `NEXT`).
    - In-body reference to the counter (`IF K+K>N`) inside a shadowed loop produces
      the correct result every iteration, not just at the boundaries.
-   - Each of the 4 disqualifying conditions, run for real: confirm the loop still
-     produces the *correct* result via the (unchanged) BCD path — this feature must
-     never change a disqualified loop's behavior.
+   - **`SHADOW_ACTIVE` runtime-false case:** a statically shadow-eligible loop
+     (passes all 4 conditions) whose actual runtime limit exceeds int16 range (e.g.
+     `FOR K=1 TO N` where `N` evaluates to 40000) — confirm it still produces the
+     correct result via `NEXT`'s not-active tail, and that an in-body reference to
+     `K` also correctly falls through to the not-active codegen rather than reading
+     a shadow slot that was never populated correctly.
+   - **Overflow-inside-active-shadow case:** a shadowed loop where the *initial*
+     limit fits int16 (so `SHADOW_ACTIVE=1`) but an in-body expression referencing
+     the counter overflows (e.g. `K+K` once `K` exceeds 16383) — confirm the
+     fallback produces the correct result and specifically that it does **not** use
+     a stale `VAR_${varName}` value (construct the case so a stale-memory bug would
+     produce a visibly wrong, checkable answer, not coincidentally the right one).
+   - Each of the 4 static disqualifying conditions, run for real: confirm the loop
+     still produces the *correct* result via the (unchanged) BCD path — this feature
+     must never change a disqualified loop's behavior.
    - Nested loops: an outer shadowed loop containing an inner disqualified loop
      (and vice versa) both produce correct results with no interference.
    - `GOSUB` called from inside a shadowed loop's body, where the callee does BCD
@@ -242,6 +311,14 @@ codegen shape alone doesn't prove correctness; real execution does.
 - **No new user-visible error paths.** A loop that fails the eligibility scan just
   silently uses today's already-correct BCD codegen — this feature can only make
   eligible loops faster, never change an ineligible loop's behavior.
+- **A statically-eligible loop can still be runtime-inactive.** `SHADOW_ACTIVE`
+  exists precisely because eligibility (whole-number-ness) and 16-bit range are
+  different properties — the former is a compile-time guarantee, the latter isn't
+  knowable until the loop's actual `TO`/`STEP` values are computed. A loop that's
+  statically eligible but runtime-inactive (e.g. `N-1` turns out to be ≥32768) must
+  behave identically, in every observable way, to a loop the static scan disqualified
+  outright — this equivalence is exactly what the `SHADOW_ACTIVE` runtime-false test
+  case (see Testing) exists to confirm.
 
 ## Non-Goals
 
