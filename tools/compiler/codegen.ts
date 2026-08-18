@@ -229,6 +229,12 @@ class CodeGen {
   private shadowStack: OpenShadowLoop[] = [];
   /** BASIC line number currently being emitted (for shadow bookkeeping). */
   private currentLine = 0;
+  /**
+   * Counter names whose `bcdCounterRead` hook is suppressed for the code being
+   * emitted right now. See `emitWithCounterHookSuppressed` for the (narrow)
+   * conditions under which suppressing it is sound.
+   */
+  private hookSuppressedCounters: string[] = [];
   /** Every loop that actually got shadow slots, in emission order. */
   private shadowedLoopsFound: { varName: string; line: number }[] = [];
 
@@ -678,7 +684,7 @@ class CodeGen {
     // funnel every numeric variable read goes through, so it cannot miss an
     // expression context, and because it observes the code that is really
     // emitted rather than the code the AST implies.
-    if (!ref.isString) {
+    if (!ref.isString && !this.hookSuppressedCounters.includes(ref.name)) {
       for (const open of this.shadowStack) {
         if (open.varName === ref.name) open.bcdCounterRead = true;
       }
@@ -850,7 +856,62 @@ class CodeGen {
   // Binary expression → left push, right eval, pop left, call ROM
   // -------------------------------------------------------------------------
 
+  /**
+   * `+`/`-` are the operators with a single-instruction native int16 form
+   * (`adw`/`sbw`, `adwSbw_88` in src/emulator/exec.ts) and therefore the only
+   * ones a shadowed counter can be served to without inventing a new
+   * subroutine. `*` and `mod` are in the eligibility scan's FAST_PATH_OPS —
+   * they are *safe* operand positions for the counter — but there is no 16-bit
+   * multiply or divide on this CPU, so serving them natively would mean a new
+   * verified MUL16/DIV16 runtime. That is real future headroom (Task 2 measured
+   * `*` at 3080 ROM cycles) and deliberately out of scope here: a counter used
+   * under `*` simply takes the unchanged BCD path, which sets `bcdCounterRead`
+   * and so keeps VAR_<v> current, exactly as before this task.
+   */
+  private static readonly NATIVE_BINARY_OPS = new Set<BinaryOp>(['+', '-']);
+
   private emitBinaryExpr(op: BinaryOp, left: Expression, right: Expression): void {
+    if (CodeGen.NATIVE_BINARY_OPS.has(op)) {
+      const resolved = this.resolveShadowOperands(left, right);
+      // MEASURED, not assumed: going native is only a win here when the OTHER
+      // operand needs no runtime BCD decode. Cycles per iteration over a
+      // 100-iteration loop, this commit vs its parent:
+      //
+      //     S=S+(K+K)   no other operand   4585 -> 3623   -21%
+      //     S=S+(K-1)   int16 literal      4835 -> 4245   -12%
+      //     S=S+K       another variable   3597 -> 3877    +8%   <-- excluded
+      //
+      // The last row is the whole reason for this condition. `+` costs 1087
+      // ROM cycles and BCD_TO_INT16 costs ~1370, so decoding one variable
+      // operand already loses more than the native add plus the retired
+      // per-iteration sync win back. (`-` is the same shape: 1300 vs ~1370.)
+      // An excluded expression simply keeps today's BCD codegen, which sets
+      // bcdCounterRead and so keeps VAR_<v> current — i.e. exactly the
+      // pre-Task-5 behaviour, not a new one.
+      //
+      // Comparisons do NOT get this restriction: measured below, the native
+      // compare wins by ~46% even when the other operand has to be decoded,
+      // because the BCD comparison it replaces is an FP_SUB plus nine bytes of
+      // operand staging plus a multi-instruction classification.
+      if (resolved && (resolved.other === undefined || this.int16Literal(resolved.other) !== undefined)) {
+        this.emitShadowAwareBinaryExpr(op as '+' | '-', left, right, resolved);
+        return;
+      }
+    }
+    this.emitPlainBinaryExpr(op, left, right);
+  }
+
+  /**
+   * Today's `emitBinaryExpr`, extracted verbatim.
+   *
+   * It is called from three places now — the ordinary non-shadow path, the
+   * runtime not-active branch of a shadow-aware expression, and that branch's
+   * overflow fallback — and every one of them needs the ORIGINAL sequence, not
+   * a re-derivation of it. Keeping it as one method is what makes "the BCD path
+   * is byte-for-byte what it always was" a structural property rather than
+   * something to re-check by eye after every edit.
+   */
+  private emitPlainBinaryExpr(op: BinaryOp, left: Expression, right: Expression): void {
     // MOD (&H105F) is not a leaf FP routine like FP_ADD/SUB/MUL/DIV — it's a
     // BASIC-interpreter operator-table entry point. Its preamble (&H1069 ->
     // &H05A1) pops the left operand off the CPU's separate US ("user") stack
@@ -936,6 +997,363 @@ class CodeGen {
 
   private isComparisonOp(op: BinaryOp): boolean {
     return ['=', '<>', '<', '>', '<=', '>='].includes(op);
+  }
+
+  // -------------------------------------------------------------------------
+  // Shadow-aware in-body operand resolution
+  //
+  // This is what makes a shadowed loop pay for itself: an expression in the
+  // body that names the counter reads the int16 slot instead of decoding
+  // VAR_<v> from BCD. Emitted layout, for both the arithmetic and the
+  // comparison form:
+  //
+  //     ld  $9,SHADOW_<v>_ACT       ; runtime "is this loop shadowed?" test
+  //     anc $9,$9 / jr z,<bcd>      ; flag == 0 -> today's codegen, untouched
+  //     ... evaluate the OTHER operand, BCD_TO_INT16 it ...    (skipped for an
+  //     anc $9,$9 / jr nz,<sync>    ; not an int16 -> BCD path  int16 literal,
+  //     ... load the counter from its slot, native op or compare ...   which
+  //                                 ; goes in as a 16-bit immediate instead)
+  //     ... signed-overflow test -> <sync> ...
+  //     cal INT16_TO_BCD / jr <done>            (arithmetic: result -> $10-$18)
+  //  <sync>:                        ; the native path cannot finish
+  //     ld the slot / cal INT16_TO_BCD / store  ; VAR_<v> := the CURRENT counter
+  //  <bcd>:                         ; falls through
+  //     ... emitPlainBinaryExpr / emitPlainComparison, unchanged ...
+  //  <done>:
+  //
+  // ── Why <sync> writes VAR_<v> instead of staging registers ────────────────
+  //
+  // The plan's Global Constraint is that the overflow fallback must NOT reload
+  // VAR_<v>: while shadowing is active that memory is stale BY DESIGN (Task 4
+  // refreshes it once, at loop exit), so recovering from it would silently use
+  // the loop's initial counter. The constraint is about the VALUE, not about
+  // the storage: publishing the slot's CURRENT value into VAR_<v> first and
+  // then letting the ordinary BCD path load it is the same freshly-encoded
+  // bytes the constraint asks for, and it lets the fallback and the not-active
+  // branch be ONE shared block instead of two hand-matched copies of the same
+  // operand staging. On a machine with a ~1 KB ML area that halving is not a
+  // luxury, and "the fallback IS today's codegen" is a much stronger
+  // correctness argument than "the fallback resembles today's codegen".
+  //
+  // Nothing else in the body writes the slot (only NEXT steps it), so the slot
+  // still holds the pre-operation counter even on the overflow path — no
+  // equivalent of the NEXT tail's `sbw $0,$4` undo is needed here.
+  //
+  // ── Why the BCD path may read VAR_<v> without setting bcdCounterRead ──────
+  //
+  // Both ways into <bcd> prove VAR_<v> is current at that point:
+  //
+  //   * from the flag test, SHADOW_ACTIVE was 0 — decided once, at loop entry,
+  //     and never set back to 1 — so NEXT is running its own not-active tail,
+  //     which stores VAR_<v> every iteration exactly like an unshadowed loop;
+  //   * from <sync>, this block just wrote it.
+  //
+  // Neither argument covers anything else, so the suppression is bounded twice
+  // over (see emitWithCounterHookSuppressed):
+  //
+  //   * by CODE REGION — only the <bcd> block, never the active branch. The
+  //     active branch evaluates the other operand for real, and that operand
+  //     may itself read the counter through a path this task does not serve
+  //     (`K > (K*2)`); that read is a genuine mid-loop BCD read and must still
+  //     force NEXT's per-iteration sync. Widening the suppression to the whole
+  //     block makes that program compute against the loop's initial counter —
+  //     verified by mutation in tools/emu-debugger/tests/loop-shadow-body.test.ts.
+  //   * by NAME — only this loop's counter. Another shadowed loop's counter in
+  //     the same expression (`IF I>J`) is covered by no such argument and must
+  //     still mark its own loop.
+  //
+  // ── Registers ────────────────────────────────────────────────────────────
+  //
+  //   $0/$1  left operand (and the native result)
+  //   $2/$3  address scratch — clobbered by every emitShadow* helper
+  //   $4/$5  right operand for the arithmetic form
+  //   $6/$7  right operand for the comparison form
+  //   $8/$9  the parked other operand, then the overflow/compare scratch
+  //
+  // $0-$9 is the window BCD_TO_INT16/INT16_TO_BCD confine themselves to, and
+  // $10-$18 (the BCD accumulator) is left holding the result, matching every
+  // other emitExpression path's contract.
+  // -------------------------------------------------------------------------
+
+  /**
+   * The open shadowed loop `expr` is a bare reference to the counter of, if
+   * any. Array elements and string variables are excluded — a shadow slot only
+   * ever holds a scalar numeric counter.
+   *
+   * The whole stack is searched, innermost first, not just its top: a loop body
+   * can reference an OUTER shadowed loop's counter from inside an inner
+   * (possibly disqualified) loop. Same traversal `emitVariableLoad`'s
+   * bcdCounterRead hook uses.
+   *
+   * A loop already marked `unshadowable` is skipped: emitFor's activation
+   * constant has been back-patched to 0, so its SHADOW_ACTIVE is 0 at run time
+   * and the native branch would be unreachable code.
+   */
+  private shadowCounterOperand(expr: Expression): OpenShadowLoop | undefined {
+    if (expr.type !== 'variable' || expr.ref.isString || expr.ref.indices) return undefined;
+    for (let i = this.shadowStack.length - 1; i >= 0; i--) {
+      const open = this.shadowStack[i]!;
+      if (open.varName === expr.ref.name && !open.unshadowable) return open;
+    }
+    return undefined;
+  }
+
+  /**
+   * `expr`'s value when it is an integer literal that fits a signed int16, so
+   * it can be an immediate operand instead of a BCD constant that has to be
+   * loaded and decoded at run time.
+   *
+   * `5.0` is rejected even though its value is 5: type-inference.ts's
+   * eligibility rule is syntactic (`hasDecimalPoint`), and disagreeing with it
+   * here would mean the codegen treated as an integer something the static scan
+   * had classified as BCD-only.
+   */
+  private int16Literal(expr: Expression): number | undefined {
+    if (expr.type === 'number' && expr.hasDecimalPoint) return undefined;
+    if (expr.type !== 'number' && expr.type !== 'hex-literal') return undefined;
+    const v = expr.value;
+    if (!Number.isInteger(v) || v < -32768 || v > 32767) return undefined;
+    return v;
+  }
+
+  /**
+   * Classify a binary expression's operands against the shadow stack.
+   * `counterIsLeft` says which side the slot feeds; `other` is the operand that
+   * has to be evaluated normally, or undefined when BOTH sides are that same
+   * counter (`K+K`, the shape this whole feature was designed around).
+   *
+   * When the two sides name the counters of two DIFFERENT open loops, only the
+   * innermost-matching one is served from its slot; the other goes through
+   * emitExpression, whose bcdCounterRead hook then keeps its own VAR_ current.
+   * Correct, if not maximally fast — and rare enough not to justify the
+   * four-way runtime flag matrix serving both would need.
+   */
+  private resolveShadowOperands(left: Expression, right: Expression):
+    { shadow: OpenShadowLoop; counterIsLeft: boolean; other?: Expression } | undefined {
+    const leftShadow = this.shadowCounterOperand(left);
+    const rightShadow = this.shadowCounterOperand(right);
+    const shadow = leftShadow ?? rightShadow;
+    if (!shadow) return undefined;
+    if (leftShadow === shadow) {
+      return { shadow, counterIsLeft: true, other: rightShadow === shadow ? undefined : right };
+    }
+    return { shadow, counterIsLeft: false, other: left };
+  }
+
+  /**
+   * Emit `body` with `varName`'s bcdCounterRead hook disabled.
+   *
+   * ONLY sound where the caller has proved VAR_<varName> is current at run time
+   * for every path reaching the emitted code — which, today, means only the
+   * `<bcd>` block described above. Scoped by name so an unrelated shadowed
+   * loop's counter inside the same expression still marks its own loop.
+   */
+  private emitWithCounterHookSuppressed(varName: string, body: () => void): void {
+    this.hookSuppressedCounters.push(varName);
+    try {
+      body();
+    } finally {
+      this.hookSuppressedCounters.pop();
+    }
+  }
+
+  /**
+   * Leave the two native operands in `$0/$1` (left) and `rightPair` (right),
+   * branching to `failLabel` when the non-counter operand is not an exact
+   * int16. `$10-$18` is left holding that operand's BCD on the failure path,
+   * but nothing needs it — `failLabel` recovers the counter from its slot and
+   * falls into the unchanged BCD path, which re-evaluates both operands.
+   */
+  private emitShadowNativeOperands(
+    shadow: OpenShadowLoop,
+    other: Expression | undefined,
+    counterIsLeft: boolean,
+    rightPair: '$4' | '$6',
+    failLabel: string,
+  ): void {
+    const v = shadow.varName;
+    if (!other) {
+      this.emitShadowLoad16(shadow.counter, `native: ${v} from its shadow slot`);
+      this.code.push({ mnemonic: 'ldw', operands: `${rightPair},$0`, comment: `both operands are ${v}` });
+      return;
+    }
+
+    // An integer literal in range is known at COMPILE time, so it needs no BCD
+    // load and no BCD_TO_INT16 (and has no failure path): it goes straight in
+    // as a 16-bit immediate. This is what makes `K+1`, `K-1` and `K>50` — the
+    // shapes a counter-driven loop body is actually made of — a win rather
+    // than a wash.
+    const lit = this.int16Literal(other);
+    if (lit !== undefined) {
+      const imm = `&H${(((lit < 0 ? lit + 0x10000 : lit)) & 0xFFFF).toString(16).toUpperCase().padStart(4, '0')}`;
+      this.emitShadowLoad16(shadow.counter, `native: ${v} from its shadow slot`);
+      if (counterIsLeft) {
+        this.code.push({ mnemonic: 'ldw', operands: `${rightPair},${imm}`, comment: `right = ${lit}` });
+      } else {
+        this.code.push({ mnemonic: 'ldw', operands: `${rightPair},$0`, comment: `right = ${v}` });
+        this.code.push({ mnemonic: 'ldw', operands: `$0,${imm}`, comment: `left = ${lit}` });
+      }
+      return;
+    }
+
+    this.emitExpression(other);
+    this.emitBcdToInt16(`decode the non-counter operand for the native op`);
+    this.code.push({ mnemonic: 'anc', operands: '$9,$9', comment: 'did it fit in an int16?' });
+    this.code.push({ mnemonic: 'jr', operands: `nz,${failLabel}`, comment: 'no -> BCD path' });
+    // Parked in $8/$9, not $2/$3: emitShadowLoad16 writes the address pair.
+    this.code.push({ mnemonic: 'ldw', operands: '$8,$0', comment: 'park the non-counter operand' });
+    this.emitShadowLoad16(shadow.counter, `native: ${v} from its shadow slot`);
+    if (counterIsLeft) {
+      this.code.push({ mnemonic: 'ldw', operands: `${rightPair},$8`, comment: 'right = the other operand' });
+    } else {
+      this.code.push({ mnemonic: 'ldw', operands: `${rightPair},$0`, comment: `right = ${v}` });
+      this.code.push({ mnemonic: 'ldw', operands: '$0,$8', comment: 'left = the other operand' });
+    }
+  }
+
+  /**
+   * Publish the counter's CURRENT value — read back out of the slot, encoded by
+   * INT16_TO_BCD — into VAR_<v>, so the unchanged BCD path below can load it
+   * the ordinary way. This is the "never recover from stale memory" half of the
+   * plan's Global Constraint; see the block comment above for why it writes the
+   * variable rather than staging registers.
+   */
+  private emitShadowCounterRefresh(shadow: OpenShadowLoop): void {
+    const v = shadow.varName;
+    this.emitShadowLoad16(shadow.counter, `recover ${v}'s CURRENT value from its slot`);
+    this.emitInt16ToBcd(`re-encode ${v} (never a reload of the stale VAR_${v})`);
+    this.emitVariableStore({ name: v, isString: false });
+  }
+
+  /** The `anc`/`jr` pair that skips to `bcdLabel` when SHADOW_ACTIVE is 0. */
+  private emitShadowActiveTest(shadow: OpenShadowLoop, bcdLabel: string): void {
+    this.emitShadowLoad8(shadow.active, '$9', `is loop ${shadow.varName} shadowed at run time?`);
+    // logic_0C's setFlagsB sets Z_bit when the result is NON-zero, so `jr z`
+    // reads "the flag byte was 0".
+    this.code.push({ mnemonic: 'anc', operands: '$9,$9', comment: 'SHADOW_ACTIVE != 0 ?' });
+    this.code.push({ mnemonic: 'jr', operands: `z,${bcdLabel}`, comment: 'not shadowing -> BCD path' });
+  }
+
+  private emitShadowAwareBinaryExpr(
+    op: '+' | '-',
+    left: Expression,
+    right: Expression,
+    resolved: { shadow: OpenShadowLoop; counterIsLeft: boolean; other?: Expression },
+  ): void {
+    const { shadow, counterIsLeft, other } = resolved;
+    const v = shadow.varName;
+    // No `SHADOW_` prefix: that namespace is shadow STORAGE only, so a branch
+    // target must never be mistakable for a slot (the rule emitFor's
+    // FORSHADOW_* and emitNext's NEXTSHADOW_* labels follow).
+    const bcdLabel   = this.uniqueLabel(`BODYSHADOW_BCD_${v}`);
+    const syncLabel  = this.uniqueLabel(`BODYSHADOW_SYNC_${v}`);
+    const noOvfLabel = this.uniqueLabel(`BODYSHADOW_NOOVF_${v}`);
+    const doneLabel  = this.uniqueLabel(`BODYSHADOW_DONE_${v}`);
+
+    this.code.push({ comment: `${v} ${op} ...: native int16 when loop ${v} is shadowed` });
+    this.emitShadowActiveTest(shadow, bcdLabel);
+    this.emitShadowNativeOperands(shadow, other, counterIsLeft, '$4', syncLabel);
+
+    // Signed overflow has to be derived, not read off a flag: adwSbw_88 is an
+    // UNSIGNED unit (C comes from `(y >>> 0) > 0xFFFF`) and the machine has
+    // neither a sign nor an overflow flag. `+` overflows only from operands of
+    // EQUAL sign, `-` only from operands of DIFFERENT sign; both then show it
+    // as a result whose sign differs from the left operand's. Verified over a
+    // matrix on the real CPU in tools/emu-debugger/tests/loop-shadow-body.test.ts
+    // (`-`) and loop-shadow-next.test.ts (`+`).
+    this.code.push({ mnemonic: 'ld', operands: '$8,$1', comment: 'left sign byte (overflow test)' });
+    this.code.push({ mnemonic: 'ld', operands: '$9,$1', comment: '...and a second copy of it' });
+    this.code.push({ mnemonic: op === '+' ? 'adw' : 'sbw', operands: '$0,$4', comment: `native int16 ${op}` });
+    this.code.push({ mnemonic: 'xr', operands: '$8,$5', comment: 'bit 7 set -> operand signs differ' });
+    this.code.push({ mnemonic: 'xr', operands: '$9,$1', comment: 'bit 7 set -> the result changed sign' });
+    this.code.push({ mnemonic: 'anc', operands: '$8,&H80', comment: 'signs differ ?' });
+    this.code.push({
+      mnemonic: 'jr',
+      operands: `${op === '+' ? 'nz' : 'z'},${noOvfLabel}`,
+      comment: op === '+' ? 'different signs cannot overflow' : 'equal signs cannot overflow',
+    });
+    this.code.push({ mnemonic: 'anc', operands: '$9,&H80', comment: 'result sign flipped ?' });
+    this.code.push({ mnemonic: 'jr', operands: `nz,${syncLabel}`, comment: 'signed overflow -> BCD path' });
+
+    this.code.push({ label: noOvfLabel, comment: 'in range: the native result is the answer' });
+    this.emitInt16ToBcd(`native ${op} result -> the BCD accumulator`);
+    this.code.push({ mnemonic: 'jr', operands: doneLabel });
+
+    this.code.push({ label: syncLabel, comment: `the native path cannot finish this ${op}` });
+    this.emitShadowCounterRefresh(shadow);
+
+    this.code.push({ label: bcdLabel, comment: `VAR_${v} is current here: today's codegen, unchanged` });
+    this.emitWithCounterHookSuppressed(v, () => this.emitPlainBinaryExpr(op, left, right));
+    this.code.push({ label: doneLabel });
+  }
+
+  /**
+   * Branch to `falseLabel` when the relation does NOT hold, given the biased
+   * `sbcw $8,$6` above. With both operands biased by 0x8000 the unsigned unit
+   * performs a signed compare, so `C` is "left < right" and condition code `z`
+   * (Z_bit CLEAR, i.e. the difference was zero) is "left = right". Task 4
+   * verified the bias itself; each operator's own condition code is verified
+   * over the same matrix in loop-shadow-body.test.ts.
+   */
+  private emitNativeComparisonBranch(op: BinaryOp, falseLabel: string, trueLabel: string): void {
+    const jr = (cc: string, target: string, comment: string): void => {
+      this.code.push({ mnemonic: 'jr', operands: `${cc},${target}`, comment });
+    };
+    switch (op) {
+      case '=':  jr('nz', falseLabel, 'left <> right -> false'); break;
+      case '<>': jr('z',  falseLabel, 'left = right -> false'); break;
+      case '<':  jr('nc', falseLabel, 'left >= right -> false'); break;
+      case '>=': jr('c',  falseLabel, 'left < right -> false'); break;
+      case '>':
+        jr('c', falseLabel, 'left < right -> false');
+        jr('z', falseLabel, 'left = right -> false');
+        break;
+      case '<=':
+        // true is the UNION of two conditions, so a hit has to skip past the
+        // unconditional "false" jump rather than fall into it.
+        jr('c', trueLabel, 'left < right -> true');
+        jr('z', trueLabel, 'left = right -> true');
+        this.code.push({ mnemonic: 'jr', operands: falseLabel, comment: 'left > right -> false' });
+        this.code.push({ label: trueLabel });
+        break;
+      default:
+        this.code.push({ comment: `TODO: native comparison operator ${op}` });
+        break;
+    }
+  }
+
+  private emitShadowAwareComparison(
+    op: BinaryOp,
+    left: Expression,
+    right: Expression,
+    resolved: { shadow: OpenShadowLoop; counterIsLeft: boolean; other?: Expression },
+    falseLabel: string,
+  ): void {
+    const { shadow, counterIsLeft, other } = resolved;
+    const v = shadow.varName;
+    const bcdLabel  = this.uniqueLabel(`BODYSHADOW_BCD_${v}`);
+    const syncLabel = this.uniqueLabel(`BODYSHADOW_SYNC_${v}`);
+    const trueLabel = this.uniqueLabel(`BODYSHADOW_TRUE_${v}`);
+    const doneLabel = this.uniqueLabel(`BODYSHADOW_DONE_${v}`);
+
+    this.code.push({ comment: `${v} ${op} ...: native int16 compare when loop ${v} is shadowed` });
+    this.emitShadowActiveTest(shadow, bcdLabel);
+    this.emitShadowNativeOperands(shadow, other, counterIsLeft, '$6', syncLabel);
+
+    // Verbatim the sequence emitShadowedNextTail uses for its own limit test.
+    this.code.push({ mnemonic: 'ldw', operands: '$8,$0', comment: 'compare copy of the left operand' });
+    this.code.push({ mnemonic: 'xr', operands: '$9,&H80', comment: 'bias left: signed -> unsigned order' });
+    this.code.push({ mnemonic: 'xr', operands: '$7,&H80', comment: 'bias right the same way' });
+    this.code.push({ mnemonic: 'sbcw', operands: '$8,$6', comment: 'compare only (0x81: no write-back)' });
+    this.emitNativeComparisonBranch(op, falseLabel, trueLabel);
+    this.code.push({ mnemonic: 'jr', operands: doneLabel, comment: 'relation holds' });
+
+    this.code.push({ label: syncLabel, comment: 'the native compare cannot be used' });
+    this.emitShadowCounterRefresh(shadow);
+
+    this.code.push({ label: bcdLabel, comment: `VAR_${v} is current here: today's codegen, unchanged` });
+    this.emitWithCounterHookSuppressed(v, () => this.emitPlainComparison(op, left, right, falseLabel));
+    this.code.push({ label: doneLabel });
   }
 
   // -------------------------------------------------------------------------
@@ -2000,27 +2418,22 @@ class CodeGen {
    */
   private emitCondition(expr: Expression, falseLabel: string): void {
     if (expr.type === 'binary' && this.isComparisonOp(expr.op)) {
-      // 1. left → accumulator, pushed to the stack
-      this.emitExpression(expr.left);
-      this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push left[0..7]' });
-      this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push left[8]' });
-
-      // 2. right → accumulator; recover left into the $19-$27 scratch window
-      this.emitExpression(expr.right);
-      this.code.push({ mnemonic: 'pps',  operands: '$27',   comment: 'pop left[8] → $27' });
-      this.code.push({ mnemonic: 'ppsm', operands: '$19,8', comment: 'pop left[0..7] → $19-$26' });
-
-      // 3. Stage for the ROM's convention: left in $10-$18, right in $0-$8
-      //    (identical to emitBinaryExpr's arithmetic path). The call must go
-      //    through ROM_CALL_FP — plain ROM_CALL clobbers $0-$3.
-      this.code.push({ mnemonic: 'ldm', operands: '$0,$10,8',  comment: 'right[0..7] -> $0-$7' });
-      this.code.push({ mnemonic: 'ld',  operands: '$8,$18',    comment: 'right[8] -> $8' });
-      this.code.push({ mnemonic: 'ldm', operands: '$10,$19,8', comment: 'left[0..7] -> $10-$17' });
-      this.code.push({ mnemonic: 'ld',  operands: '$18,$27',   comment: 'left[8] -> $18' });
-      this.emitRomCallFp(ROM.FP_SUB, `compare: ${expr.op}`);
-
-      // 4. Classify the difference now sitting in $10-$18
-      this.emitComparisonBranch(expr.op, falseLabel);
+      // A comparison with a shadowed loop's counter as a DIRECT operand is the
+      // comparison half of Task 5's in-body resolution. (`IF K+K>N` is served
+      // one level down instead, by emitBinaryExpr on the `K+K`: the comparison
+      // itself has no bare counter operand.)
+      //
+      // NOTE: this hook is in emitCondition, not in emitComparisonBranch as the
+      // plan's Task 5 says. emitComparisonBranch takes `(op, falseLabel)` and
+      // classifies a BCD difference the caller has ALREADY computed — it never
+      // sees the operands, so it structurally cannot decide anything about
+      // them. emitCondition is the caller that holds `left`/`right`.
+      const resolved = this.resolveShadowOperands(expr.left, expr.right);
+      if (resolved) {
+        this.emitShadowAwareComparison(expr.op, expr.left, expr.right, resolved, falseLabel);
+        return;
+      }
+      this.emitPlainComparison(expr.op, expr.left, expr.right, falseLabel);
     } else {
       // Numeric truth: the value is false only when it is BCD zero
       this.emitExpression(expr);
@@ -2031,6 +2444,35 @@ class CodeGen {
         comment: 'value is zero → condition false',
       });
     }
+  }
+
+  /**
+   * The BCD comparison emitCondition has always emitted, extracted verbatim so
+   * the shadow-aware form's not-active branch can call the ORIGINAL rather than
+   * a re-derivation of it — same reasoning as emitPlainBinaryExpr.
+   */
+  private emitPlainComparison(op: BinaryOp, left: Expression, right: Expression, falseLabel: string): void {
+    // 1. left → accumulator, pushed to the stack
+    this.emitExpression(left);
+    this.code.push({ mnemonic: 'phsm', operands: '$17,8', comment: 'push left[0..7]' });
+    this.code.push({ mnemonic: 'phs',  operands: '$18',   comment: 'push left[8]' });
+
+    // 2. right → accumulator; recover left into the $19-$27 scratch window
+    this.emitExpression(right);
+    this.code.push({ mnemonic: 'pps',  operands: '$27',   comment: 'pop left[8] → $27' });
+    this.code.push({ mnemonic: 'ppsm', operands: '$19,8', comment: 'pop left[0..7] → $19-$26' });
+
+    // 3. Stage for the ROM's convention: left in $10-$18, right in $0-$8
+    //    (identical to emitBinaryExpr's arithmetic path). The call must go
+    //    through ROM_CALL_FP — plain ROM_CALL clobbers $0-$3.
+    this.code.push({ mnemonic: 'ldm', operands: '$0,$10,8',  comment: 'right[0..7] -> $0-$7' });
+    this.code.push({ mnemonic: 'ld',  operands: '$8,$18',    comment: 'right[8] -> $8' });
+    this.code.push({ mnemonic: 'ldm', operands: '$10,$19,8', comment: 'left[0..7] -> $10-$17' });
+    this.code.push({ mnemonic: 'ld',  operands: '$18,$27',   comment: 'left[8] -> $18' });
+    this.emitRomCallFp(ROM.FP_SUB, `compare: ${op}`);
+
+    // 4. Classify the difference now sitting in $10-$18
+    this.emitComparisonBranch(op, falseLabel);
   }
 
   /**

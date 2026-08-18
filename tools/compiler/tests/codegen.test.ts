@@ -517,6 +517,22 @@ function shadowLabels(asm: { lines: AsmLine[] }): string[] {
     .map(l => l.label!);
 }
 
+/**
+ * Indices of the `cal BCD_TO_INT16`s that are emitFor's ENTRY decode, i.e. the
+ * ones whose result is stored straight into a shadow slot. Task 5's in-body
+ * operand resolution calls the same routine for a non-counter operand, so
+ * "every decode in the program" is no longer the same set.
+ */
+function slotFeedingDecodes(asm: { lines: AsmLine[] }): number[] {
+  const nextInstr = (from: number): AsmLine | undefined =>
+    asm.lines.slice(from).find(l => l.mnemonic);
+  return asm.lines
+    .map((l, i) => ({ l, i }))
+    .filter(({ l, i }) => l.mnemonic === 'cal' && l.operands === 'BCD_TO_INT16'
+      && (nextInstr(i + 1)?.operands ?? '').startsWith('$2,SHADOW_'))
+    .map(({ i }) => i);
+}
+
 describe('codegen - loop shadow slots', () => {
   it('emits shadow slot storage and an entry-time decode+SHADOW_ACTIVE sequence for a shadow-eligible FOR loop', () => {
     const asm = generate(parse(SHADOW_LOOP));
@@ -565,13 +581,15 @@ describe('codegen - loop shadow slots', () => {
   it('decodes into the shadow slots BEFORE the loop-top label, so it runs once per loop, not once per iteration', () => {
     const asm = generate(parse(SHADOW_LOOP));
     const topIdx = asm.lines.findIndex(l => l.label?.startsWith('FOR_K'));
-    const lastDecode = asm.lines.map((l, i) => ({ l, i }))
-      .filter(({ l }) => l.mnemonic === 'cal' && l.operands === 'BCD_TO_INT16')
-      .map(({ i }) => i)
-      .pop();
     expect(topIdx).toBeGreaterThan(0);
-    expect(lastDecode).toBeDefined();
-    expect(lastDecode!).toBeLessThan(topIdx);
+    // Only the decodes that FEED A SLOT are the entry decode. Task 5's in-body
+    // operand resolution also calls BCD_TO_INT16 — on the non-counter operand
+    // of an expression, per evaluation and by design — so an unscoped "no
+    // BCD_TO_INT16 after the loop top" would now be asserting the opposite of
+    // what this test is about.
+    const slotDecodes = slotFeedingDecodes(asm);
+    expect(slotDecodes.length).toBe(3); // counter, limit, step
+    for (const i of slotDecodes) expect(i).toBeLessThan(topIdx);
   });
 
   it('reaches every shadow slot through IX-indexed addressing, never a bare absolute label operand', () => {
@@ -622,8 +640,8 @@ describe('codegen - loop shadow slots', () => {
       '10 FOR K=1 TO 10\n20 S=S+K\n30 NEXT K\n40 FOR K=1 TO 5\n50 S=S+K\n60 NEXT K\n70 END\n',
     ));
     expect(asm.lines.filter(l => l.mnemonic === 'DS' && l.label?.startsWith('SHADOW_')).length).toBe(4);
-    // but both loops still decode at their own entry
-    expect(asm.lines.filter(l => l.mnemonic === 'cal' && l.operands === 'BCD_TO_INT16').length).toBe(6);
+    // but both loops still decode at their own entry (3 slots each)
+    expect(slotFeedingDecodes(asm).length).toBe(6);
   });
 
   it('keeps the SHADOW_ prefix exclusively for storage, so no branch target can be mistaken for a slot', () => {
@@ -656,17 +674,29 @@ describe('codegen - loop shadow slots', () => {
 // program for the positive case would have produced no shadowing at all.
 // SHADOW_LOOP above is reused instead.
 //
-// SHADOW_LOOP's body (`S=S+K`) still resolves K through VAR_K until Task 5
-// lands, so it exercises the "keep the BCD form current" variant of the tail.
+// SHADOW_LOOP_READS's body (`S=K*2`) resolves K through VAR_K, so it exercises
+// the "keep the BCD form current" variant of the tail. It used to be
+// SHADOW_LOOP itself (`S=S+K`), but Task 5 now serves a `+` operand from the
+// slot, so that program reaches the fully amortized variant instead -- exactly
+// the self-retirement Task 4 predicted. `*` has no native int16 form here, so
+// it is what still forces the sync.
 // SHADOW_LOOP_NO_READ never touches K in its body and therefore gets the fully
 // amortized variant -- one BCD encode for the whole loop. Both shapes matter,
 // so both are pinned.
 
-/** Shadow-eligible, and the body reads the counter's BCD form (for now). */
-const SHADOW_LOOP_READS = SHADOW_LOOP;
+/** Shadow-eligible, and the body reads the counter's BCD form. */
+const SHADOW_LOOP_READS = '10 FOR K=1 TO 10\n20 S=K*2\n30 NEXT K\n40 END\n';
 
 /** Shadow-eligible, and nothing in the body reads the counter at all. */
 const SHADOW_LOOP_NO_READ = '10 FOR K=1 TO 10\n20 S=S+1\n30 NEXT K\n40 END\n';
+
+/**
+ * Shadow-eligible, and the body's counter reference is one Task 5 actually
+ * serves natively. `S=S+K` is NOT that shape: its other operand is a variable,
+ * which would need a runtime BCD_TO_INT16 that costs more than the ROM `+` it
+ * replaces (measured -- see emitBinaryExpr), so it stays on the BCD path.
+ */
+const SHADOW_LOOP_SERVED = '10 FOR K=1 TO 10\n20 S=K+1\n30 NEXT K\n40 END\n';
 
 /** Text form of an instruction line, for sequence comparisons. */
 function instrText(l: AsmLine): string {
@@ -707,7 +737,11 @@ describe('codegen - NEXT dual tail', () => {
     const text = asm.lines.map(instrText);
 
     // The runtime test: read the flag byte, compare-AND it, branch away when 0.
-    const flagLoad = asm.lines.findIndex(l => instrText(l) === 'ld $9,(ix+$sx)'
+    // Scoped to NEXT's own tail -- Task 5's in-body resolution emits the same
+    // three-instruction idiom earlier, in the body.
+    const tailStart = asm.lines.findIndex(l => l.comment?.startsWith('NEXT K: shadowed tail'));
+    expect(tailStart).toBeGreaterThan(0);
+    const flagLoad = asm.lines.findIndex((l, i) => i > tailStart && instrText(l) === 'ld $9,(ix+$sx)'
       && l.comment?.includes('SHADOW_K_ACT'));
     expect(flagLoad).toBeGreaterThan(0);
     expect(instrText(asm.lines[flagLoad + 1]!)).toBe('anc $9,$9');
@@ -817,9 +851,9 @@ describe('codegen - NEXT dual tail', () => {
   });
 
   it('keeps the counter\'s BCD form current per iteration while the body still reads it', () => {
-    // `S=S+K` resolves K through VAR_K until Task 5's shadow-aware operand
-    // resolution lands. Skipping the per-iteration encode would make the body
-    // read the loop's INITIAL counter on every pass.
+    // `S=K*2` resolves K through VAR_K -- `*` is outside the set of operators
+    // Task 5 serves natively. Skipping the per-iteration encode would make the
+    // body read the loop's INITIAL counter on every pass.
     const asm = generate(parse(SHADOW_LOOP_READS));
     const sync = asm.lines.findIndex(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'));
     expect(sync).toBeGreaterThan(0);
@@ -950,14 +984,275 @@ describe('codegen - NEXT dual tail', () => {
 
   it('emits one dual tail per shadowed loop when the same counter drives two loops', () => {
     const asm = generate(parse(
-      '10 FOR K=1 TO 10\n20 S=S+K\n30 NEXT K\n40 FOR K=1 TO 5\n50 S=S+K\n60 NEXT K\n70 END\n',
+      '10 FOR K=1 TO 10\n20 S=K+1\n30 NEXT K\n40 FOR K=1 TO 5\n50 S=K+1\n60 NEXT K\n70 END\n',
     ));
     expect(asm.lines.filter(l => l.label?.startsWith('NEXTSHADOW_BCD_K')).length).toBe(2);
-    // Both bodies read K, so both tails carry a per-iteration sync: 3 encodes
-    // each (exit, sync, overflow).
-    expect(asm.lines.filter(l => l.mnemonic === 'cal' && l.operands === 'INT16_TO_BCD').length).toBe(6);
+    // Neither body reads K through BCD any more (Task 5 serves the `+` from the
+    // slot), so no tail carries a per-iteration sync: 2 encodes each in the
+    // tail (normal exit, int16 overflow) plus 2 each in the body's shadow-aware
+    // `+` (the native result, and the fallback's counter refresh).
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(false);
+    expect(asm.lines.filter(l => l.mnemonic === 'cal' && l.operands === 'INT16_TO_BCD').length).toBe(8);
     // ...and each native tail loops back to its OWN loop-top label.
     const tops = asm.lines.filter(l => l.mnemonic === 'jr' && /^FOR_K_\d+$/.test(l.operands ?? ''));
     expect(new Set(tops.map(l => l.operands)).size).toBe(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Task 5: shadow-aware in-body operand resolution
+// ---------------------------------------------------------------------------
+//
+// An expression in a shadowed loop's body that names the counter is served from
+// the int16 slot instead of decoding VAR_<v> -- but only when SHADOW_ACTIVE says
+// so at run time, because a statically eligible loop can still be runtime
+// inactive (a bound that didn't fit int16).
+//
+// NOTE on the sample programs. The brief's draft used `40 PRINT K` in the body,
+// which is a DISQUALIFYING use of the counter (Task 2 ruling, same trap Task 3's
+// and Task 4's briefs fell into) -- that program gets no shadowing at all, so it
+// could not have exercised anything here. `S=S+1` replaces it below.
+
+/** Shadow-eligible; `K+K` is the in-body expression Task 5 exists to serve. */
+const SHADOW_BODY_ADD =
+  '10 N=100\n20 S=0\n30 FOR K=1 TO N\n40 IF K+K>N THEN GOTO 60\n50 S=S+1\n60 NEXT K\n70 END\n';
+
+/** Shadow-eligible; the counter is a DIRECT operand of the comparison. */
+const SHADOW_BODY_CMP =
+  '10 N=100\n20 S=0\n30 FOR K=1 TO N\n40 IF K>50 THEN GOTO 60\n50 S=S+1\n60 NEXT K\n70 END\n';
+
+/**
+ * The loop BODY: from the loop-top label up to (not including) whichever of
+ * NEXT's two tails comes first. Deliberately excludes the NEXT machinery, so a
+ * "the body reads the shadow" assertion cannot be satisfied by Task 4's tail.
+ */
+function loopBody(asm: { lines: AsmLine[] }, varName: string): AsmLine[] {
+  const start = asm.lines.findIndex(l => l.label?.startsWith(`FOR_${varName}_`));
+  expect(start, `loop-top label for ${varName}`).toBeGreaterThan(0);
+  const end = asm.lines.findIndex((l, i) => i > start && !l.mnemonic
+    && (l.comment === `NEXT ${varName}` || l.comment?.startsWith(`NEXT ${varName}: shadowed tail`)));
+  expect(end).toBeGreaterThan(start);
+  return asm.lines.slice(start + 1, end);
+}
+
+describe('codegen - shadow-aware in-body operands', () => {
+  it('serves an in-body counter reference from the shadow slot instead of decoding VAR_K', () => {
+    const asm = generate(parse(SHADOW_BODY_ADD));
+    // The brief's own (weak) form first: some operand names the slot at all.
+    expect(asm.lines.map(l => l.operands).filter(Boolean).some(o => o!.includes('SHADOW_K'))).toBe(true);
+    // ...and the load is really in the BODY, not just in emitFor's entry decode
+    // or emitNext's tail, both of which also name the slots.
+    const body = loopBody(asm, 'K').map(instrText);
+    expect(body).toContain('ldw $2,SHADOW_K_CNT');
+    expect(body).toContain('ldw $0,(ix+$sx)');
+    // The native add itself.
+    expect(body).toContain('adw $0,$4');
+  });
+
+  it('gates every in-body shadow-slot read behind a runtime SHADOW_ACTIVE test', () => {
+    const asm = generate(parse(SHADOW_BODY_ADD));
+    const body = loopBody(asm, 'K');
+    const first = body.findIndex(l => (l.operands ?? '').startsWith('$2,SHADOW_K'));
+    expect(first).toBeGreaterThanOrEqual(0);
+    // The first slot touched must be the flag, tested with the documented idiom.
+    expect(body[first]!.operands).toBe('$2,SHADOW_K_ACT');
+    const flagLoad = body.findIndex((l, i) => i > first && instrText(l) === 'ld $9,(ix+$sx)');
+    expect(flagLoad).toBeGreaterThan(first);
+    expect(instrText(body[flagLoad + 1]!)).toBe('anc $9,$9');
+    expect(body[flagLoad + 2]!.mnemonic).toBe('jr');
+    expect(body[flagLoad + 2]!.operands).toMatch(/^z,BODYSHADOW_BCD_K_\d+$/);
+    // The counter slot is only reached AFTER that test.
+    const cntRead = body.findIndex(l => l.operands === '$2,SHADOW_K_CNT');
+    expect(cntRead).toBeGreaterThan(flagLoad);
+  });
+
+  it('an expression NOT touching the counter adds no shadow references of its own', () => {
+    // Baseline: a shadowed loop with a body that never names K -- every SHADOW
+    // reference comes from emitFor's entry decode and emitNext's dual tail.
+    const baseline = generate(parse('10 FOR K=1 TO 10\n20 NEXT K\n30 END\n'));
+    const withBody = generate(parse('10 S=0\n20 FOR K=1 TO 10\n30 S=S+1\n40 NEXT K\n50 END\n'));
+    const shadowRefCount = (asm: { lines: AsmLine[] }): number =>
+      asm.lines.filter(l => (l.label ?? '').includes('SHADOW') || (l.operands ?? '').includes('SHADOW')).length;
+    expect(shadowRefCount(withBody)).toBe(shadowRefCount(baseline));
+  });
+
+  it('retires the per-iteration BCD sync once the body\'s only counter read is served natively', () => {
+    // Task 4's `bcdCounterRead` is set by emitVariableLoad. Serving the read
+    // from the slot means that hook never fires, so the loop reaches the full
+    // amortization Task 4 documented as self-retiring.
+    const asm = generate(parse(SHADOW_LOOP_SERVED)); // 10 FOR K=1 TO 10 / 20 S=K+1 / 30 NEXT K
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(false);
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_BCD_K'))).toBe(true);
+  });
+
+  it('never re-reads VAR_K inside the shadow-active region — the fallback refreshes it first', () => {
+    // The whole point of the overflow fallback: VAR_K is stale BY DESIGN while
+    // shadowing is active, so the recovery path must publish the CURRENT shadow
+    // value before anything reads VAR_K's memory again.
+    const asm = generate(parse(SHADOW_BODY_ADD));
+    const body = loopBody(asm, 'K');
+    const flagLoad = body.findIndex(l => instrText(l) === 'ld $9,(ix+$sx)');
+    const plain = body.findIndex(l => l.label?.startsWith('BODYSHADOW_BCD_K'));
+    expect(plain).toBeGreaterThan(flagLoad);
+    const active = body.slice(flagLoad, plain).map(instrText);
+    // A 9-byte BCD *load* of VAR_K is `ldw $2,VAR_K` followed by `ldm $10,...`.
+    const varKAddr = active.filter(t => t === 'ldw $2,VAR_K');
+    for (const [i, t] of active.entries()) {
+      if (t !== 'ldw $2,VAR_K') continue;
+      expect(active.slice(i, i + 6)).not.toContain('ldm $10,(ix+$sx),8');
+    }
+    // ...and the one VAR_K touch that IS there is a STORE, fed by INT16_TO_BCD
+    // out of the shadow slot.
+    expect(varKAddr.length).toBe(1);
+    const sync = body.findIndex(l => l.label?.startsWith('BODYSHADOW_SYNC_K'));
+    expect(sync).toBeGreaterThan(flagLoad);
+    expect(sync).toBeLessThan(plain);
+    const block = body.slice(sync, plain).map(instrText).filter(Boolean);
+    expect(block.slice(0, 5)).toEqual([
+      'ldw $2,SHADOW_K_CNT', 'pre ix,$2', 'psr sx,31', 'ldw $0,(ix+$sx)', 'cal INT16_TO_BCD',
+    ]);
+    expect(block.slice(5, 10)).toEqual([
+      'ldw $2,VAR_K', 'pre ix,$2', 'psr sx,31', 'stm $10,(ix+$sx),8', 'st $18,(ix+&H08)',
+    ]);
+  });
+
+  it('keeps the not-active branch as today\'s codegen, instruction for instruction', () => {
+    const normalise = (t: string): string => t.replace(/\b([A-Z][A-Z0-9_]*?)_\d+\b/g, '$1_#');
+    const shadowed = generate(parse('10 FOR K=1 TO 10\n20 S=K+1\n30 NEXT K\n40 END\n'));
+    // `PRINT K` disqualifies the loop, so line 20 compiles exactly as it always did.
+    const plainProg = generate(parse('10 FOR K=1 TO 10\n20 S=K+1\n25 PRINT K\n30 NEXT K\n40 END\n'));
+
+    const region = (asm: { lines: AsmLine[] }, from: number, to: number): string[] =>
+      asm.lines.slice(from, to).filter(l => l.mnemonic).map(instrText).map(normalise);
+
+    const l20 = plainProg.lines.findIndex(l => l.label === 'L20');
+    const l25 = plainProg.lines.findIndex(l => l.label === 'L25');
+    const want = region(plainProg, l20, l25);
+
+    const bcd = shadowed.lines.findIndex(l => l.label?.startsWith('BODYSHADOW_BCD_K'));
+    const done = shadowed.lines.findIndex(l => l.label?.startsWith('BODYSHADOW_DONE_K'));
+    expect(bcd).toBeGreaterThan(0);
+    expect(done).toBeGreaterThan(bcd);
+    const next = shadowed.lines.findIndex((l, i) => i > done && !l.mnemonic
+      && (l.comment ?? '').startsWith('NEXT K'));
+    // The not-active branch, plus everything the statement does after the
+    // expression (the store), must be today's sequence verbatim.
+    expect([...region(shadowed, bcd, done), ...region(shadowed, done, next)]).toEqual(want);
+  });
+
+  it('uses Task 4\'s verified biased signed compare for a direct counter comparison', () => {
+    const asm = generate(parse(SHADOW_BODY_CMP));
+    const body = loopBody(asm, 'K').map(instrText);
+    expect(body).toContain('ldw $2,SHADOW_K_CNT');
+    expect(body).toContain('ldw $8,$0');
+    expect(body).toContain('xr $9,&H80');
+    expect(body).toContain('xr $7,&H80');
+    expect(body).toContain('sbcw $8,$6');
+    // ...and the BCD comparison is still there as the not-active fallback.
+    expect(body).toContain('cal ROM_CALL_FP');
+  });
+
+  it('takes an int16 literal operand as an immediate, with no BCD load and no decode', () => {
+    const asm = generate(parse(SHADOW_LOOP_SERVED)); // 20 S=K+1
+    const body = loopBody(asm, 'K');
+    const plain = body.findIndex(l => l.label?.startsWith('BODYSHADOW_BCD_K'));
+    const active = body.slice(0, plain).map(instrText);
+    expect(active).toContain('ldw $4,&H0001');   // the literal, straight in
+    expect(active).not.toContain('cal BCD_TO_INT16');
+    expect(active).toContain('adw $0,$4');
+    // ...and no 9-byte BCD constant was loaded for it either.
+    expect(active.filter(t => t.startsWith('ldw $2,NUM_'))).toEqual([]);
+  });
+
+  it('leaves a `+` whose other operand needs a runtime decode on the plain BCD path', () => {
+    // Measured decision, not a capability gap: decoding a variable operand
+    // costs more than the ROM `+` the native path would replace. See
+    // emitBinaryExpr's comment for the numbers.
+    const asm = generate(parse(SHADOW_LOOP)); // 20 S=S+K
+    expect(asm.lines.some(l => (l.label ?? '').startsWith('BODYSHADOW_'))).toBe(false);
+    // ...so the counter is still read as BCD, and NEXT still syncs it.
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(true);
+    // A comparison with the same operand shape IS served -- it wins by ~46%.
+    const cmp = generate(parse('10 N=5\n20 FOR K=1 TO 10\n30 IF K>N THEN GOTO 50\n40 S=S+1\n50 NEXT K\n60 END\n'));
+    expect(cmp.lines.some(l => (l.label ?? '').startsWith('BODYSHADOW_'))).toBe(true);
+    expect(cmp.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(false);
+  });
+
+  it('rejects a literal that is not an exact int16', () => {
+    // 100000 is out of range and `1.0` is syntactically non-integer (the same
+    // rule type-inference.ts uses), so neither may become an immediate.
+    for (const src of [
+      '10 FOR K=1 TO 10\n20 S=K+100000\n30 NEXT K\n40 END\n',
+      '10 FOR K=1 TO 10\n20 S=K+1.0\n30 NEXT K\n40 END\n',
+    ]) {
+      const asm = generate(parse(src));
+      const imm = asm.lines.filter(l => /^\$4,&H[0-9A-F]{4}$/.test(l.operands ?? '')
+        && l.comment?.startsWith('right = '));
+      expect(imm).toEqual([]);
+    }
+  });
+
+  it('leaves an operator outside the native set on the plain BCD path', () => {
+    // `*` has no native int16 form here, so `K*2` still decodes VAR_K -- which
+    // means the loop keeps Task 4's per-iteration sync. Correct, just not
+    // amortized; pinned so the boundary of what Task 5 serves stays visible.
+    const asm = generate(parse('10 FOR K=1 TO 10\n20 S=K*2\n30 NEXT K\n40 END\n'));
+    expect(asm.lines.some(l => (l.label ?? '').startsWith('BODYSHADOW_'))).toBe(false);
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(true);
+  });
+
+  it('resolves an OUTER loop\'s counter from inside a nested disqualified loop', () => {
+    // J's loop is disqualified (bare J as an array index), K's is not. The
+    // reference to K inside J's body must still come from K's shadow slot.
+    const asm = generate(parse(
+      '10 DIM A(20)\n20 FOR K=1 TO 5\n30 FOR J=1 TO 3\n40 A(J)=K+1\n50 NEXT J\n60 NEXT K\n70 END\n',
+    ));
+    expect(shadowLabels(asm)).toContain('SHADOW_K_CNT');
+    expect(shadowLabels(asm)).not.toContain('SHADOW_J_CNT');
+    const inner = asm.lines.slice(
+      asm.lines.findIndex(l => l.label?.startsWith('FOR_J_')),
+      asm.lines.findIndex(l => !l.mnemonic && l.comment === 'NEXT J'),
+    );
+    expect(inner.some(l => l.operands === '$2,SHADOW_K_ACT')).toBe(true);
+    expect(inner.some(l => l.operands === '$2,SHADOW_K_CNT')).toBe(true);
+  });
+
+  it('never parks a live value in $2 or $3 across a shadow-slot address load', () => {
+    const asm = generate(parse(SHADOW_BODY_ADD));
+    const body = loopBody(asm, 'K');
+    const flagLoad = body.findIndex(l => instrText(l) === 'ld $9,(ix+$sx)');
+    const plain = body.findIndex(l => l.label?.startsWith('BODYSHADOW_BCD_K'));
+    for (const l of body.slice(flagLoad, plain)) {
+      if (!l.mnemonic) continue;
+      if (l.mnemonic === 'ldw' && l.operands?.startsWith('$2,')) continue; // the scratch itself
+      expect(l.operands?.startsWith('$3,')).toBeFalsy();
+      if (['ld', 'ldw', 'adw', 'sbw'].includes(l.mnemonic)) {
+        expect(l.operands?.startsWith('$2,')).toBeFalsy();
+      }
+    }
+  });
+
+  it('suppresses the bcdCounterRead hook per counter name, not globally', () => {
+    // Both loops are shadow-eligible and `I>J` names both counters. Only I is
+    // served from its slot; J is evaluated normally, so J's BCD form is really
+    // read and J's tail must keep it current. A hook suppression that covered
+    // the whole not-active block rather than just this counter's name would
+    // silently drop J's sync.
+    const asm = generate(parse(
+      '10 S=0\n20 FOR I=1 TO 3\n30 FOR J=1 TO 2\n40 IF I>J THEN S=S+1\n50 NEXT J\n60 NEXT I\n70 END\n',
+    ));
+    expect(shadowLabels(asm)).toContain('SHADOW_I_CNT');
+    expect(shadowLabels(asm)).toContain('SHADOW_J_CNT');
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_J'))).toBe(true);
+    // ...while I, served from its slot, keeps full amortization.
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_I'))).toBe(false);
+  });
+
+  it('keeps in-body branch targets out of the SHADOW_ storage namespace', () => {
+    const asm = generate(parse(SHADOW_BODY_ADD));
+    const nonStorage = asm.lines
+      .filter(l => l.label?.startsWith('SHADOW_') && l.mnemonic !== 'DS')
+      .map(l => l.label!);
+    expect(nonStorage).toEqual([]);
   });
 });

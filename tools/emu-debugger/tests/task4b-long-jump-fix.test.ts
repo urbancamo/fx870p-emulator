@@ -177,26 +177,43 @@ describe("Task 4b: the reviewer's FOR repro", () => {
     const forTop = assembled.symbols.find(s => s.name === 'FOR_I_1')!.address;
 
     // This program used to contain exactly one over-long branch. Task 4 (loop
-    // shadowing) gave NEXT a second, native tail, so it now contains four: the
-    // runtime SHADOW_ACTIVE test jumping forward past the native tail, the
-    // native exit's `jr <end>`, and TWO back-edges to the loop top (the native
+    // shadowing) gave NEXT a second, native tail, so it now contains several:
+    // the runtime SHADOW_ACTIVE test jumping forward past the native tail, the
+    // native exit's `jr <end>`, and the back-edges to the loop top (the native
     // tail's and the BCD tail's). The invariant this test exists for is about
     // the BACK-EDGE -- that an over-long `jr <top>` becomes a correct absolute
     // `jp <top>` instead of silently wrapping into a forward jump -- so it
     // selects the back-edges instead of assuming there is only one relaxation
     // in the program, and then holds every one of them to the original bar.
-    const relaxed = programRelaxations(lines, assembled.lineResults)
-      .filter(r => (lines[r.index]?.operands ?? '').split(',').pop()!.trim() === 'FOR_I_1');
+    //
+    // Task 5 made two of them CONDITIONAL: with the body's `S=S+I` now served
+    // from the shadow slot, the native tail no longer needs a per-iteration BCD
+    // sync block, so its `jr c,<sync>` / `jr z,<sync>` became `jr c,<top>` /
+    // `jr z,<top>`. Those relax to `jp cc,<top>` (0x30 | cc), so the expected
+    // opcode is derived from the branch's own condition code rather than
+    // assumed to be the unconditional 0x37.
+    const CC = ['z', 'nc', 'lz', 'uz', 'nz', 'c', 'nlz'];
+    const backEdge = (r: { index: number }): { cc: string | undefined; isBackEdge: boolean } => {
+      const parts = (lines[r.index]?.operands ?? '').split(',').map(s => s.trim());
+      return { cc: parts.length > 1 ? parts[0] : undefined, isBackEdge: parts[parts.length - 1] === 'FOR_I_1' };
+    };
+    const relaxed = programRelaxations(lines, assembled.lineResults).filter(r => backEdge(r).isBackEdge);
     expect(relaxed.length).toBeGreaterThan(0);
+    // At least one is still the unconditional back-edge this test was written for.
+    expect(relaxed.some(r => backEdge(r).cc === undefined)).toBe(true);
 
     for (const site of relaxed) {
+      const cc = backEdge(site).cc;
+      const jpOpcode = cc === undefined ? 0x37 : 0x30 | CC.indexOf(cc);
+      expect(CC.indexOf(cc ?? 'z')).toBeGreaterThanOrEqual(0);
       // Task 4c restructured NEXT's tail to end in emitComparisonBranch('<=',
       // ...) followed by an unconditional `jr,<top>` back-edge — the `<=`
       // classification itself is a short forward jump that never needs
       // relaxing, so the over-long branch this test exercises is that
       // unconditional back-edge. Unconditional `jr` is opcode 0xB7; its
-      // relaxed absolute form is unconditional `jp`, opcode 0x37.
-      expect(site.bytes[0]).toBe(0x37);
+      // relaxed absolute form is unconditional `jp`, opcode 0x37 (or 0x30 | cc
+      // for the conditional back-edges Task 5's amortization produced).
+      expect(site.bytes[0]).toBe(jpOpcode);
       expect(site.bytes[1]! | (site.bytes[2]! << 8)).toBe(forTop);
 
       // Cross-check lineResults against the actual emitted binary — the two
@@ -206,7 +223,7 @@ describe("Task 4b: the reviewer's FOR repro", () => {
       // absolute address) needs that offset subtracted.
       const off = site.address - ORIGIN;
       expect(Array.from(assembled.binary.slice(off, off + 3)))
-        .toEqual([0x37, forTop & 0xFF, (forTop >> 8) & 0xFF]);
+        .toEqual([jpOpcode, forTop & 0xFF, (forTop >> 8) & 0xFF]);
 
       // And the corrupt encoding is gone: the pre-Task-4b code wrapped this
       // offset silently instead of relaxing, producing a 2-byte `jr` (0xB7)
