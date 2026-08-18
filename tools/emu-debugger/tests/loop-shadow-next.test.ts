@@ -438,18 +438,6 @@ describe('a shadowed loop whose body still reads the counter as BCD', () => {
     expect(run.int16('SHADOW_K_CNT')).toBe(101); // still the native tail
   }, 120_000);
 
-  it('keeps a GOSUB\'d subroutine\'s view of the counter correct', () => {
-    // A GOSUB target is emitted outside the loop, so "does anything read
-    // VAR_K?" cannot be answered by watching the body alone -- GOSUB is
-    // treated as an unobservable read.
-    const run = runLoop(
-      '10 S=0\n20 FOR K=1 TO 10\n30 GOSUB 100\n40 NEXT K\n50 END\n100 S=S+K\n110 RETURN\n',
-      'L50',
-    );
-    expect(run.reason).toBe('breakpoint');
-    expect(hex(run.bcd('S'))).toBe(hex(numberToBcd9(55)));
-  }, 120_000);
-
   it('is still cheaper per iteration than the BCD tail it replaced', () => {
     const shadowed = runLoop('10 S=0\n20 FOR K=1 TO 60\n30 S=S+K\n40 NEXT K\n50 END\n', 'L50');
     const plain = runLoop(
@@ -459,4 +447,90 @@ describe('a shadowed loop whose body still reads the counter as BCD', () => {
     expect(plain.reason).toBe('breakpoint');
     expect(shadowed.instructions).toBeLessThan(plain.instructions);
   }, 180_000);
+});
+
+// ---------------------------------------------------------------------------
+// 5. Control flow the shadowed tail cannot observe
+// ---------------------------------------------------------------------------
+//
+// Every expected value below was measured against the pre-Task-4 compiler
+// (`git show 65b1b95:tools/compiler/codegen.ts`) rather than reasoned out, so
+// these pin "shadowing changed nothing", not "shadowing did what I assumed".
+describe('control flow that leaves or re-enters a shadowed loop', () => {
+  it('keeps VAR_K correct when a RETURN exits the loop without reaching NEXT', () => {
+    // A subroutine that happens to contain a loop and returns early out of it.
+    // The RETURN skips NEXT entirely, so the once-per-loop exit re-sync never
+    // runs; without treating RETURN as "the counter must already be current",
+    // VAR_K keeps the loop's INITIAL value (measured: 1 instead of 3) and the
+    // wrong number is then copied onward by `T=K`.
+    const run = runLoop(
+      '10 S=0\n20 GOSUB 100\n30 T=K\n40 END\n'
+      + '100 FOR K=1 TO 10\n110 S=S+1\n115 IF S=3 THEN RETURN\n120 NEXT K\n130 RETURN\n',
+      'L40',
+    );
+    expect(run.reason).toBe('breakpoint');
+    expect(hex(run.bcd('S'))).toBe(hex(numberToBcd9(3)));  // three iterations ran
+    expect(hex(run.bcd('K'))).toBe(hex(numberToBcd9(3)));  // ...and K says so
+    expect(hex(run.bcd('T'))).toBe(hex(numberToBcd9(3)));  // read back out by BASIC code
+  }, 120_000);
+
+  it('lets a GOSUB\'d subroutine WRITE the counter and have it take effect', () => {
+    // `K=99` lands in VAR_K. The native tail steps the int16 slot, which the
+    // subroutine never touched, so it would discard the write and run all ten
+    // iterations (measured: S=10, K=11). A read-sync cannot fix that -- the
+    // loop has to drop off the fast path entirely.
+    const run = runLoop(
+      '10 S=0\n20 FOR K=1 TO 10\n30 S=S+1\n35 IF S=3 THEN GOSUB 100\n40 NEXT K\n50 END\n'
+      + '100 K=99\n110 RETURN\n',
+      'L50',
+    );
+    expect(run.reason).toBe('breakpoint');
+    expect(hex(run.bcd('S'))).toBe(hex(numberToBcd9(3)));    // the write ended the loop
+    expect(hex(run.bcd('K'))).toBe(hex(numberToBcd9(100)));  // 99, then NEXT's step
+    // ...and the runtime flag agrees the slots were never live for this loop.
+    expect(run.byte('SHADOW_K_ACT')).toBe(0);
+  }, 120_000);
+
+  it('still reads the counter correctly inside a GOSUB\'d subroutine', () => {
+    // The read direction, which used to be handled by forcing a per-iteration
+    // sync and is now handled by the stronger "no native tail" rule.
+    const run = runLoop(
+      '10 S=0\n20 FOR K=1 TO 10\n30 GOSUB 100\n40 NEXT K\n50 END\n100 S=S+K\n110 RETURN\n',
+      'L50',
+    );
+    expect(run.reason).toBe('breakpoint');
+    expect(hex(run.bcd('S'))).toBe(hex(numberToBcd9(55)));
+    expect(hex(run.bcd('K'))).toBe(hex(numberToBcd9(11)));
+    expect(run.byte('SHADOW_K_ACT')).toBe(0);
+  }, 120_000);
+
+  it('takes an ON..GOSUB off the fast path the same way', () => {
+    // The selector has to be something other than the bare counter -- `ON K
+    // GOSUB` puts K in a non-fast-path position, which disqualifies the loop
+    // statically before any of this applies.
+    const run = runLoop(
+      '10 S=0\n20 FOR K=1 TO 4\n25 N=1\n30 S=S+1\n35 ON N GOSUB 100\n40 NEXT K\n50 END\n'
+      + '100 K=99\n110 RETURN\n',
+      'L50',
+    );
+    expect(run.reason).toBe('breakpoint');
+    expect(hex(run.bcd('S'))).toBe(hex(numberToBcd9(1)));    // the write ended the loop
+    expect(hex(run.bcd('K'))).toBe(hex(numberToBcd9(100)));
+    expect(run.byte('SHADOW_K_ACT')).toBe(0);
+  }, 120_000);
+
+  it('unshadows an OUTER loop when the GOSUB is inside a nested inner loop', () => {
+    // The GOSUB is in J's body, but it is in K's body too -- both open loops
+    // have to drop off the fast path, or the subroutine's write to K is lost.
+    const run = runLoop(
+      '10 S=0\n20 FOR K=1 TO 3\n30 FOR J=1 TO 2\n40 S=S+1\n50 GOSUB 200\n60 NEXT J\n70 NEXT K\n80 END\n'
+      + '200 T=K\n210 RETURN\n',
+      'L80',
+    );
+    expect(run.reason).toBe('breakpoint');
+    expect(hex(run.bcd('S'))).toBe(hex(numberToBcd9(6)));
+    expect(hex(run.bcd('T'))).toBe(hex(numberToBcd9(3)));  // K's last value, not a stale 1
+    expect(run.byte('SHADOW_K_ACT')).toBe(0);
+    expect(run.byte('SHADOW_J_ACT')).toBe(0);
+  }, 120_000);
 });

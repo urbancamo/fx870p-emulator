@@ -679,6 +679,20 @@ function instrText(l: AsmLine): string {
  * the comparison is over the instruction sequence, not over line indices that
  * shift as unrelated codegen changes land.
  */
+/**
+ * emitFor's shadow-entry block for `varName`: from its header comment to the
+ * loop-top label. Scoped deliberately -- the shared BCD_TO_INT16 runtime also
+ * writes `$9` (as its status register), so an unscoped search for
+ * `ld $9,&H01` finds that instead of the SHADOW_ACTIVE activation constant.
+ */
+function shadowEntryBlock(asm: { lines: AsmLine[] }, varName: string): string[] {
+  const start = asm.lines.findIndex(l => l.comment?.includes(`loop-shadow entry for ${varName}`));
+  if (start < 0) return [];
+  const end = asm.lines.findIndex((l, i) => i > start && l.label?.startsWith(`FOR_${varName}_`));
+  expect(end).toBeGreaterThan(start);
+  return asm.lines.slice(start, end).filter(l => l.mnemonic).map(instrText);
+}
+
 function bcdTail(asm: { lines: AsmLine[] }, varName: string): string[] {
   const start = asm.lines.findIndex(l => !l.mnemonic && l.comment === `NEXT ${varName}`);
   expect(start, `BCD tail marker for NEXT ${varName}`).toBeGreaterThan(0);
@@ -821,20 +835,78 @@ describe('codegen - NEXT dual tail', () => {
     expect(block[6]).toMatch(/^jr FOR_K_\d+$/);
   });
 
-  it('treats a GOSUB in the body as an unobservable read of the counter', () => {
-    // A GOSUB target's code is emitted outside the loop, so "does anything
-    // read VAR_K?" cannot be answered by watching the loop body alone.
+  it('keeps the counter current for a RETURN, which leaves without reaching NEXT', () => {
+    // A subroutine containing a loop it returns early out of. The RETURN skips
+    // NEXT, so the once-per-loop exit re-sync never runs -- VAR_K has to have
+    // been kept current all along, which is what the per-iteration sync does.
     const asm = generate(parse(
-      '10 FOR K=1 TO 10\n20 GOSUB 100\n30 NEXT K\n40 END\n100 S=K\n110 RETURN\n',
+      '10 GOSUB 100\n20 END\n100 FOR K=1 TO 10\n110 S=S+1\n115 IF S=3 THEN RETURN\n'
+      + '120 NEXT K\n130 RETURN\n',
     ));
     expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(true);
+    // ...and the loop keeps its native tail: RETURN is an exit, not a write.
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_BCD_K'))).toBe(true);
   });
 
-  it('treats an ON..GOSUB in the body the same way', () => {
+  it('does not force a sync for a RETURN that is outside every shadowed loop', () => {
+    // The RETURN closing the subroutine sits after NEXT, so it must not drag
+    // an already-closed loop back onto the slow path.
     const asm = generate(parse(
-      '10 FOR K=1 TO 10\n20 ON S GOSUB 100,110\n30 NEXT K\n40 END\n100 S=K\n105 RETURN\n110 RETURN\n',
+      '10 GOSUB 100\n20 END\n100 FOR K=1 TO 10\n110 S=S+1\n120 NEXT K\n130 RETURN\n',
     ));
-    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(true);
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(false);
+  });
+
+  // -- GOSUB: the slots cannot be trusted at all ----------------------------
+
+  it('takes a loop whose body GOSUBs off the fast path entirely', () => {
+    // The subroutine may WRITE the counter, and that write lands in VAR_K --
+    // somewhere the native tail never looks. A read-sync cannot fix it, so the
+    // whole native tail is skipped and the runtime flag is forced to 0.
+    const asm = generate(parse(
+      '10 FOR K=1 TO 10\n20 GOSUB 100\n30 NEXT K\n40 END\n100 K=99\n110 RETURN\n',
+    ));
+    // No native tail at all -- NEXT is exactly the pre-shadowing BCD block.
+    expect(asm.lines.some(l => (l.label ?? '').startsWith('NEXTSHADOW_'))).toBe(false);
+    expect(asm.lines.some(l => l.operands === 'INT16_TO_BCD')).toBe(false);
+    // The entry decode still runs, but its activation constant is back-patched
+    // so SHADOW_ACTIVE is 0 on every path out of it.
+    const entry = shadowEntryBlock(asm, 'K');
+    expect(entry).not.toContain('ld $9,&H01');
+    expect(entry.filter(t => t === 'ld $9,&H00').length).toBe(2);
+    // ...and the slots are still reserved (emitFor already emitted them).
+    expect(shadowLabels(asm)).toContain('SHADOW_K_ACT');
+  });
+
+  it('takes an ON..GOSUB in the body off the fast path the same way', () => {
+    const asm = generate(parse(
+      '10 FOR K=1 TO 10\n20 ON S GOSUB 100,110\n30 NEXT K\n40 END\n100 K=99\n105 RETURN\n110 RETURN\n',
+    ));
+    expect(asm.lines.some(l => (l.label ?? '').startsWith('NEXTSHADOW_'))).toBe(false);
+    expect(shadowEntryBlock(asm, 'K')).not.toContain('ld $9,&H01');
+  });
+
+  it('unshadows every open loop when a GOSUB sits inside a nested one', () => {
+    // The GOSUB is in J's body, but it is in K's body too.
+    const asm = generate(parse(
+      '10 FOR K=1 TO 3\n20 FOR J=1 TO 2\n30 GOSUB 200\n40 NEXT J\n50 NEXT K\n60 END\n'
+      + '200 K=9\n210 RETURN\n',
+    ));
+    expect(asm.lines.some(l => (l.label ?? '').startsWith('NEXTSHADOW_'))).toBe(false);
+    expect(shadowEntryBlock(asm, 'K')).not.toContain('ld $9,&H01');
+    expect(shadowEntryBlock(asm, 'J')).not.toContain('ld $9,&H01');
+  });
+
+  it('leaves a GOSUB outside the loop alone', () => {
+    // Shadowing is only unsafe for loops that are OPEN when the GOSUB is
+    // emitted; one before or after must not disturb anything.
+    const asm = generate(parse(
+      '10 GOSUB 100\n20 FOR K=1 TO 10\n30 S=S+1\n40 NEXT K\n50 GOSUB 100\n60 END\n'
+      + '100 S=0\n110 RETURN\n',
+    ));
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_BCD_K'))).toBe(true);
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(false);
+    expect(shadowEntryBlock(asm, 'K')).toContain('ld $9,&H01');
   });
 
   it('sees a counter read through a nested loop\'s bounds', () => {

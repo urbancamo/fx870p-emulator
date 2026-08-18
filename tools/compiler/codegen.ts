@@ -141,32 +141,66 @@ interface ShadowSlots {
 /**
  * A shadowed FOR loop that is currently open, i.e. whose body is being emitted.
  *
- * `bcdCounterRead` is the "is this loop's VAR_<v> observably stale?" answer,
- * and it is answered by OBSERVING WHAT WAS ACTUALLY EMITTED rather than by a
- * second static scan. A shadowed loop stops writing its counter back as BCD
- * once per iteration, so VAR_<v> is stale between the FOR and the NEXT — which
- * is invisible unless some emitted instruction reads it. Two things can:
+ * Shadowing moves the live counter out of VAR_<v> and into an int16 slot, so
+ * VAR_<v> is deliberately STALE between the FOR and the NEXT and correct again
+ * only at the exit. Two separate things can make that visible, and they need
+ * two different remedies — hence two flags. Both are answered by OBSERVING
+ * WHAT WAS ACTUALLY EMITTED rather than by a second static scan, so no
+ * expression context or statement shape can be overlooked.
  *
- *   * emitVariableLoad(<counter>) anywhere inside the loop body. Every read of
- *     a BASIC numeric variable funnels through there (expressions, PRINT
- *     items, array subscripts, a nested FOR's own bounds, ...), so one hook
- *     covers all of them.
- *   * a GOSUB / ON..GOSUB, whose target lines are emitted outside the loop and
- *     therefore outside this observation. Marked conservatively.
+ * ── `bcdCounterRead` — VAR_<v> must be CURRENT throughout the body ─────────
  *
- * When it is set, NEXT's native tail re-encodes the counter to BCD each
- * iteration (still far cheaper than the BCD tail's two ROM FP calls) so the
- * loop stays correct. When it is clear, the counter is encoded exactly once,
- * on the way out, which is the full amortization this feature exists for.
+ * Set when something can observe VAR_<v> mid-loop:
  *
- * This is deliberately self-retiring: Task 5's shadow-aware operand resolution
- * works by NOT emitting a BCD load for an in-body counter reference, so the
- * flag stops being set for exactly the loops Task 5 learns to serve natively,
- * and the per-iteration sync disappears on its own. Nothing to delete later.
+ *   * emitVariableLoad(<counter>) anywhere inside the body. Every read of a
+ *     numeric variable funnels through there (expressions, PRINT items, array
+ *     subscripts, a nested FOR's own bounds, ...), so one hook covers them all.
+ *   * a `RETURN` inside the body. This one is not a read at all — it is an
+ *     EXIT that never reaches NEXT, so the once-per-loop exit re-sync never
+ *     runs and VAR_<v> is left at whatever it last held. A subroutine that
+ *     happens to contain a loop and returns early out of it is an ordinary
+ *     idiom, and without this it silently yields the loop's initial counter.
+ *
+ * The remedy is NEXT's `<sync>` block: re-encode the counter to BCD each
+ * iteration. That is sufficient for both cases, because emitFor seeds VAR_<v>
+ * with the initial value before the loop top, so VAR_<v> equals the current
+ * iteration's counter at every point in the body — including at a `RETURN`.
+ *
+ * ── `unshadowable` — the int16 slots cannot be trusted at all ──────────────
+ *
+ * Set by a GOSUB / ON..GOSUB in the body. A read-sync is NOT enough here: the
+ * subroutine's code is emitted outside the loop and may WRITE the counter
+ * (`K=99`). That write lands in VAR_<v>, while NEXT's native tail keeps
+ * stepping the int16 slot the subroutine never touched — so the write is
+ * silently discarded, where before shadowing it took effect immediately.
+ *
+ * The remedy has to be stronger: the loop leaves the fast path entirely. NEXT
+ * emits only the unmodified BCD tail, and emitFor's runtime activation
+ * constant is back-patched to 0 so SHADOW_ACTIVE agrees — the slots are never
+ * live for this loop, which keeps anything that consults that flag (including
+ * Task 5's in-body operand resolution) on the BCD path too.
+ *
+ * ── Relationship to Task 5 ────────────────────────────────────────────────
+ *
+ * `bcdCounterRead`'s in-body-read half is self-retiring: Task 5 serves such a
+ * reference from the slot instead of emitting a BCD load, so the flag stops
+ * being set for exactly the loops Task 5 learns to handle. Its `RETURN` half
+ * and `unshadowable` are permanent — they are about control flow and about
+ * writes this pass cannot see, neither of which Task 5 changes.
  */
 interface OpenShadowLoop extends ShadowSlots {
   varName: string;
   bcdCounterRead: boolean;
+  unshadowable: boolean;
+  /**
+   * Index in `this.code` of emitFor's `ld $9,&H01` activation constant, so
+   * `unshadowOpenLoops` can back-patch it to `&H00`. A single-pass compiler
+   * back-patching its own already-emitted line, exactly as label fixups do —
+   * the decision ("does this body GOSUB?") is only knowable after the line has
+   * been emitted, and it is a constant, not an address, so nothing else needs
+   * revisiting.
+   */
+  activeConstIndex: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -407,11 +441,15 @@ class CodeGen {
         break;
 
       case 'gosub':
-        this.markShadowLoopsOpaque();
+        this.unshadowOpenLoops();
         this.code.push({ mnemonic: 'cal', operands: `L${stmt.target}` });
         break;
 
       case 'return':
+        // A RETURN inside a shadowed loop's body leaves WITHOUT reaching NEXT,
+        // so the once-per-loop exit re-sync never runs — the counter's BCD
+        // form has to have been kept current all along. See OpenShadowLoop.
+        this.markShadowCounterMustBeCurrent();
         this.code.push({ mnemonic: 'rtn' });
         break;
 
@@ -1546,12 +1584,20 @@ class CodeGen {
       // $9 is dead here (the branch above was its last reader) and sits outside
       // the $2/$3 address pair, so it survives emitShadowStore8's own `ldw $2`.
       this.code.push({ mnemonic: 'ld', operands: '$9,&H01', comment: 'all three decoded -> shadowing active' });
+      // Remembered so a GOSUB later in the body can back-patch this constant
+      // to 0 -- see OpenShadowLoop.activeConstIndex.
+      const activeConstIndex = this.code.length - 1;
       this.code.push({ mnemonic: 'jr', operands: doneLabel });
       this.code.push({ label: offLabel, mnemonic: 'ld', operands: '$9,&H00', comment: 'a decode failed -> stay on the BCD path' });
       this.code.push({ label: doneLabel });
       this.emitShadowStore8(slots.active, '$9', `${slots.active} <- shadowing on/off`);
 
-      this.shadowStack.push({ varName, ...slots, bcdCounterRead: false });
+      this.shadowStack.push({
+        varName, ...slots,
+        bcdCounterRead: false,
+        unshadowable: false,
+        activeConstIndex,
+      });
       this.shadowedLoopsFound.push({ varName, line: this.currentLine });
     }
 
@@ -1581,13 +1627,39 @@ class CodeGen {
   }
 
   /**
-   * Every currently-open shadowed loop is about to run code this pass cannot
-   * observe (a GOSUB target lives outside the loop's own emitted region), so
-   * none of them may assume their counter's BCD form is unread. See
-   * OpenShadowLoop.
+   * Every currently-open shadowed loop must keep its counter's BCD form
+   * current for the whole body, not just at the exit. See OpenShadowLoop.
+   *
+   * Called for a `RETURN`, which leaves the loop WITHOUT reaching NEXT at all,
+   * so the once-per-loop exit re-sync never runs.
    */
-  private markShadowLoopsOpaque(): void {
+  private markShadowCounterMustBeCurrent(): void {
     for (const open of this.shadowStack) open.bcdCounterRead = true;
+  }
+
+  /**
+   * Take every currently-open shadowed loop off the fast path completely: its
+   * NEXT emits only the unmodified BCD tail, and its runtime SHADOW_ACTIVE
+   * flag is forced to 0 so nothing else trusts the int16 slots either.
+   *
+   * Called for a GOSUB / ON..GOSUB, whose target is emitted outside the loop
+   * and may WRITE the counter — a write the native tail would silently
+   * discard, because it steps the shadow slot the subroutine never touched.
+   * See OpenShadowLoop for why a read-sync cannot fix that.
+   */
+  private unshadowOpenLoops(): void {
+    for (const open of this.shadowStack) {
+      open.unshadowable = true;
+      // Redundant once the BCD tail is what runs (it stores VAR_<v> every
+      // iteration anyway), but kept truthful so the flag never claims the
+      // counter's BCD form is unobserved when it is.
+      open.bcdCounterRead = true;
+      const activation = this.code[open.activeConstIndex];
+      if (activation) {
+        activation.operands = '$9,&H00';
+        activation.comment = 'forced off: a GOSUB in this loop\'s body may write the counter';
+      }
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -1789,8 +1861,13 @@ class CodeGen {
       // path a non-eligible loop takes (no shadow entry -> nothing emitted
       // here at all) and the runtime fallback a shadowed loop takes when a
       // bound didn't decode, so it must stay a straight copy of the original.
+      //
+      // `unshadowable` (a GOSUB in the body) means no native tail at all: the
+      // subroutine may have written the counter straight into VAR_<v>, which
+      // only the BCD tail reads. emitFor's activation constant has already
+      // been back-patched to 0 to match, so SHADOW_ACTIVE agrees at run time.
       const shadow = this.popShadowLoop(loop.varName);
-      if (shadow) this.emitShadowedNextTail(loop, loopVar, shadow);
+      if (shadow && !shadow.unshadowable) this.emitShadowedNextTail(loop, loopVar, shadow);
 
       // Increment: counter = counter + step
       this.code.push({ comment: `NEXT ${varName}` });
@@ -2039,12 +2116,12 @@ class CodeGen {
   // -------------------------------------------------------------------------
 
   private emitOnBranch(stmt: OnBranchStatement): void {
-    // ON..GOSUB, like plain GOSUB, runs code emitted outside the loop body, so
-    // the "does anything read this counter as BCD?" observation cannot see it.
-    // (ON..GOTO out of the loop's line span is already a disqualifier in
-    // loop-shadow-eligibility.ts, and in-span ON..GOTO stays inside the
-    // observed region.)
-    if (stmt.kind === 'gosub') this.markShadowLoopsOpaque();
+    // ON..GOSUB, like plain GOSUB, runs code emitted outside the loop body:
+    // this pass can see neither what it reads nor what it WRITES, so any open
+    // shadowed loop drops off the fast path. (ON..GOTO out of the loop's line
+    // span is already a disqualifier in loop-shadow-eligibility.ts, and
+    // in-span ON..GOTO stays inside the observed region.)
+    if (stmt.kind === 'gosub') this.unshadowOpenLoops();
     const skipLabel = this.uniqueLabel('ON_END');
     this.code.push({ comment: `ON ... ${stmt.kind.toUpperCase()} ${stmt.targets.map(t => t.line).join(',')}` });
 
