@@ -176,32 +176,43 @@ describe("Task 4b: the reviewer's FOR repro", () => {
     const assembled = assemble(lines);
     const forTop = assembled.symbols.find(s => s.name === 'FOR_I_1')!.address;
 
-    const relaxed = programRelaxations(lines, assembled.lineResults);
-    expect(relaxed).toHaveLength(1);
-    const site = relaxed[0]!;
+    // This program used to contain exactly one over-long branch. Task 4 (loop
+    // shadowing) gave NEXT a second, native tail, so it now contains four: the
+    // runtime SHADOW_ACTIVE test jumping forward past the native tail, the
+    // native exit's `jr <end>`, and TWO back-edges to the loop top (the native
+    // tail's and the BCD tail's). The invariant this test exists for is about
+    // the BACK-EDGE -- that an over-long `jr <top>` becomes a correct absolute
+    // `jp <top>` instead of silently wrapping into a forward jump -- so it
+    // selects the back-edges instead of assuming there is only one relaxation
+    // in the program, and then holds every one of them to the original bar.
+    const relaxed = programRelaxations(lines, assembled.lineResults)
+      .filter(r => (lines[r.index]?.operands ?? '').split(',').pop()!.trim() === 'FOR_I_1');
+    expect(relaxed.length).toBeGreaterThan(0);
 
-    // Task 4c restructured NEXT's tail to end in emitComparisonBranch('<=', ...)
-    // followed by an unconditional `jr,<top>` back-edge (codegen.ts:1078) —
-    // the `<=` classification itself is a short forward jump that never needs
-    // relaxing, so the over-long branch this test exercises is now that
-    // unconditional back-edge. Unconditional `jr` is opcode 0xB7; its relaxed
-    // absolute form is unconditional `jp`, opcode 0x37.
-    expect(site.bytes[0]).toBe(0x37);
-    expect(site.bytes[1]! | (site.bytes[2]! << 8)).toBe(forTop);
+    for (const site of relaxed) {
+      // Task 4c restructured NEXT's tail to end in emitComparisonBranch('<=',
+      // ...) followed by an unconditional `jr,<top>` back-edge — the `<=`
+      // classification itself is a short forward jump that never needs
+      // relaxing, so the over-long branch this test exercises is that
+      // unconditional back-edge. Unconditional `jr` is opcode 0xB7; its
+      // relaxed absolute form is unconditional `jp`, opcode 0x37.
+      expect(site.bytes[0]).toBe(0x37);
+      expect(site.bytes[1]! | (site.bytes[2]! << 8)).toBe(forTop);
 
-    // Cross-check lineResults against the actual emitted binary — the two
-    // views (metadata vs. bytes) have to agree, and only this assertion
-    // exercises the binary directly. `assembled.binary` is indexed from 0 at
-    // ORG's operand (0x1CD0 here), not from address 0, so site.address (an
-    // absolute address) needs that offset subtracted.
-    const off = site.address - ORIGIN;
-    expect(Array.from(assembled.binary.slice(off, off + 3)))
-      .toEqual([0x37, forTop & 0xFF, (forTop >> 8) & 0xFF]);
+      // Cross-check lineResults against the actual emitted binary — the two
+      // views (metadata vs. bytes) have to agree, and only this assertion
+      // exercises the binary directly. `assembled.binary` is indexed from 0 at
+      // ORG's operand (0x1CD0 here), not from address 0, so site.address (an
+      // absolute address) needs that offset subtracted.
+      const off = site.address - ORIGIN;
+      expect(Array.from(assembled.binary.slice(off, off + 3)))
+        .toEqual([0x37, forTop & 0xFF, (forTop >> 8) & 0xFF]);
 
-    // And the corrupt encoding is gone: the pre-Task-4b code wrapped this
-    // offset silently instead of relaxing, producing a 2-byte `jr` (0xB7) with
-    // a bogus positive offset rather than a 3-byte absolute `jp`.
-    expect(Array.from(assembled.binary.slice(off, off + 1))).not.toEqual([0xB7]);
+      // And the corrupt encoding is gone: the pre-Task-4b code wrapped this
+      // offset silently instead of relaxing, producing a 2-byte `jr` (0xB7)
+      // with a bogus positive offset rather than a 3-byte absolute `jp`.
+      expect(Array.from(assembled.binary.slice(off, off + 1))).not.toEqual([0xB7]);
+    }
   });
 
   it('completes with S=6', () => {

@@ -640,3 +640,252 @@ describe('codegen - loop shadow slots', () => {
     expect(asm.lines.some(l => l.mnemonic === 'cal' && l.operands === 'BCD_TO_INT16')).toBe(false);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Task 4: emitNext's dual tail
+// ---------------------------------------------------------------------------
+//
+// A shadow-eligible loop's NEXT gains a runtime SHADOW_ACTIVE test that picks
+// between a native int16 tail and today's BCD tail. The BCD tail is not
+// deleted, not rewritten and not reordered -- it is both the runtime fallback
+// (a bound that didn't decode) and the whole of a non-eligible loop's NEXT, so
+// these tests pin its byte-for-byte survival as hard as they pin the new code.
+//
+// NOTE the sample program: `PRINT K` is a DISQUALIFYING use of the counter
+// (Task 2 ruling -- PRINT consumes it as 9-byte BCD), so the brief's draft
+// program for the positive case would have produced no shadowing at all.
+// SHADOW_LOOP above is reused instead.
+//
+// SHADOW_LOOP's body (`S=S+K`) still resolves K through VAR_K until Task 5
+// lands, so it exercises the "keep the BCD form current" variant of the tail.
+// SHADOW_LOOP_NO_READ never touches K in its body and therefore gets the fully
+// amortized variant -- one BCD encode for the whole loop. Both shapes matter,
+// so both are pinned.
+
+/** Shadow-eligible, and the body reads the counter's BCD form (for now). */
+const SHADOW_LOOP_READS = SHADOW_LOOP;
+
+/** Shadow-eligible, and nothing in the body reads the counter at all. */
+const SHADOW_LOOP_NO_READ = '10 FOR K=1 TO 10\n20 S=S+1\n30 NEXT K\n40 END\n';
+
+/** Text form of an instruction line, for sequence comparisons. */
+function instrText(l: AsmLine): string {
+  return `${l.mnemonic ?? ''} ${l.operands ?? ''}`.trim();
+}
+
+/**
+ * The BCD tail as emitNext has always emitted it: from the `NEXT <v>` comment
+ * through the `jr <top>` that closes the loop. Extracted by comment marker so
+ * the comparison is over the instruction sequence, not over line indices that
+ * shift as unrelated codegen changes land.
+ */
+function bcdTail(asm: { lines: AsmLine[] }, varName: string): string[] {
+  const start = asm.lines.findIndex(l => !l.mnemonic && l.comment === `NEXT ${varName}`);
+  expect(start, `BCD tail marker for NEXT ${varName}`).toBeGreaterThan(0);
+  const end = asm.lines.findIndex((l, i) => i > start && l.label?.startsWith(`ENDFOR_${varName}`));
+  expect(end).toBeGreaterThan(start);
+  return asm.lines.slice(start, end).filter(l => l.mnemonic).map(instrText);
+}
+
+describe('codegen - NEXT dual tail', () => {
+  it('emits a runtime SHADOW_ACTIVE test in NEXT that selects between a native and a BCD tail', () => {
+    const asm = generate(parse(SHADOW_LOOP));
+    const text = asm.lines.map(instrText);
+
+    // The runtime test: read the flag byte, compare-AND it, branch away when 0.
+    const flagLoad = asm.lines.findIndex(l => instrText(l) === 'ld $9,(ix+$sx)'
+      && l.comment?.includes('SHADOW_K_ACT'));
+    expect(flagLoad).toBeGreaterThan(0);
+    expect(instrText(asm.lines[flagLoad + 1]!)).toBe('anc $9,$9');
+    const branch = asm.lines[flagLoad + 2]!;
+    expect(branch.mnemonic).toBe('jr');
+    expect(branch.operands).toMatch(/^z,NEXTSHADOW_BCD_K_\d+$/);
+
+    // Native tail: a real 16-bit add and a real 16-bit compare.
+    expect(text).toContain('adw $0,$4');
+    expect(text).toContain('sbcw $8,$6');
+    // ...and no ROM FP call between the flag test and the loop-back branch.
+    const bcdLabelIdx = asm.lines.findIndex(l => l.label?.startsWith('NEXTSHADOW_BCD_K'));
+    const native = asm.lines.slice(flagLoad, bcdLabelIdx).map(instrText);
+    expect(native.filter(t => t.startsWith('cal ROM_CALL'))).toEqual([]);
+
+    // BCD tail: still there, still calling FP_ADD and FP_SUB through ROM_CALL_FP.
+    const tail = bcdTail(asm, 'K');
+    expect(tail).toContain('cal ROM_CALL_FP');
+    expect(asm.lines.filter(l => l.comment === 'counter + step').length).toBe(1);
+    expect(asm.lines.filter(l => l.comment === 'counter - limit').length).toBe(1);
+  });
+
+  it('leaves the BCD tail byte-for-byte identical to the non-shadowed one', () => {
+    // Same loop shape, one shadow-eligible and one not (an array index in the
+    // body disqualifies it). The BCD tail must be instruction-for-instruction
+    // the same sequence in both.
+    //
+    // uniqueLabel() numbers labels from a single program-wide counter, so the
+    // shadowed program's extra labels shift every LATER label's suffix. That
+    // is a naming artefact, not a codegen difference, so the suffix is
+    // normalised away -- and only the suffix: the label STEM (CMPLE, FOR_K,
+    // ENDFOR_K) still has to match, as does everything else on the line.
+    const normalise = (t: string): string => t.replace(/\b([A-Z][A-Z0-9_]*?)_\d+\b/g, '$1_#');
+    const shadowed = generate(parse('10 FOR K=1 TO 10\n20 S=S+K\n30 NEXT K\n40 END\n'));
+    const plain    = generate(parse('10 DIM A(20)\n20 FOR K=1 TO 10\n30 S=A(K)\n40 NEXT K\n50 END\n'));
+    expect(bcdTail(shadowed, 'K').map(normalise)).toEqual(bcdTail(plain, 'K').map(normalise));
+  });
+
+  it('emits nothing shadow-related in a statically disqualified loop\'s NEXT', () => {
+    const asm = generate(parse('10 DIM A(20)\n20 FOR K=1 TO 10\n30 PRINT A(K)\n40 NEXT K\n50 END\n'));
+    for (const l of asm.lines) {
+      expect(l.operands ?? '').not.toContain('SHADOW');
+      expect(l.label ?? '').not.toContain('SHADOW');
+    }
+    expect(asm.lines.some(l => l.mnemonic === 'cal' && l.operands === 'INT16_TO_BCD')).toBe(false);
+  });
+
+  it('re-syncs the BCD counter through INT16_TO_BCD + the normal variable store, not a raw poke', () => {
+    const asm = generate(parse(SHADOW_LOOP_NO_READ));
+    const idxs = asm.lines
+      .map((l, i) => ({ l, i }))
+      .filter(({ l }) => l.mnemonic === 'cal' && l.operands === 'INT16_TO_BCD')
+      .map(({ i }) => i);
+    // One on the normal exit path, one on the int16-overflow path. Nothing
+    // per-iteration: this loop's body never reads K.
+    expect(idxs.length).toBe(2);
+    for (const i of idxs) {
+      // Each is immediately followed by emitVariableStore(K)'s own sequence.
+      const after = asm.lines.slice(i + 1, i + 7).map(instrText).filter(Boolean);
+      expect(after.slice(0, 5)).toEqual([
+        'ldw $2,VAR_K', 'pre ix,$2', 'psr sx,31', 'stm $10,(ix+$sx),8', 'st $18,(ix+&H08)',
+      ]);
+    }
+  });
+
+  it('guards the native step against int16 overflow and hands such a loop back to the BCD tail', () => {
+    const asm = generate(parse(SHADOW_LOOP));
+    const text = asm.lines.map(instrText);
+    // The signed-overflow test: equal operand signs + a sum whose sign flipped.
+    expect(text).toContain('xr $8,$5');
+    expect(text).toContain('xr $9,$1');
+    expect(text).toContain('anc $8,&H80');
+    expect(text).toContain('anc $9,&H80');
+
+    const ovf = asm.lines.findIndex(l => l.label?.startsWith('NEXTSHADOW_OVF_K'));
+    const bcd = asm.lines.findIndex(l => l.label?.startsWith('NEXTSHADOW_BCD_K'));
+    expect(ovf).toBeGreaterThan(0);
+    expect(bcd).toBeGreaterThan(ovf); // the overflow block falls THROUGH into the BCD tail
+    const block = asm.lines.slice(ovf, bcd).map(instrText);
+    expect(block).toContain('sbw $0,$4');          // recover the pre-step counter
+    expect(block).toContain('cal INT16_TO_BCD');   // ...and publish it as BCD
+    expect(block).toContain('ld $9,&H00');         // SHADOW_ACTIVE := 0
+    expect(block).toContain('st $9,(ix+$sx)');
+  });
+
+  it('compares against the limit with the SAME `<=` the BCD tail uses (negative STEP stays unsupported)', () => {
+    const asm = generate(parse(SHADOW_LOOP_NO_READ));
+    const cmp = asm.lines.findIndex(l => instrText(l) === 'sbcw $8,$6');
+    expect(cmp).toBeGreaterThan(0);
+    // `counter <= limit` == "borrow (<) OR zero (==)", both branching back to
+    // the loop top. Nothing inspects the step's sign, matching the BCD tail's
+    // own unconditional `<=`.
+    expect(asm.lines[cmp + 1]!.operands).toMatch(/^c,FOR_K_\d+$/);
+    expect(asm.lines[cmp + 2]!.operands).toMatch(/^z,FOR_K_\d+$/);
+    const text = asm.lines.map(instrText);
+    expect(text.filter(t => t === 'sbcw $8,$6').length).toBe(1);
+  });
+
+  // -- how much of the counter's BCD form the tail has to keep current -------
+
+  it('encodes the counter to BCD exactly once per loop when nothing in the body reads it', () => {
+    const asm = generate(parse(SHADOW_LOOP_NO_READ));
+    // No per-iteration sync block at all...
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(false);
+    // ...so the only INT16_TO_BCD calls are on the two exit paths.
+    expect(asm.lines.filter(l => l.operands === 'INT16_TO_BCD').length).toBe(2);
+  });
+
+  it('keeps the counter\'s BCD form current per iteration while the body still reads it', () => {
+    // `S=S+K` resolves K through VAR_K until Task 5's shadow-aware operand
+    // resolution lands. Skipping the per-iteration encode would make the body
+    // read the loop's INITIAL counter on every pass.
+    const asm = generate(parse(SHADOW_LOOP_READS));
+    const sync = asm.lines.findIndex(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'));
+    expect(sync).toBeGreaterThan(0);
+    const cmp = asm.lines.findIndex(l => instrText(l) === 'sbcw $8,$6');
+    expect(asm.lines[cmp + 1]!.operands).toMatch(/^c,NEXTSHADOW_SYNC_K_\d+$/);
+    expect(asm.lines[cmp + 2]!.operands).toMatch(/^z,NEXTSHADOW_SYNC_K_\d+$/);
+    // The sync block encodes, stores, and only then goes back to the top.
+    const block = asm.lines.slice(sync, sync + 10).map(instrText).filter(Boolean);
+    expect(block.slice(0, 6)).toEqual([
+      'cal INT16_TO_BCD',
+      'ldw $2,VAR_K', 'pre ix,$2', 'psr sx,31', 'stm $10,(ix+$sx),8', 'st $18,(ix+&H08)',
+    ]);
+    expect(block[6]).toMatch(/^jr FOR_K_\d+$/);
+  });
+
+  it('treats a GOSUB in the body as an unobservable read of the counter', () => {
+    // A GOSUB target's code is emitted outside the loop, so "does anything
+    // read VAR_K?" cannot be answered by watching the loop body alone.
+    const asm = generate(parse(
+      '10 FOR K=1 TO 10\n20 GOSUB 100\n30 NEXT K\n40 END\n100 S=K\n110 RETURN\n',
+    ));
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(true);
+  });
+
+  it('treats an ON..GOSUB in the body the same way', () => {
+    const asm = generate(parse(
+      '10 FOR K=1 TO 10\n20 ON S GOSUB 100,110\n30 NEXT K\n40 END\n100 S=K\n105 RETURN\n110 RETURN\n',
+    ));
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(true);
+  });
+
+  it('sees a counter read through a nested loop\'s bounds', () => {
+    // A bare `FOR J=1 TO K` is already disqualified by the static scan (the
+    // inner FOR's `to` slot is a bare counter reference). `K*2` is NOT -- `*`
+    // is a fast-path op with the counter as a direct operand -- so K stays
+    // shadow-eligible while its BCD form is genuinely read, once per outer
+    // iteration, by the inner loop's setup.
+    const asm = generate(parse(
+      '10 FOR K=1 TO 10\n20 FOR J=1 TO K*2\n30 S=S+1\n40 NEXT J\n50 NEXT K\n60 END\n',
+    ));
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(true);
+    // ...but J's own loop never reads J, so J stays fully amortized.
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_J'))).toBe(false);
+  });
+
+  it('never parks a value in $2 or $3, which every shadow-slot address load clobbers', () => {
+    const asm = generate(parse(SHADOW_LOOP));
+    const start = asm.lines.findIndex(l => l.comment?.includes('shadowed tail'));
+    const end = asm.lines.findIndex(l => l.label?.startsWith('NEXTSHADOW_BCD_K'));
+    expect(start).toBeGreaterThan(0);
+    for (const l of asm.lines.slice(start, end)) {
+      if (!l.mnemonic) continue;
+      // ldw_D1 writes the named register AND the next one, so $2 as a
+      // destination is only ever the address scratch itself.
+      if (l.mnemonic === 'ldw' && l.operands?.startsWith('$2,')) continue;
+      expect(l.operands?.startsWith('$3,')).toBeFalsy();
+      if (l.mnemonic === 'ld' || l.mnemonic === 'ldw' || l.mnemonic === 'adw' || l.mnemonic === 'sbw') {
+        expect(l.operands?.startsWith('$2,')).toBeFalsy();
+      }
+    }
+  });
+
+  it('keeps NEXT branch targets out of the SHADOW_ storage namespace', () => {
+    const asm = generate(parse(SHADOW_LOOP));
+    const nonStorage = asm.lines
+      .filter(l => l.label?.startsWith('SHADOW_') && l.mnemonic !== 'DS')
+      .map(l => l.label!);
+    expect(nonStorage).toEqual([]);
+  });
+
+  it('emits one dual tail per shadowed loop when the same counter drives two loops', () => {
+    const asm = generate(parse(
+      '10 FOR K=1 TO 10\n20 S=S+K\n30 NEXT K\n40 FOR K=1 TO 5\n50 S=S+K\n60 NEXT K\n70 END\n',
+    ));
+    expect(asm.lines.filter(l => l.label?.startsWith('NEXTSHADOW_BCD_K')).length).toBe(2);
+    // Both bodies read K, so both tails carry a per-iteration sync: 3 encodes
+    // each (exit, sync, overflow).
+    expect(asm.lines.filter(l => l.mnemonic === 'cal' && l.operands === 'INT16_TO_BCD').length).toBe(6);
+    // ...and each native tail loops back to its OWN loop-top label.
+    const tops = asm.lines.filter(l => l.mnemonic === 'jr' && /^FOR_K_\d+$/.test(l.operands ?? ''));
+    expect(new Set(tops.map(l => l.operands)).size).toBe(2);
+  });
+});

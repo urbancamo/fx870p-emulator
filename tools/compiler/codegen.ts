@@ -138,6 +138,37 @@ interface ShadowSlots {
   active: string;
 }
 
+/**
+ * A shadowed FOR loop that is currently open, i.e. whose body is being emitted.
+ *
+ * `bcdCounterRead` is the "is this loop's VAR_<v> observably stale?" answer,
+ * and it is answered by OBSERVING WHAT WAS ACTUALLY EMITTED rather than by a
+ * second static scan. A shadowed loop stops writing its counter back as BCD
+ * once per iteration, so VAR_<v> is stale between the FOR and the NEXT — which
+ * is invisible unless some emitted instruction reads it. Two things can:
+ *
+ *   * emitVariableLoad(<counter>) anywhere inside the loop body. Every read of
+ *     a BASIC numeric variable funnels through there (expressions, PRINT
+ *     items, array subscripts, a nested FOR's own bounds, ...), so one hook
+ *     covers all of them.
+ *   * a GOSUB / ON..GOSUB, whose target lines are emitted outside the loop and
+ *     therefore outside this observation. Marked conservatively.
+ *
+ * When it is set, NEXT's native tail re-encodes the counter to BCD each
+ * iteration (still far cheaper than the BCD tail's two ROM FP calls) so the
+ * loop stays correct. When it is clear, the counter is encoded exactly once,
+ * on the way out, which is the full amortization this feature exists for.
+ *
+ * This is deliberately self-retiring: Task 5's shadow-aware operand resolution
+ * works by NOT emitting a BCD load for an in-body counter reference, so the
+ * flag stops being set for exactly the loops Task 5 learns to serve natively,
+ * and the per-iteration sync disappears on its own. Nothing to delete later.
+ */
+interface OpenShadowLoop extends ShadowSlots {
+  varName: string;
+  bcdCounterRead: boolean;
+}
+
 // ---------------------------------------------------------------------------
 // Code generator state
 // ---------------------------------------------------------------------------
@@ -161,7 +192,7 @@ class CodeGen {
   /** Allocated shadow slots, keyed by loop-counter variable name. */
   private shadowSlots = new Map<string, ShadowSlots>();
   /** Currently-open shadowed loops, innermost last. */
-  private shadowStack: Array<{ varName: string } & ShadowSlots> = [];
+  private shadowStack: OpenShadowLoop[] = [];
   /** BASIC line number currently being emitted (for shadow bookkeeping). */
   private currentLine = 0;
   /** Every loop that actually got shadow slots, in emission order. */
@@ -376,6 +407,7 @@ class CodeGen {
         break;
 
       case 'gosub':
+        this.markShadowLoopsOpaque();
         this.code.push({ mnemonic: 'cal', operands: `L${stmt.target}` });
         break;
 
@@ -603,6 +635,16 @@ class CodeGen {
   // -------------------------------------------------------------------------
 
   private emitVariableLoad(ref: VarRef): void {
+    // A BCD read of an open shadowed loop's counter: see OpenShadowLoop.
+    // Placed here rather than in a second static scan because this is the one
+    // funnel every numeric variable read goes through, so it cannot miss an
+    // expression context, and because it observes the code that is really
+    // emitted rather than the code the AST implies.
+    if (!ref.isString) {
+      for (const open of this.shadowStack) {
+        if (open.varName === ref.name) open.bcdCounterRead = true;
+      }
+    }
     const varInfo = this.allocVariable(ref);
     if (ref.isString) {
       // Load address of string variable
@@ -1509,7 +1551,7 @@ class CodeGen {
       this.code.push({ label: doneLabel });
       this.emitShadowStore8(slots.active, '$9', `${slots.active} <- shadowing on/off`);
 
-      this.shadowStack.push({ varName, ...slots });
+      this.shadowStack.push({ varName, ...slots, bcdCounterRead: false });
       this.shadowedLoopsFound.push({ varName, line: this.currentLine });
     }
 
@@ -1531,11 +1573,190 @@ class CodeGen {
    * that `shadowStack` really does mean "loops open right now" for every
    * consumer, including Task 5's in-body substitution.
    */
-  private popShadowLoop(varName: string): ({ varName: string } & ShadowSlots) | undefined {
+  private popShadowLoop(varName: string): OpenShadowLoop | undefined {
     for (let i = this.shadowStack.length - 1; i >= 0; i--) {
       if (this.shadowStack[i]!.varName === varName) return this.shadowStack.splice(i, 1)[0];
     }
     return undefined;
+  }
+
+  /**
+   * Every currently-open shadowed loop is about to run code this pass cannot
+   * observe (a GOSUB target lives outside the loop's own emitted region), so
+   * none of them may assume their counter's BCD form is unread. See
+   * OpenShadowLoop.
+   */
+  private markShadowLoopsOpaque(): void {
+    for (const open of this.shadowStack) open.bcdCounterRead = true;
+  }
+
+  // -------------------------------------------------------------------------
+  // The shadowed half of NEXT's dual tail.
+  //
+  // Emitted immediately BEFORE the unmodified BCD tail, which it falls through
+  // to (or branches to) whenever shadowing is not in force. Layout:
+  //
+  //     ld  $9,SHADOW_<v>_ACT      ; runtime "is this loop shadowed?" test
+  //     anc $9,$9 / jr z,<bcd>     ; flag == 0 -> today's BCD tail, untouched
+  //     ... native step ...
+  //     ... signed overflow test -> <ovf> ...
+  //  <noovf>:
+  //     ... store stepped counter, native signed compare ...
+  //     jr c,<cont> / jr z,<cont>  ; counter <= limit -> next iteration
+  //     cal INT16_TO_BCD / store   ; loop finished: BCD re-sync
+  //     jr <end>
+  //  <sync>:                       ; only when OpenShadowLoop.bcdCounterRead
+  //     cal INT16_TO_BCD / store   ; keep VAR_<v> current for the body
+  //     jr <top>
+  //  <ovf>:
+  //     ... re-sync BCD to the PRE-step value, clear SHADOW_ACTIVE ...
+  //  <bcd>:                        ; falls through: the BCD tail redoes the step
+  //
+  // ── When the counter's BCD form is refreshed ─────────────────────────────
+  //
+  // The full amortization is "once per loop, at the exit". VAR_<v> is stale for
+  // the loop's duration and correct again the instant it ends -- and that is
+  // invisible unless something reads it. When something does (an in-body
+  // reference this compiler still resolves through VAR_<v>, or a GOSUB whose
+  // target is emitted outside the loop), `bcdCounterRead` is set and the
+  // <sync> block above re-encodes the counter each iteration instead.
+  //
+  // That is a real cost but a much smaller one than the tail it replaces: one
+  // INT16_TO_BCD plus a 9-byte store, versus the BCD tail's two ROM FP calls
+  // with their full operand staging. It also retires itself -- Task 5's
+  // shadow-aware operand resolution works by not emitting a BCD load for an
+  // in-body counter reference at all, so the flag stops being set for exactly
+  // the loops Task 5 learns to serve natively.
+  //
+  // The static scan (loop-shadow-eligibility.ts) is what bounds the damage
+  // either way: it disqualifies any loop whose body consumes the counter in a
+  // position Task 5 could never serve natively (`PRINT K`, `A(K)`, a builtin
+  // argument, ...), so a permanently-syncing shadowed loop is the exception,
+  // not the rule.
+  //
+  // ── Signed comparison ────────────────────────────────────────────────────
+  //
+  // adwSbw_88 (src/emulator/exec.ts) is an UNSIGNED 16-bit unit: it sets C from
+  // `(y >>> 0) > 0xFFFF`, i.e. from the unsigned borrow, and setFlagsW sets
+  // Z_bit when the 16-bit result is NON-zero. There is no sign or overflow
+  // flag anywhere in the machine. So the loop test is done on both operands
+  // biased by 0x8000 (one `xr $r,&H80` on each high byte), which turns a signed
+  // compare into the unsigned compare the hardware actually performs:
+  //
+  //     C set   <=> counter <  limit   (signed)
+  //     Z clear <=> counter == limit   (setFlagsW's inverted Z)
+  //
+  // and `counter <= limit` is the union of the two. Verified empirically over a
+  // sign-crossing matrix in tools/emu-debugger/tests/loop-shadow-next.test.ts,
+  // not inferred: emitComparisonBranch's own `<=` is a BCD *byte* test on an
+  // FP_SUB result and says nothing about what `sbcw` does.
+  //
+  // ── Why the overflow branch exists ───────────────────────────────────────
+  //
+  // The BCD tail steps a counter with effectively unlimited range, so
+  // `FOR K=1 TO 32767` ends when the counter reaches 32768. Native int16 wraps
+  // there instead: 32767+1 = 0x8000 = -32768, which compares as < limit, and
+  // the loop would spin forever. The add's own C flag does not catch it (no
+  // unsigned carry out of 0x7FFF+1), so signed overflow is detected the only
+  // way it can be -- operands of equal sign producing a sum of the other sign.
+  //
+  // When that fires, the native path cannot represent the correct counter, so
+  // it hands the loop back to the BCD tail rather than guessing: re-sync
+  // VAR_<v> to the PRE-step value (recovered exactly by `sbw $0,$4`, the
+  // inverse of the wrapping add), clear SHADOW_ACTIVE so nothing downstream
+  // trusts the int16 slots again for this loop, and fall through. The BCD tail
+  // then redoes the step in BCD and terminates correctly. Same "degrade to slow
+  // but correct, never to wrong" contract as BCD_TO_INT16's $9 status.
+  //
+  // ── Registers ────────────────────────────────────────────────────────────
+  //
+  //   $0/$1  counter (live across the whole tail; the exit path feeds it
+  //          straight to INT16_TO_BCD)
+  //   $2/$3  address scratch -- written by EVERY emitShadow* helper, so nothing
+  //          may be parked here (see the helpers' doc comment)
+  //   $4/$5  step        $6/$7  limit        $8/$9  compare copy / overflow
+  //          scratch / the SHADOW_ACTIVE flag byte on entry
+  //
+  // $0-$9 is the same window BCD_TO_INT16/INT16_TO_BCD confine themselves to,
+  // and is dead at a NEXT for exactly the same reasons documented there.
+  // -------------------------------------------------------------------------
+
+  private emitShadowedNextTail(loop: ForLoopInfo, loopVar: VarRef, shadow: OpenShadowLoop): void {
+    const v = loop.varName;
+    // No `SHADOW_` prefix: that namespace is reserved for shadow STORAGE, so a
+    // branch target must not be able to masquerade as a slot (same rule
+    // emitFor's FORSHADOW_* labels follow).
+    const bcdLabel   = this.uniqueLabel(`NEXTSHADOW_BCD_${v}`);
+    const noOvfLabel = this.uniqueLabel(`NEXTSHADOW_NOOVF_${v}`);
+    const ovfLabel   = this.uniqueLabel(`NEXTSHADOW_OVF_${v}`);
+
+    this.code.push({ comment: `NEXT ${v}: shadowed tail — native step and compare` });
+    this.emitShadowLoad8(shadow.active, '$9', `is loop ${v} shadowed at run time?`);
+    // logic_0C's setFlagsB sets Z_bit when the result is NON-zero, so `jr z`
+    // reads "the flag byte was 0", i.e. not shadowing.
+    this.code.push({ mnemonic: 'anc', operands: '$9,$9', comment: 'SHADOW_ACTIVE != 0 ?' });
+    this.code.push({ mnemonic: 'jr', operands: `z,${bcdLabel}`, comment: 'not shadowing -> BCD tail' });
+
+    // Shadow slot contents are only meaningful once the flag has been proved 1
+    // (they are stale garbage otherwise), which is why every load is below it.
+    this.emitShadowLoad16(shadow.limit, `native tail: load ${v}'s limit`);
+    this.code.push({ mnemonic: 'ldw', operands: '$6,$0', comment: '$6/$7 = limit' });
+    this.emitShadowLoad16(shadow.step, `native tail: load ${v}'s step`);
+    this.code.push({ mnemonic: 'ldw', operands: '$4,$0', comment: '$4/$5 = step' });
+    this.emitShadowLoad16(shadow.counter, `native tail: load ${v}'s counter`);
+
+    this.code.push({ mnemonic: 'ld', operands: '$8,$1', comment: 'counter sign byte (overflow test)' });
+    this.code.push({ mnemonic: 'ld', operands: '$9,$1', comment: '...and a second copy of it' });
+    this.code.push({ mnemonic: 'adw', operands: '$0,$4', comment: 'counter = counter + step (native)' });
+    this.code.push({ mnemonic: 'xr', operands: '$8,$5', comment: 'bit 7 set -> operand signs differ' });
+    this.code.push({ mnemonic: 'xr', operands: '$9,$1', comment: 'bit 7 set -> the sum changed sign' });
+    this.code.push({ mnemonic: 'anc', operands: '$8,&H80', comment: 'signs differ ?' });
+    this.code.push({ mnemonic: 'jr', operands: `nz,${noOvfLabel}`, comment: 'different signs cannot overflow' });
+    this.code.push({ mnemonic: 'anc', operands: '$9,&H80', comment: 'sum sign flipped ?' });
+    this.code.push({ mnemonic: 'jr', operands: `nz,${ovfLabel}`, comment: 'same signs + flipped sum = signed overflow' });
+
+    this.code.push({ label: noOvfLabel, comment: 'in range: keep the native counter' });
+    this.emitShadowStore16(shadow.counter, 'native tail: store the stepped counter');
+
+    // Compare on a biased COPY so $0/$1 keeps the true counter for the exit
+    // re-sync below.
+    this.code.push({ mnemonic: 'ldw', operands: '$8,$0', comment: 'compare copy of the new counter' });
+    this.code.push({ mnemonic: 'xr', operands: '$9,&H80', comment: 'bias counter: signed -> unsigned order' });
+    this.code.push({ mnemonic: 'xr', operands: '$7,&H80', comment: 'bias limit the same way' });
+    this.code.push({ mnemonic: 'sbcw', operands: '$8,$6', comment: 'compare only (0x81: no write-back)' });
+    // Where "keep looping" goes: straight back to the loop top when VAR_<v>'s
+    // staleness is unobservable, or via a BCD re-encode first when it is not
+    // (see OpenShadowLoop). INT16_TO_BCD clobbers $0-$9, so this cannot be
+    // hoisted above the compare -- hence a separate block rather than one
+    // shared with the exit path.
+    const contLabel = shadow.bcdCounterRead
+      ? this.uniqueLabel(`NEXTSHADOW_SYNC_${v}`)
+      : loop.topLabel;
+    this.code.push({ mnemonic: 'jr', operands: `c,${contLabel}`, comment: 'borrow -> counter < limit -> loop' });
+    this.code.push({ mnemonic: 'jr', operands: `z,${contLabel}`, comment: 'zero  -> counter = limit -> loop' });
+
+    // Loop finished. Under full amortization this is the ONE place a shadowed
+    // loop writes the counter back as BCD — once per loop, not per iteration.
+    this.emitInt16ToBcd(`loop ${v} finished: refresh the BCD counter`);
+    this.emitVariableStore(loopVar);
+    this.code.push({ mnemonic: 'jr', operands: loop.endLabel, comment: `ENDFOR ${v}` });
+
+    if (shadow.bcdCounterRead) {
+      this.code.push({ label: contLabel, comment: `${v}'s BCD form is read in the body: keep it current` });
+      this.emitInt16ToBcd(`re-encode ${v} for this iteration's body`);
+      this.emitVariableStore(loopVar);
+      this.code.push({ mnemonic: 'jr', operands: loop.topLabel, comment: 'next iteration' });
+    }
+
+    this.code.push({ label: ovfLabel, comment: 'int16 overflow: hand the loop back to the BCD tail' });
+    this.code.push({ mnemonic: 'sbw', operands: '$0,$4', comment: 'undo the wrapping add -> pre-step counter' });
+    this.emitInt16ToBcd('re-sync the BCD counter to the pre-step value');
+    this.emitVariableStore(loopVar);
+    this.code.push({ mnemonic: 'ld', operands: '$9,&H00' });
+    this.emitShadowStore8(shadow.active, '$9', 'shadowing off for the rest of this loop');
+    // falls through into the BCD tail, which redoes this step in BCD
+
+    this.code.push({ label: bcdLabel, comment: `NEXT ${v}: BCD tail (shadowing off)` });
   }
 
   private emitNext(stmt: NextStatement): void {
@@ -1555,6 +1776,21 @@ class CodeGen {
       const loopVar: VarRef = { name: varName, isString: false };
       const stepRef: VarRef = { name: `_FOR_STEP_${varName}`, isString: false };
       const limitRef: VarRef = { name: `_FOR_LIMIT_${varName}`, isString: false };
+
+      // Close the shadow bookkeeping FIRST, and keep the answer: a loop that
+      // was shadowed at entry gets a native tail emitted ahead of the BCD one,
+      // guarded by a runtime SHADOW_ACTIVE test. `loop.varName`, not the
+      // requested `varName`: findForLoop falls back to the innermost loop when
+      // the name doesn't match, and the shadow bookkeeping must close the loop
+      // that was actually closed.
+      //
+      // Everything below this block is byte-for-byte what it was before loop
+      // shadowing existed. That is deliberate and load-bearing: it is both the
+      // path a non-eligible loop takes (no shadow entry -> nothing emitted
+      // here at all) and the runtime fallback a shadowed loop takes when a
+      // bound didn't decode, so it must stay a straight copy of the original.
+      const shadow = this.popShadowLoop(loop.varName);
+      if (shadow) this.emitShadowedNextTail(loop, loopVar, shadow);
 
       // Increment: counter = counter + step
       this.code.push({ comment: `NEXT ${varName}` });
@@ -1607,11 +1843,6 @@ class CodeGen {
       // End label
       this.code.push({ label: loop.endLabel, comment: `ENDFOR ${varName}` });
 
-      // Remove from stack. `loop.varName`, not the requested `varName`:
-      // findForLoop falls back to the innermost loop when the name doesn't
-      // match, and the shadow bookkeeping must close the loop that was
-      // actually closed.
-      this.popShadowLoop(loop.varName);
       this.forStack.splice(loopIdx, 1);
     }
   }
@@ -1808,6 +2039,12 @@ class CodeGen {
   // -------------------------------------------------------------------------
 
   private emitOnBranch(stmt: OnBranchStatement): void {
+    // ON..GOSUB, like plain GOSUB, runs code emitted outside the loop body, so
+    // the "does anything read this counter as BCD?" observation cannot see it.
+    // (ON..GOTO out of the loop's line span is already a disqualifier in
+    // loop-shadow-eligibility.ts, and in-span ON..GOTO stays inside the
+    // observed region.)
+    if (stmt.kind === 'gosub') this.markShadowLoopsOpaque();
     const skipLabel = this.uniqueLabel('ON_END');
     this.code.push({ comment: `ON ... ${stmt.kind.toUpperCase()} ${stmt.targets.map(t => t.line).join(',')}` });
 
