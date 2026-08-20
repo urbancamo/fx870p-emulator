@@ -254,11 +254,69 @@ function walkProgram(program: Program, onLoopClosed: (loop: OpenLoop, nextLine: 
   }
 }
 
+interface JumpEdge { sourceLine: number; targetLine: number }
+
+/**
+ * Every GOTO / ON...GOTO target in the WHOLE program, each tagged with the
+ * line it appears on. Flat over the entire program rather than scoped to any
+ * one loop's body -- BASIC line numbers have no scoping, so a jump written
+ * inside a totally unrelated subroutine (or a sibling loop, or top-level
+ * code) can still land inside THIS loop's span. Recurses into `if` branches
+ * (the only construct that nests statement lists); GOSUB/ON...GOSUB are
+ * deliberately excluded -- a call always returns to its own call site rather
+ * than persisting control inside the callee, so it cannot reproduce the
+ * "jump back into a live iteration" hazard this scan exists to catch (see
+ * the `unshadowOpenLoops` doc comment in codegen.ts for GOSUB's own,
+ * stronger remedy for the hazard it CAN cause).
+ */
+function collectJumps(program: Program): JumpEdge[] {
+  const jumps: JumpEdge[] = [];
+  function visit(stmt: Statement, sourceLine: number): void {
+    if (stmt.type === 'goto') {
+      jumps.push({ sourceLine, targetLine: stmt.target });
+    } else if (stmt.type === 'on-branch' && stmt.kind === 'goto') {
+      for (const t of stmt.targets) jumps.push({ sourceLine, targetLine: t.line });
+    } else if (stmt.type === 'if') {
+      for (const s of stmt.thenBranch) visit(s, sourceLine);
+      if (stmt.elseBranch) for (const s of stmt.elseBranch) visit(s, sourceLine);
+    }
+  }
+  for (const [line, stmts] of program.lines) {
+    for (const stmt of stmts) visit(stmt, line);
+  }
+  return jumps;
+}
+
+/**
+ * Does any jump whose SOURCE line sits outside `[forLine, nextLine]` target a
+ * line INSIDE that same closed range (both ends inclusive, matching how the
+ * old body-local condition 4 defined "span")?
+ *
+ * This is the complementary hazard to the one `markShadowCounterMustBeCurrent`
+ * handles: that hook keeps VAR_<v> correct for code the loop's own GOTO jumps
+ * OUT to. It says nothing about a SECOND jump from somewhere else landing
+ * back INSIDE the span while SHADOW_ACTIVE is still 1 -- e.g. a "continue"
+ * idiom (`IF cond THEN GOTO 100` / `100 K=8` / `GOTO 50` where 50 is the
+ * loop's own NEXT) that writes the counter from OUTSIDE the tracked body and
+ * then resumes the native tail as if nothing happened, silently discarding
+ * that write (the same class of hazard `unshadowOpenLoops` exists for GOSUB,
+ * just reached a different way). No dataflow/reachability analysis needed --
+ * conservatively disqualifying the loop whenever such a jump exists is always
+ * sound, just occasionally more conservative than necessary.
+ */
+function hasExternalJumpIntoSpan(jumps: JumpEdge[], forLine: number, nextLine: number): boolean {
+  return jumps.some(j =>
+    (j.sourceLine < forLine || j.sourceLine > nextLine) &&
+    j.targetLine >= forLine && j.targetLine <= nextLine,
+  );
+}
+
 export function analyzeLoopShadowEligibility(program: Program, integerEligible: Set<string>): Map<ForStatement, boolean> {
   const result = new Map<ForStatement, boolean>();
+  const jumps = collectJumps(program);
 
-  walkProgram(program, (loop) => {
-    const { forStmt, varName, bodyStatements } = loop;
+  walkProgram(program, (loop, nextLine) => {
+    const { forStmt, varName, forLine, bodyStatements } = loop;
 
     // Condition 1: counter, limit, and step are all integer-eligible.
     // integerEligible already reflects this for the counter itself (Task
@@ -270,13 +328,22 @@ export function analyzeLoopShadowEligibility(program: Program, integerEligible: 
       return;
     }
 
-    // Condition 4 (GOTO/ON GOTO out of the loop's own line span) no longer
-    // lives here. A GOTO/ON GOTO out of a shadowed loop leaves the body
-    // WITHOUT reaching NEXT, same as a RETURN -- codegen.ts handles this at
-    // emission time via markShadowCounterMustBeCurrent(), which forces the
-    // counter's BCD form to stay current every iteration instead of
-    // disqualifying the loop outright. See codegen.ts's `case 'goto':` and
-    // emitOnBranch.
+    // Condition 4, in its ORIGINAL body-local form (GOTO/ON GOTO out of the
+    // loop's own line span) no longer lives here: a GOTO/ON GOTO out of a
+    // shadowed loop leaves the body WITHOUT reaching NEXT, same as a RETURN,
+    // and codegen.ts handles that at emission time via
+    // markShadowCounterMustBeCurrent(), which forces the counter's BCD form
+    // to stay current every iteration instead of disqualifying the loop
+    // outright. See codegen.ts's `case 'goto':` and emitOnBranch.
+    //
+    // Condition 4', its replacement: a jump from OUTSIDE this loop's span
+    // that lands INSIDE it is still a static disqualifier -- see
+    // hasExternalJumpIntoSpan's doc comment for why the per-iteration sync
+    // above cannot fix this direction of the hazard.
+    if (hasExternalJumpIntoSpan(jumps, forLine, nextLine)) {
+      result.set(forStmt, false);
+      return;
+    }
 
     // Conditions 2 and 3, combined per statement.
     for (const stmt of bodyStatements) {

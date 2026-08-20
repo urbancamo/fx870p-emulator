@@ -174,3 +174,60 @@ describe('a GOTO that never touches a shadowed loop', () => {
     expect(asmLabels(basic).some(l => l.startsWith('NEXTSHADOW_SYNC_K'))).toBe(false);
   }, 120_000);
 });
+
+// ---------------------------------------------------------------------------
+// 3. The "continue" idiom: a jump BACK INTO a live iteration from outside
+// ---------------------------------------------------------------------------
+//
+// Post-review finding: the RETURN/GOTO analogy this task started from is
+// INCOMPLETE. RETURN's safety doesn't just depend on "the counter is
+// refreshed at the start of every iteration" -- it also depends on RETURN
+// permanently abandoning the loop (its GOSUB call site is outside the body,
+// so control can never resume mid-loop afterwards). GOTO has no such
+// guarantee: it can jump out, run other code that WRITES the counter, and
+// then jump BACK IN via a second GOTO whose target sits inside the loop's
+// own [FOR, NEXT] span -- with SHADOW_ACTIVE still 1 and the shadow slots
+// still live. The write lands in VAR_K; the native tail keeps stepping the
+// untouched int16 slot; the write is silently discarded. This is the same
+// class of hazard `unshadowOpenLoops` already fixes for GOSUB, reached a
+// different way, and `markShadowCounterMustBeCurrent` cannot fix it: its
+// sync only runs at NEXT, which the re-entering jump can skip straight past.
+//
+// The fix is a STATIC pre-condition (loop-shadow-eligibility.ts's
+// `hasExternalJumpIntoSpan`): a loop is disqualified from shadowing
+// entirely whenever some GOTO/ON GOTO elsewhere in the program, with a
+// source line outside the loop's [FOR, NEXT] span, targets a line inside
+// it. `PRIMES.BAS` and `WUMPUS.BAS` were both checked against this rule and
+// have no such jump, so neither loses its shadowing.
+const CONTINUE_IDIOM =
+  '10 S=0\n' +
+  '20 FOR K=1 TO 10\n' +
+  '30 S=S+1\n' +
+  '40 IF S=3 THEN GOTO 100\n' +
+  '50 NEXT K\n' +
+  '60 GOTO 200\n' +
+  '100 K=8\n' +           // writes the counter from OUTSIDE the tracked body
+  '110 GOTO 50\n' +       // ...then re-enters the live loop at its own NEXT line
+  '200 T=S\n' +
+  '210 END\n';
+
+describe('a "continue" idiom that GOTOes out, writes the counter, then GOTOes back into the span', () => {
+  it('is disqualified from shadowing entirely -- no SHADOW_K_ACT, no NEXTSHADOW_ tail at all', () => {
+    const labels = asmLabels(CONTINUE_IDIOM);
+    expect(labels.some(l => l === 'SHADOW_K_ACT')).toBe(false);
+    expect(labels.some(l => l.startsWith('NEXTSHADOW_'))).toBe(false);
+  });
+
+  it('produces the CORRECT answer (S=T=5), not the buggy S=T=10 a live shadow would give', () => {
+    // Trace: K=1 (S=1), K=2 (S=2), K=3 (S=3) -> GOTO 100 -> K:=8 -> GOTO 50
+    // (NEXT K) steps K to 9, 9<=10 so the loop continues for K=9 (S=4),
+    // K=10 (S=5), then K=11 exits. Five iterations total. Before this fix,
+    // a still-live shadow would silently discard the `K=8` write and keep
+    // stepping its own stale int16 copy from 3 onward -- seven more
+    // iterations (K=4..10) instead of two, landing on S=T=10.
+    const run = runLoop(CONTINUE_IDIOM, 'L210');
+    expect(run.reason).toBe('breakpoint');
+    expect(hex(run.bcd('S'))).toBe(hex(numberToBcd9(5)));
+    expect(hex(run.bcd('T'))).toBe(hex(numberToBcd9(5)));
+  }, 120_000);
+});

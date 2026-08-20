@@ -97,6 +97,70 @@ describe('analyzeLoopShadowEligibility', () => {
     expect(result.get(forStmts[0])).toBe(true);
   });
 
+  it('condition 4\': disqualified by a "continue" idiom that GOTOes out, writes the counter, then GOTOes back into the span', () => {
+    // The exact hazard markShadowCounterMustBeCurrent cannot fix: `100 K=8`
+    // writes the counter from OUTSIDE the tracked body, and `110 GOTO 50`
+    // (line 50 is the loop's own NEXT) resumes the native tail mid-loop as
+    // if that write never happened. Reproduced live on the emulator in
+    // tools/emu-debugger/tests/loop-shadow-goto.test.ts.
+    const { result, forStmts } = analyze(
+      '10 S=0\n20 FOR K=1 TO 10\n30 S=S+1\n40 IF S=3 THEN GOTO 100\n50 NEXT K\n'
+      + '60 GOTO 200\n100 K=8\n110 GOTO 50\n200 T=S\n210 END\n',
+    );
+    expect(result.get(forStmts[0])).toBe(false);
+  });
+
+  it('condition 4\': disqualified by the same "continue" idiom even when the write happens inside a GOSUB\'d subroutine', () => {
+    // The check is agnostic to WHAT wrote the counter, or how -- only to
+    // whether an external GOTO's target lands inside the span. A GOSUB'd
+    // subroutine that writes K, followed by a GOTO from after the GOSUB call
+    // site back into the span, reproduces the identical hazard.
+    const { result, forStmts } = analyze(
+      '10 S=0\n20 FOR K=1 TO 10\n30 S=S+1\n40 IF S=3 THEN GOTO 100\n50 NEXT K\n'
+      + '60 GOTO 200\n100 GOSUB 300\n110 GOTO 50\n200 T=S\n210 END\n300 K=8\n310 RETURN\n',
+    );
+    expect(result.get(forStmts[0])).toBe(false);
+  });
+
+  it('condition 4\': disqualified by the same "continue" idiom when the write comes from a re-seeding nested FOR', () => {
+    // A nested `FOR K=...` reached only via an external GOTO (not textually
+    // inside the outer loop's own span, so condition 2's nested-FOR check
+    // never sees it) re-seeds VAR_K the same way a direct assignment would.
+    const { result, forStmts } = analyze(
+      '10 S=0\n20 FOR K=1 TO 10\n30 S=S+1\n40 IF S=3 THEN GOTO 100\n50 NEXT K\n'
+      + '60 GOTO 200\n100 FOR K=1 TO 3\n105 NEXT K\n110 GOTO 50\n200 T=S\n210 END\n',
+    );
+    expect(result.get(forStmts[0])).toBe(false);
+  });
+
+  it('condition 4\': disqualified when an external GOTO lands exactly on the NEXT line', () => {
+    const { result, forStmts } = analyze(
+      '10 FOR K=1 TO 10\n20 PRINT "hi"\n30 NEXT K\n40 END\n50 GOTO 30\n',
+    );
+    expect(result.get(forStmts[0])).toBe(false);
+  });
+
+  it('condition 4\': disqualified when an external GOTO lands exactly on the FOR line (span boundary is inclusive)', () => {
+    const { result, forStmts } = analyze(
+      '10 GOTO 30\n20 END\n30 FOR K=1 TO 10\n40 PRINT "hi"\n50 NEXT K\n60 END\n',
+    );
+    expect(result.get(forStmts[0])).toBe(false);
+  });
+
+  it('condition 4\': disqualified by an external ON GOTO whose target lands inside the span', () => {
+    const { result, forStmts } = analyze(
+      '10 FOR K=1 TO 10\n20 PRINT "hi"\n30 NEXT K\n40 END\n50 ON S GOTO 60,20\n60 END\n',
+    );
+    expect(result.get(forStmts[0])).toBe(false);
+  });
+
+  it('condition 4\': NOT disqualified by a GOTO whose source AND target are both outside the span', () => {
+    const { result, forStmts } = analyze(
+      '10 GOTO 100\n20 FOR K=1 TO 10\n30 PRINT "hi"\n40 NEXT K\n50 END\n100 PRINT "unrelated"\n110 GOTO 100\n',
+    );
+    expect(result.get(forStmts[0])).toBe(true);
+  });
+
   it('condition 4: GOSUB out of the loop body does NOT disqualify (it returns)', () => {
     const { result, forStmts } = analyze('10 FOR K=1 TO 10\n20 GOSUB 100\n30 NEXT K\n40 END\n100 PRINT "hi"\n110 RETURN\n');
     expect(result.get(forStmts[0])).toBe(true);

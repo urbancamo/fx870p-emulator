@@ -143,10 +143,13 @@ interface ShadowSlots {
  *
  * Shadowing moves the live counter out of VAR_<v> and into an int16 slot, so
  * VAR_<v> is deliberately STALE between the FOR and the NEXT and correct again
- * only at the exit. Two separate things can make that visible, and they need
- * two different remedies — hence two flags. Both are answered by OBSERVING
- * WHAT WAS ACTUALLY EMITTED rather than by a second static scan, so no
- * expression context or statement shape can be overlooked.
+ * only at the exit. Three separate things can make that visible (two of them
+ * fixed here, at emission time; the third fixed earlier, by refusing to
+ * shadow the loop at all) — hence two flags PLUS a static pre-condition that
+ * never lets a loop reach this interface in the first place for the third
+ * case. The two flags are answered by OBSERVING WHAT WAS ACTUALLY EMITTED
+ * rather than by a second static scan, so no expression context or statement
+ * shape can be overlooked.
  *
  * ── `bcdCounterRead` — VAR_<v> must be CURRENT throughout the body ─────────
  *
@@ -155,16 +158,24 @@ interface ShadowSlots {
  *   * emitVariableLoad(<counter>) anywhere inside the body. Every read of a
  *     numeric variable funnels through there (expressions, PRINT items, array
  *     subscripts, a nested FOR's own bounds, ...), so one hook covers them all.
- *   * a `RETURN` inside the body. This one is not a read at all — it is an
- *     EXIT that never reaches NEXT, so the once-per-loop exit re-sync never
- *     runs and VAR_<v> is left at whatever it last held. A subroutine that
- *     happens to contain a loop and returns early out of it is an ordinary
- *     idiom, and without this it silently yields the loop's initial counter.
+ *   * a `RETURN`, `GOTO`, or `ON...GOTO` inside the body. None of these are a
+ *     read at all — each is an EXIT that can leave without ever reaching
+ *     NEXT, so the once-per-loop exit re-sync never runs and VAR_<v> is left
+ *     at whatever it last held. A subroutine that returns early out of a
+ *     loop it contains, or a trial-division idiom that GOTOes past NEXT on
+ *     an early-out condition (PRIMES.BAS's own hot loop does exactly this,
+ *     twice), are both ordinary idioms, and without this hook they silently
+ *     yield the loop's initial counter to whatever runs after the jump.
  *
  * The remedy is NEXT's `<sync>` block: re-encode the counter to BCD each
- * iteration. That is sufficient for both cases, because emitFor seeds VAR_<v>
- * with the initial value before the loop top, so VAR_<v> equals the current
- * iteration's counter at every point in the body — including at a `RETURN`.
+ * iteration. That is sufficient for all three triggers, because emitFor seeds
+ * VAR_<v> with the initial value before the loop top, so VAR_<v> equals the
+ * current iteration's counter at every point in the body — including at a
+ * `RETURN` or a `GOTO` out.
+ *
+ * Note what this does NOT cover: a `GOTO` back INTO the span from outside it,
+ * which can resume a live iteration with SHADOW_ACTIVE still 1 after code
+ * outside the tracked body wrote the counter. See the next paragraph.
  *
  * ── `unshadowable` — the int16 slots cannot be trusted at all ──────────────
  *
@@ -180,13 +191,36 @@ interface ShadowSlots {
  * live for this loop, which keeps anything that consults that flag (including
  * Task 5's in-body operand resolution) on the BCD path too.
  *
+ * ── The third hazard: a `GOTO` back INTO the span from outside it ──────────
+ *
+ * A GOSUB always returns to its own call site, so it can never resume
+ * mid-loop after leaving. A GOTO has no such guarantee: it can jump out,
+ * run arbitrary other code (including writing the counter, e.g. `K=8`), and
+ * then jump BACK IN via a second GOTO whose target sits inside this loop's
+ * `[FOR, NEXT]` span — e.g. landing directly on the NEXT line itself. If
+ * that happens, this loop's SHADOW_ACTIVE is still 1 and the native tail
+ * just resumes stepping the int16 slot the intervening write never touched
+ * — exactly the GOSUB hazard above, reached a different way, and NEITHER
+ * flag on this interface can fix it after the fact: `bcdCounterRead`'s sync
+ * only runs at NEXT, which the re-entering jump may skip straight past, and
+ * `unshadowable` is never set because the write happened outside any body
+ * this pass was ever watching.
+ *
+ * There is no OpenShadowLoop flag for this because there is no OpenShadowLoop
+ * for it to be a flag ON: the fix is a STATIC pre-condition, checked before a
+ * loop is ever admitted to shadowing at all. See
+ * loop-shadow-eligibility.ts's `hasExternalJumpIntoSpan` — a loop with any
+ * GOTO/ON...GOTO elsewhere in the program whose target lands inside this
+ * loop's span, from a source line outside it, never gets shadow slots in the
+ * first place.
+ *
  * ── Relationship to Task 5 ────────────────────────────────────────────────
  *
  * `bcdCounterRead`'s in-body-read half is self-retiring: Task 5 serves such a
  * reference from the slot instead of emitting a BCD load, so the flag stops
- * being set for exactly the loops Task 5 learns to handle. Its `RETURN` half
- * and `unshadowable` are permanent — they are about control flow and about
- * writes this pass cannot see, neither of which Task 5 changes.
+ * being set for exactly the loops Task 5 learns to handle. Its `RETURN`/
+ * `GOTO` half and `unshadowable` are permanent — they are about control flow
+ * and about writes this pass cannot see, neither of which Task 5 changes.
  */
 interface OpenShadowLoop extends ShadowSlots {
   varName: string;
@@ -2060,8 +2094,15 @@ class CodeGen {
    * Every currently-open shadowed loop must keep its counter's BCD form
    * current for the whole body, not just at the exit. See OpenShadowLoop.
    *
-   * Called for a `RETURN`, which leaves the loop WITHOUT reaching NEXT at all,
-   * so the once-per-loop exit re-sync never runs.
+   * Called for a `RETURN`, `GOTO`, or `ON...GOTO` — each can leave the loop
+   * WITHOUT reaching NEXT at all, so the once-per-loop exit re-sync never
+   * runs. This only guards the OUTGOING direction (code the jump leaves TO
+   * reading a now-current VAR_<v>); it says nothing about a later jump back
+   * INTO the same loop's span from outside, which is instead prevented from
+   * ever reaching this method's loop in the first place by
+   * loop-shadow-eligibility.ts's `hasExternalJumpIntoSpan` — see
+   * OpenShadowLoop's "third hazard" section for why that direction needs a
+   * static disqualifier rather than a runtime flag.
    */
   private markShadowCounterMustBeCurrent(): void {
     for (const open of this.shadowStack) open.bcdCounterRead = true;

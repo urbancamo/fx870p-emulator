@@ -900,7 +900,15 @@ describe('codegen - NEXT dual tail', () => {
   });
 
   it('does not force a sync for a GOTO that is outside every shadowed loop', () => {
-    const asm = generate(parse('10 GOTO 100\n20 END\n100 FOR K=1 TO 10\n110 S=S+1\n120 NEXT K\n130 END\n'));
+    // The entry GOTO's target (100) is deliberately BEFORE the FOR line
+    // (110), not ON it -- landing exactly on the FOR line would trip the
+    // external-jump-into-span guard below (see loop-shadow-eligibility.ts's
+    // hasExternalJumpIntoSpan) and disqualify the loop outright, which would
+    // make NEXTSHADOW_SYNC_K absent for the WRONG reason.
+    const asm = generate(parse('10 GOTO 100\n20 END\n100 S=0\n110 FOR K=1 TO 10\n120 S=S+1\n130 NEXT K\n140 END\n'));
+    // The loop is still genuinely shadowed...
+    expect(asm.lines.some(l => l.label === 'SHADOW_K_ACT')).toBe(true);
+    // ...just without a forced per-iteration sync.
     expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(false);
   });
 
