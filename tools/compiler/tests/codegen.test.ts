@@ -891,6 +891,24 @@ describe('codegen - NEXT dual tail', () => {
     expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(false);
   });
 
+  it('a GOTO out of a shadowed loop body forces markShadowCounterMustBeCurrent (a NEXTSHADOW_SYNC block is emitted)', () => {
+    const asm = generate(parse('10 N=100\n20 FOR K=1 TO N\n30 IF K=5 THEN GOTO 50\n40 NEXT K\n50 END\n'));
+    const labels = asm.lines.map(l => l.label).filter(Boolean);
+    expect(labels.some(l => l!.includes('NEXTSHADOW_SYNC'))).toBe(true);
+    // ...and it keeps the loop's native tail -- GOTO is an exit, not a write.
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_BCD_K'))).toBe(true);
+  });
+
+  it('does not force a sync for a GOTO that is outside every shadowed loop', () => {
+    const asm = generate(parse('10 GOTO 100\n20 END\n100 FOR K=1 TO 10\n110 S=S+1\n120 NEXT K\n130 END\n'));
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(false);
+  });
+
+  it('an ON GOTO out of a shadowed loop body also forces a sync', () => {
+    const asm = generate(parse('10 N=100\n20 FOR K=1 TO N\n30 ON S GOTO 50,40\n40 NEXT K\n50 END\n'));
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(true);
+  });
+
   // -- GOSUB: the slots cannot be trusted at all ----------------------------
 
   it('takes a loop whose body GOSUBs off the fast path entirely', () => {
@@ -1175,7 +1193,13 @@ describe('codegen - shadow-aware in-body operands', () => {
     // A comparison with the same operand shape IS served -- it wins by ~46%.
     const cmp = generate(parse('10 N=5\n20 FOR K=1 TO 10\n30 IF K>N THEN GOTO 50\n40 S=S+1\n50 NEXT K\n60 END\n'));
     expect(cmp.lines.some(l => (l.label ?? '').startsWith('BODYSHADOW_'))).toBe(true);
-    expect(cmp.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(false);
+    // Task 6b: the body's GOTO now unconditionally forces a per-iteration
+    // sync (markShadowCounterMustBeCurrent), even though this particular
+    // target (the loop's own NEXT) never actually needed one -- a deliberate,
+    // documented cost of not tracking line spans any more. See `case
+    // 'goto':` in codegen.ts and loop-shadow-eligibility.ts's removal of the
+    // old span-aware condition 4.
+    expect(cmp.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(true);
   });
 
   it('rejects a literal that is not an exact int16', () => {

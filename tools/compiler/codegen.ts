@@ -448,6 +448,13 @@ class CodeGen {
         break;
 
       case 'goto':
+        // A GOTO out of a shadowed loop's body leaves WITHOUT reaching NEXT,
+        // exactly like RETURN -- the once-per-loop exit re-sync never runs,
+        // so the counter's BCD form has to have been kept current all
+        // along. See OpenShadowLoop and `case 'return':` above. Fires
+        // unconditionally (not just for out-of-span targets) -- see
+        // loop-shadow-eligibility.ts, which no longer tracks line spans.
+        this.markShadowCounterMustBeCurrent();
         this.code.push({ mnemonic: 'jp', operands: `L${stmt.target}` });
         break;
 
@@ -2565,10 +2572,13 @@ class CodeGen {
   private emitOnBranch(stmt: OnBranchStatement): void {
     // ON..GOSUB, like plain GOSUB, runs code emitted outside the loop body:
     // this pass can see neither what it reads nor what it WRITES, so any open
-    // shadowed loop drops off the fast path. (ON..GOTO out of the loop's line
-    // span is already a disqualifier in loop-shadow-eligibility.ts, and
-    // in-span ON..GOTO stays inside the observed region.)
+    // shadowed loop drops off the fast path entirely (unshadowOpenLoops).
+    // ON..GOTO, like plain GOTO, only ever LEAVES the loop -- any target still
+    // runs as part of the same program, so a read-sync is enough: force the
+    // counter's BCD form to stay current every iteration instead
+    // (markShadowCounterMustBeCurrent), same remedy as `case 'goto':` above.
     if (stmt.kind === 'gosub') this.unshadowOpenLoops();
+    if (stmt.kind === 'goto') this.markShadowCounterMustBeCurrent();
     const skipLabel = this.uniqueLabel('ON_END');
     this.code.push({ comment: `ON ... ${stmt.kind.toUpperCase()} ${stmt.targets.map(t => t.line).join(',')}` });
 

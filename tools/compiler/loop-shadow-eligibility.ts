@@ -254,26 +254,11 @@ function walkProgram(program: Program, onLoopClosed: (loop: OpenLoop, nextLine: 
   }
 }
 
-function bodyContainsOutOfSpanJump(body: Statement[], forLine: number, nextLine: number): boolean {
-  for (const stmt of body) {
-    if (stmt.type === 'goto' && (stmt.target < forLine || stmt.target > nextLine)) return true;
-    // `on-branch` with kind 'gosub' (ON...GOSUB) is deliberately NOT checked
-    // here, same reasoning as plain GOSUB below the loop -- it always
-    // returns to the following statement (or falls through in place if the
-    // selector is out of range) rather than permanently leaving the loop,
-    // so it can never cause the loop-exit BCD re-sync to go unreached.
-    if (stmt.type === 'on-branch' && stmt.kind === 'goto') {
-      for (const t of stmt.targets) if (t.line < forLine || t.line > nextLine) return true;
-    }
-  }
-  return false;
-}
-
 export function analyzeLoopShadowEligibility(program: Program, integerEligible: Set<string>): Map<ForStatement, boolean> {
   const result = new Map<ForStatement, boolean>();
 
-  walkProgram(program, (loop, nextLine) => {
-    const { forStmt, varName, forLine, bodyStatements } = loop;
+  walkProgram(program, (loop) => {
+    const { forStmt, varName, bodyStatements } = loop;
 
     // Condition 1: counter, limit, and step are all integer-eligible.
     // integerEligible already reflects this for the counter itself (Task
@@ -285,11 +270,13 @@ export function analyzeLoopShadowEligibility(program: Program, integerEligible: 
       return;
     }
 
-    // Condition 4: no GOTO/ON GOTO out of the loop's own line span.
-    if (bodyContainsOutOfSpanJump(bodyStatements, forLine, nextLine)) {
-      result.set(forStmt, false);
-      return;
-    }
+    // Condition 4 (GOTO/ON GOTO out of the loop's own line span) no longer
+    // lives here. A GOTO/ON GOTO out of a shadowed loop leaves the body
+    // WITHOUT reaching NEXT, same as a RETURN -- codegen.ts handles this at
+    // emission time via markShadowCounterMustBeCurrent(), which forces the
+    // counter's BCD form to stay current every iteration instead of
+    // disqualifying the loop outright. See codegen.ts's `case 'goto':` and
+    // emitOnBranch.
 
     // Conditions 2 and 3, combined per statement.
     for (const stmt of bodyStatements) {

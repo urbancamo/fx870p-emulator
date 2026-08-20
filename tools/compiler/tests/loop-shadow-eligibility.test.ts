@@ -80,13 +80,20 @@ describe('analyzeLoopShadowEligibility', () => {
     expect(result.get(forStmts[0])).toBe(false);
   });
 
-  it('condition 4: disqualified when a GOTO in the body jumps past NEXT', () => {
+  it('a GOTO in the body that jumps past NEXT no longer disqualifies the loop -- codegen forces a sync instead', () => {
     const { result, forStmts } = analyze('10 FOR K=1 TO 10\n20 IF K=5 THEN GOTO 100\n30 NEXT K\n40 END\n100 PRINT "done"\n');
-    expect(result.get(forStmts[0])).toBe(false);
+    expect(result.get(forStmts[0])).toBe(true);
   });
 
-  it('condition 4: eligible when a GOTO inside the body only jumps within the loop span', () => {
+  it('eligible when a GOTO inside the body only jumps within the loop span', () => {
     const { result, forStmts } = analyze('10 FOR K=1 TO 10\n20 IF K=5 THEN GOTO 25\n25 PRINT "x"\n30 NEXT K\n40 END\n');
+    expect(result.get(forStmts[0])).toBe(true);
+  });
+
+  it('an ON GOTO in the body with a target outside the loop span no longer disqualifies the loop either', () => {
+    const { result, forStmts } = analyze(
+      '10 FOR K=1 TO 10\n20 ON S GOTO 100,30\n30 NEXT K\n40 END\n100 PRINT "done"\n',
+    );
     expect(result.get(forStmts[0])).toBe(true);
   });
 
