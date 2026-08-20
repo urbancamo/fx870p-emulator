@@ -172,28 +172,51 @@ export function formatListing(input: ListingInput): string {
   }
 
   // ── Integer-eligibility / shadowed-loop classification ─────────────────────
+  //
+  // Reuses the Symbol Table section's grid layout immediately above (4
+  // columns, entries padded to ENTRY_WIDTH) rather than a single unwrapped
+  // line, so this stays within the listing's 132-column convention for
+  // programs with many variables or many shadowed loops.
+  const pushGrid = (entries: string[]): void => {
+    if (entries.length === 0) {
+      lines.push('  (none)');
+      return;
+    }
+    for (let i = 0; i < entries.length; i += COLS) {
+      const chunk = entries.slice(i, i + COLS);
+      const parts = chunk.map(e => e.padEnd(ENTRY_WIDTH));
+      lines.push('  ' + parts.join('  ').trimEnd());
+    }
+  };
+
   lines.push('');
   lines.push('Integer-Eligible Variables:');
   const integerEligible = input.integerEligible ?? new Set<string>();
-  const allVarNames = [...input.symbols]
-    .filter(s => s.type === 'variable')
-    .map(s => s.name)
-    .sort();
-  const eligible = allVarNames.filter(n => integerEligible.has(n.replace(/^VAR_/, '')));
-  const bcdOnly = allVarNames.filter(n => !integerEligible.has(n.replace(/^VAR_/, '')));
-  lines.push('  ' + (eligible.length > 0 ? eligible.join('  ') : '(none)'));
+  // Only real BASIC variable symbols (`VAR_<name>` labels) participate in
+  // this classification. `type === 'variable'` alone is not enough to
+  // isolate them: the assembler also tags loop-shadow storage slots
+  // (`SHADOW_<v>_CNT/LIM/STP/ACT`, allocated by allocShadowSlots) as
+  // `'variable'`, since they're DS-labeled just like real variables. Those
+  // are compiler-internal int16/flag storage -- never BCD -- and must be
+  // excluded here rather than silently falling into "BCD-Only" alongside
+  // real variables that failed eligibility.
+  const varSymbols = [...input.symbols]
+    .filter(s => s.type === 'variable' && s.name.startsWith('VAR_'))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const eligibleSymbols = varSymbols.filter(s => integerEligible.has(s.name.replace(/^VAR_/, '')));
+  const bcdOnlySymbols  = varSymbols.filter(s => !integerEligible.has(s.name.replace(/^VAR_/, '')));
+  const symbolEntry = (sym: { name: string; address: number }): string =>
+    `${sym.name.padEnd(12)}= ${hexAddr(sym.address)}`;
+  pushGrid(eligibleSymbols.map(symbolEntry));
+
   lines.push('');
   lines.push('BCD-Only Variables:');
-  lines.push('  ' + (bcdOnly.length > 0 ? bcdOnly.join('  ') : '(none)'));
+  pushGrid(bcdOnlySymbols.map(symbolEntry));
 
   lines.push('');
   lines.push('Shadowed FOR Loops:');
   const shadowedLoops = input.shadowedLoops ?? [];
-  if (shadowedLoops.length > 0) {
-    for (const loop of shadowedLoops) lines.push(`  ${loop.varName} (line ${loop.line})`);
-  } else {
-    lines.push('  (none)');
-  }
+  pushGrid(shadowedLoops.map(loop => `${loop.varName} (line ${loop.line})`));
 
   // ── Size summary ─────────────────────────────────────────────────────────────
   lines.push('');
