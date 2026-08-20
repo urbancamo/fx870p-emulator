@@ -924,6 +924,35 @@ describe('codegen - NEXT dual tail', () => {
     expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(true);
   });
 
+  // -- RESUME: all three forms leave without reaching NEXT, same as GOTO/RETURN
+
+  it('a RESUME <line> out of a shadowed loop body forces a sync (it emits `jp`, same as GOTO)', () => {
+    const asm = generate(parse('10 N=100\n20 FOR K=1 TO N\n30 IF K=5 THEN RESUME 50\n40 NEXT K\n50 END\n'));
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(true);
+    // ...and it keeps the loop's native tail -- RESUME is an exit, not a write.
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_BCD_K'))).toBe(true);
+  });
+
+  it('a RESUME NEXT inside a shadowed loop body forces a sync (it emits `rtn`, same as RETURN)', () => {
+    const asm = generate(parse(
+      '10 GOSUB 100\n20 END\n100 X=0\n105 FOR K=1 TO 10\n110 S=S+1\n115 IF S=3 THEN RESUME NEXT\n120 NEXT K\n130 RETURN\n',
+    ));
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(true);
+  });
+
+  it('a bare RESUME (retry) inside a shadowed loop body forces a sync (it also emits `rtn`)', () => {
+    const asm = generate(parse(
+      '10 GOSUB 100\n20 END\n100 X=0\n105 FOR K=1 TO 10\n110 S=S+1\n115 IF S=3 THEN RESUME\n120 NEXT K\n130 RETURN\n',
+    ));
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(true);
+  });
+
+  it('does not force a sync for a RESUME that is outside every shadowed loop', () => {
+    const asm = generate(parse('10 END\n20 RESUME NEXT\n30 FOR K=1 TO 10\n40 S=S+1\n50 NEXT K\n60 END\n'));
+    expect(asm.lines.some(l => l.label === 'SHADOW_K_ACT')).toBe(true);
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(false);
+  });
+
   // -- GOSUB: the slots cannot be trusted at all ----------------------------
 
   it('takes a loop whose body GOSUBs off the fast path entirely', () => {

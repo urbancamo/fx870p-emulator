@@ -1,18 +1,25 @@
 // Task 6b acceptance test — proves a GOTO out of a shadowed loop's body forces
 // the per-iteration BCD re-sync (markShadowCounterMustBeCurrent), the same
-// remedy Task 4 already gave RETURN, on the real CPU (sections 1-2). Two
+// remedy Task 4 already gave RETURN, on the real CPU (sections 1-2). Three
 // rounds of post-implementation review then found the same underlying bug
-// class reachable through two further doors, both fixed by
-// loop-shadow-eligibility.ts's `hasExternalJumpIntoSpan` static guard:
+// class reachable through further doors -- two on the INCOMING axis (control
+// landing back inside a live span from outside), one on the OUTGOING axis (a
+// statement type that leaves a loop's body without calling the sync hook):
 //
 //   - Section 3: a GOTO jumping back INTO a live loop's own span from
-//     outside it, after writing the counter externally.
-//   - Section 4: the identical hazard reached via a CALL (GOSUB/ON...GOSUB/
-//     RESUME <line>) instead of a JUMP -- a call whose TARGET lands inside
-//     the span orphans its own return address the same way.
+//     outside it, after writing the counter externally. Fixed by
+//     loop-shadow-eligibility.ts's `hasExternalJumpIntoSpan` static guard.
+//   - Section 4: the identical INCOMING hazard reached via a CALL
+//     (GOSUB/ON...GOSUB/RESUME <line>) instead of a JUMP -- a call whose
+//     TARGET lands inside the span orphans its own return address the same
+//     way. Fixed by extending the same guard's edge collection.
+//   - Section 5: the OUTGOING-direction gap in `emitResume` itself -- all
+//     three RESUME forms leave a loop's body without reaching NEXT (same as
+//     GOTO/RETURN), but `emitResume` never called
+//     `markShadowCounterMustBeCurrent()`. Fixed by adding that one call.
 //
 // See loop-shadow-eligibility.ts's `hasExternalJumpIntoSpan`/`collectJumps`
-// and codegen.ts's `case 'goto':` / `emitOnBranch`.
+// and codegen.ts's `case 'goto':` / `emitOnBranch` / `emitResume`.
 //
 // The probe/runLoop harness is loop-shadow-next.test.ts's, copied rather than
 // imported: importing another test file would run its suites too.
@@ -294,5 +301,101 @@ describe.each([
     expect(run.reason).toBe('breakpoint');
     expect(hex(run.bcd('S'))).toBe(hex(numberToBcd9(5)));
     expect(hex(run.bcd('T'))).toBe(hex(numberToBcd9(5)));
+  }, 120_000);
+});
+
+// ---------------------------------------------------------------------------
+// 5. The OUTGOING-direction gap: emitResume never called the sync hook
+// ---------------------------------------------------------------------------
+//
+// Third-round review finding, on the opposite axis from sections 3-4 (which
+// were both about an INCOMING edge landing back inside a live span).
+// `RESUME <line>` was correctly given to `collectJumps` in round 2 (so an
+// EXTERNAL RESUME landing inside a live loop's span disqualifies it, same as
+// GOTO). But RESUME also needed the OUTGOING-direction fix -- the same one
+// `case 'goto':`, `case 'return':`, and `emitOnBranch`'s `kind === 'goto'`
+// handling already had -- and `emitResume` had none of the three hook call
+// sites. All three RESUME forms leave a shadowed loop's body without
+// reaching NEXT:
+//
+//   - `RESUME <line>` emits `jp` -- byte-for-byte the same transfer as
+//     `case 'goto':`, which DOES call markShadowCounterMustBeCurrent().
+//   - `RESUME NEXT` and a bare `RESUME` both emit `rtn` -- the same transfer
+//     as `case 'return':`, which also DOES call it.
+//
+// So a shadowed loop exited via any RESUME form left without the
+// per-iteration BCD sync, reading the counter's iteration-1 seed instead of
+// its current value -- the identical failure mode as the RETURN case Task 4
+// originally fixed, just for a statement type that fell through the cracks.
+//
+// Verified directly (not just argued) by temporarily commenting out the new
+// `this.markShadowCounterMustBeCurrent()` call at the top of emitResume and
+// re-running: RESUME NEXT and bare RESUME both read back T=1 (the loop's
+// iteration-1 seed) instead of the correct T=3, while RETURN (same program,
+// same GOSUB entry, already fixed since Task 4) correctly read T=3 -- and
+// RESUME 200 read back T=1 while GOTO 200 (already fixed since this task's
+// first round) correctly read T=3. Restored the fix before committing.
+
+/** `RETURN`/`GOTO`/`RESUME`-equivalent early exit from inside a GOSUB'd
+ * subroutine's own loop, landing OUTSIDE the loop (mirrors loop-shadow-next
+ * .test.ts's own RETURN acceptance test). The entry GOSUB's target (100) is
+ * deliberately a no-op line BEFORE the FOR line (105), not ON it -- see the
+ * hasExternalJumpIntoSpan comment elsewhere in this file for why. */
+function exitViaGosubSubroutine(exitStmt: string): string {
+  return (
+    '10 S=0\n' +
+    '20 GOSUB 100\n' +
+    '30 T=K\n' +
+    '40 END\n' +
+    '100 X=0\n' +
+    '105 FOR K=1 TO 10\n' +
+    '110 S=S+1\n' +
+    `115 IF S=3 THEN ${exitStmt}\n` +
+    '120 NEXT K\n' +
+    '130 RETURN\n'
+  );
+}
+
+describe.each([
+  ['RETURN', exitViaGosubSubroutine('RETURN')],
+  ['RESUME NEXT', exitViaGosubSubroutine('RESUME NEXT')],
+  ['RESUME (bare)', exitViaGosubSubroutine('RESUME')],
+])('a %s exiting a shadowed loop without reaching NEXT (outgoing direction)', (_label, program) => {
+  it('keeps the loop on the fast path with a forced per-iteration sync', () => {
+    const labels = asmLabels(program);
+    expect(labels.some(l => l === 'SHADOW_K_ACT')).toBe(true);
+    expect(labels.some(l => l.startsWith('NEXTSHADOW_SYNC_K'))).toBe(true);
+  });
+
+  it('reports the counter\'s value at the moment of exit (3), not the loop\'s initial seed (1)', () => {
+    const run = runLoop(program, 'L40');
+    expect(run.reason).toBe('breakpoint');
+    expect(hex(run.bcd('S'))).toBe(hex(numberToBcd9(3)));  // three iterations ran
+    expect(hex(run.bcd('T'))).toBe(hex(numberToBcd9(3)));  // ...and T=K agrees
+  }, 120_000);
+});
+
+describe('a RESUME <line> exiting a shadowed loop past NEXT (outgoing direction, jp form)', () => {
+  const program =
+    '10 S=0\n' +
+    '20 FOR K=1 TO 10\n' +
+    '30 S=S+1\n' +
+    '40 IF S=3 THEN RESUME 200\n' +
+    '50 NEXT K\n' +
+    '60 GOTO 210\n' +
+    '200 T=K\n' +
+    '210 END\n';
+
+  it('keeps the loop on the fast path with a forced per-iteration sync', () => {
+    const labels = asmLabels(program);
+    expect(labels.some(l => l === 'SHADOW_K_ACT')).toBe(true);
+    expect(labels.some(l => l.startsWith('NEXTSHADOW_SYNC_K'))).toBe(true);
+  });
+
+  it('reports the counter\'s value at the moment of the jump (3), not the loop\'s initial seed (1)', () => {
+    const run = runLoop(program, 'L210');
+    expect(run.reason).toBe('breakpoint');
+    expect(hex(run.bcd('S'))).toBe(hex(numberToBcd9(3)));
+    expect(hex(run.bcd('T'))).toBe(hex(numberToBcd9(3)));
   }, 120_000);
 });
