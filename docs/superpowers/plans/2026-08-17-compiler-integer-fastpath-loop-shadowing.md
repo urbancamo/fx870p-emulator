@@ -1141,6 +1141,99 @@ git commit -m "feat(compiler): show integer-eligibility and shadowed-loop classi
 
 ---
 
+### Task 6b: Treat `GOTO`-out-of-loop like `RETURN` — forced sync, not disqualification
+
+> Added mid-execution, after Task 6's regenerated `PRIMES.BAS` listing (the concrete proof step Task 6 itself specifies) showed the program's own `FOR K` loop getting `(none)` under "Shadowed FOR Loops" — not a bug in Task 6, a real discovery about the target program. See the SDD ledger for the full investigation; summarized below.
+
+**Files:**
+- Modify: `tools/compiler/loop-shadow-eligibility.ts`, `tools/compiler/codegen.ts`
+- Test: `tools/compiler/tests/loop-shadow-eligibility.test.ts`, `tools/compiler/tests/codegen.test.ts`, new file `tools/emu-debugger/tests/loop-shadow-goto.test.ts`
+
+**Interfaces:**
+- Consumes: `markShadowCounterMustBeCurrent()` (Task 4, already exists — the exact same private method the `return` hook calls, at `codegen.ts:1636`-ish).
+- Produces: `bodyContainsOutOfSpanJump` and its call from `analyzeLoopShadowEligibility` removed entirely (condition 4 no longer exists as a static disqualifier). A `case 'goto':` hook and an `on-branch`/`kind === 'goto'` hook in `codegen.ts`, both calling `markShadowCounterMustBeCurrent()`, mirroring `case 'return':`'s existing pattern exactly.
+
+**Why this is correct, not just convenient:** `PRIMES.BAS`'s actual hot loop (`110 FOR K=2 TO N-1 ... 120 IF K+K>N THEN 200 ... 130 IF N MOD K=0 THEN 100 ... 140 NEXT K`) has two `GOTO`s that jump past `NEXT`, both instances of the exact early-exit-from-trial-division idiom every design document in this plan singled out as the representative case. Neither jump target ever reads `K` again — but condition 4 can't know that without real reachability analysis, deliberately out of scope. `markShadowCounterMustBeCurrent()`'s existing safety argument (see `codegen.ts:141-204`'s `OpenShadowLoop` doc comment, and Task 4's ledger entry) doesn't actually depend on anything specific to `RETURN` — it depends only on this invariant: **`VAR_<v>` is refreshed at the START of every iteration** (via `emitFor`'s seed for iteration 1, or the prior iteration's `NEXT` sync for iteration N>1), and nothing in an iteration's own body writes to it before that iteration's own exit. That invariant holds regardless of *how* the iteration's body execution ends — falling through to `NEXT` normally, `RETURN`ing, or `GOTO`ing out — so the exact same remedy that made the `RETURN` fix sound applies unchanged to `GOTO`.
+
+**Scope decision, deliberately conservative:** the hook fires on *any* `goto`/`on-goto` in a shadowed loop's body, unconditionally — it does not check whether the specific target is actually outside the loop's span (today's existing "GOTO within the loop span" test case would, after this change, ALSO force a sync it doesn't strictly need). This costs a small, known amount of otherwise-achievable full amortization for that one case, in exchange for not needing to add line-span tracking to `ForLoopInfo`/`OpenShadowLoop` — a real reduction in surface area for a fix whose whole point is safety. A future task could add the precise, span-aware version if profiling ever shows it matters; not needed now, and not part of this task.
+
+- [ ] **Step 1: Write the failing tests**
+
+In `tools/compiler/tests/loop-shadow-eligibility.test.ts`, update the existing test named around "condition 4: disqualified when a GOTO in the body jumps past NEXT" — its expectation flips from `false` to `true` (the loop is no longer statically disqualified; safety now comes from the codegen-time hook, tested separately). Keep the "eligible when a GOTO inside the body only jumps within the loop span" test as-is (still `true`, unaffected either way). Add one more: a loop whose body contains `ON x GOTO ...` with a target outside the span — also now `true`.
+
+```typescript
+// in tools/compiler/tests/codegen.test.ts
+  it('a GOTO out of a shadowed loop body forces markShadowCounterMustBeCurrent (a NEXTSHADOW_SYNC block is emitted)', () => {
+    const asm = generate(parse('10 N=100\n20 FOR K=1 TO N\n30 IF K=5 THEN GOTO 50\n40 NEXT K\n50 END\n'));
+    const labels = asm.lines.map(l => l.label).filter(Boolean);
+    expect(labels.some(l => l!.includes('NEXTSHADOW_SYNC'))).toBe(true);
+  });
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `npx vitest run tools/compiler/tests/loop-shadow-eligibility.test.ts tools/compiler/tests/codegen.test.ts`
+Expected: FAIL — the eligibility test still expects `false` (old behavior), and the codegen test's `NEXTSHADOW_SYNC` never appears (nothing calls the hook for `goto` yet).
+
+- [ ] **Step 3: Remove condition 4 from `loop-shadow-eligibility.ts`**
+
+Delete `bodyContainsOutOfSpanJump` and its call site inside `analyzeLoopShadowEligibility` (the block checking condition 4 and returning `false`). Confirm by re-reading the function that conditions 1-3 are untouched.
+
+- [ ] **Step 4: Add the `goto` and `on-goto` hooks in `codegen.ts`**
+
+Find `case 'return':` (search for `markShadowCounterMustBeCurrent`) and add the identical call to `case 'goto':`'s handler, right before it pushes the `jp`/`jr` instruction (order doesn't matter for correctness — the hook only affects a compile-time flag, not emitted instructions — but placing it first matches `return`'s own ordering for consistency). Find wherever `ON..GOTO` is emitted (search for `on-branch`, near the `on-branch`/`kind === 'gosub'` handling Task 4 already added around `codegen.ts:2124`) and add the same call for the `kind === 'goto'` case.
+
+- [ ] **Step 5: Run tests to verify they pass**
+
+Run: `npx vitest run tools/compiler/tests/loop-shadow-eligibility.test.ts tools/compiler/tests/codegen.test.ts`
+Expected: PASS.
+
+- [ ] **Step 6: Write the empirical test**
+
+```typescript
+// tools/emu-debugger/tests/loop-shadow-goto.test.ts
+// Compile and run, via EmulatorSession, a program shaped exactly like PRIMES.BAS's
+// hot loop (a FOR loop with a body GOTO past NEXT, referencing the counter both
+// before AND after the point where it becomes unreachable via NEXT), and confirm:
+//   1. The loop still terminates and produces the correct result (compare
+//      against the same program's output under the ORIGINAL, pre-Task-6b
+//      compiler, or against manually-derived expected values).
+//   2. A body expression referencing the counter BEFORE the GOTO (e.g.
+//      `IF K+K>N THEN GOTO ...`) still gets the native fast path (per Task 5) --
+//      confirm via the same technique Task 5's own tests use (checking for a
+//      SHADOW_<v> operand reference in the emitted assembly, or checking
+//      cycle count).
+//   3. Construct a case where getting the sync wrong would produce a
+//      DIFFERENT, checkably wrong answer (matching this whole plan's standing
+//      requirement for overflow/staleness tests) -- e.g. a program where a
+//      GOTO'd-to location DOES read a value that depends on the loop counter
+//      having been correct at some prior point, confirming the sync actually
+//      ran.
+```
+
+- [ ] **Step 7: Run the empirical test, confirm it passes**
+
+Run: `npx vitest run tools/emu-debugger/tests/loop-shadow-goto.test.ts`
+Expected: PASS.
+
+- [ ] **Step 8: Regenerate the PRIMES.BAS listing and confirm the fix actually lands**
+
+Run: `npx tsx tools/compiler/compile.ts public/basic/emulator/PRIMES.BAS` and read the generated `.lst` file. Confirm `K` now appears under "Shadowed FOR Loops" — this is the concrete proof that closes the loop Task 6 opened.
+
+- [ ] **Step 9: Run the full existing test suite to confirm zero regressions**
+
+Run: `npx vitest run`
+Expected: PASS.
+
+- [ ] **Step 10: Commit**
+
+```bash
+git add tools/compiler/loop-shadow-eligibility.ts tools/compiler/codegen.ts tools/compiler/tests/loop-shadow-eligibility.test.ts tools/compiler/tests/codegen.test.ts tools/emu-debugger/tests/loop-shadow-goto.test.ts
+git commit -m "feat(compiler): treat GOTO out of a shadowed loop like RETURN -- forced sync, not disqualification"
+```
+
+---
+
 ### Task 7: End-to-end verification and benchmarking on PRIMES.BAS
 
 **Files:**
