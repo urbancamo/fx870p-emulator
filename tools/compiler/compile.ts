@@ -141,6 +141,8 @@ function main(): void {
     codeSize: assembled.codeSize,
     dataSize: assembled.dataSize,
     variableSize: assembled.variableSize,
+    integerEligible: asmProgram.integerEligible,
+    shadowedLoops: asmProgram.shadowedLoops,
   };
   const listing = formatListing(listingInput);
 

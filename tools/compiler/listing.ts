@@ -19,6 +19,10 @@ export interface ListingInput {
   codeSize: number;
   dataSize: number;
   variableSize: number;
+  /** Variable names (no `VAR_` prefix) judged integer-eligible. Optional so existing callers need not supply it. */
+  integerEligible?: Set<string>;
+  /** FOR loops that actually got shadow slots allocated. Optional so existing callers need not supply it. */
+  shadowedLoops?: { varName: string; line: number }[];
 }
 
 // Column positions (1-based widths, converted to 0-based start indices):
@@ -165,6 +169,30 @@ export function formatListing(input: ListingInput): string {
       return entry.padEnd(ENTRY_WIDTH);
     });
     lines.push('  ' + parts.join('  ').trimEnd());
+  }
+
+  // ── Integer-eligibility / shadowed-loop classification ─────────────────────
+  lines.push('');
+  lines.push('Integer-Eligible Variables:');
+  const integerEligible = input.integerEligible ?? new Set<string>();
+  const allVarNames = [...input.symbols]
+    .filter(s => s.type === 'variable')
+    .map(s => s.name)
+    .sort();
+  const eligible = allVarNames.filter(n => integerEligible.has(n.replace(/^VAR_/, '')));
+  const bcdOnly = allVarNames.filter(n => !integerEligible.has(n.replace(/^VAR_/, '')));
+  lines.push('  ' + (eligible.length > 0 ? eligible.join('  ') : '(none)'));
+  lines.push('');
+  lines.push('BCD-Only Variables:');
+  lines.push('  ' + (bcdOnly.length > 0 ? bcdOnly.join('  ') : '(none)'));
+
+  lines.push('');
+  lines.push('Shadowed FOR Loops:');
+  const shadowedLoops = input.shadowedLoops ?? [];
+  if (shadowedLoops.length > 0) {
+    for (const loop of shadowedLoops) lines.push(`  ${loop.varName} (line ${loop.line})`);
+  } else {
+    lines.push('  (none)');
   }
 
   // ── Size summary ─────────────────────────────────────────────────────────────

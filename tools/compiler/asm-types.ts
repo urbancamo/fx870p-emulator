@@ -11,6 +11,10 @@ export interface AsmLine {
 export interface AsmProgram {
   lines: AsmLine[];
   origin: number;
+  /** Variable names (no `VAR_` prefix) the type-inference pass judged integer-eligible. */
+  integerEligible: Set<string>;
+  /** FOR loops that actually got shadow slots allocated, in emission order. */
+  shadowedLoops: { varName: string; line: number }[];
 }
 
 export interface SymbolEntry {

@@ -408,7 +408,12 @@ class CodeGen {
       }
     }
 
-    return { lines: this.code, origin: 0x1CD0 };
+    return {
+      lines: this.code,
+      origin: 0x1CD0,
+      integerEligible: this.integerEligible,
+      shadowedLoops: this.shadowedLoopsFound,
+    };
   }
 
   // -------------------------------------------------------------------------
