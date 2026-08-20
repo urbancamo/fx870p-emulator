@@ -192,16 +192,27 @@ export function formatListing(input: ListingInput): string {
   lines.push('');
   lines.push('Integer-Eligible Variables:');
   const integerEligible = input.integerEligible ?? new Set<string>();
-  // Only real BASIC variable symbols (`VAR_<name>` labels) participate in
-  // this classification. `type === 'variable'` alone is not enough to
-  // isolate them: the assembler also tags loop-shadow storage slots
-  // (`SHADOW_<v>_CNT/LIM/STP/ACT`, allocated by allocShadowSlots) as
-  // `'variable'`, since they're DS-labeled just like real variables. Those
-  // are compiler-internal int16/flag storage -- never BCD -- and must be
-  // excluded here rather than silently falling into "BCD-Only" alongside
-  // real variables that failed eligibility.
+  // Only real BASIC-visible variable symbols participate in this
+  // classification: scalars (`VAR_<name>`, from allocVariable) and arrays
+  // (`ARR_<name>`, from allocArray). `type === 'variable'` alone is not
+  // enough to isolate them: the assembler tags *any* DS-labeled symbol as
+  // `'variable'`, which also covers compiler-internal storage that happens
+  // to be DS-labeled too -- loop-shadow slots (`SHADOW_<v>_CNT/LIM/STP/ACT`,
+  // allocShadowSlots) and the error-handler save slot (`ERR_HANDLER`) as of
+  // this writing. Deliberately an ALLOW-list of known BASIC-visible
+  // prefixes rather than a deny-list of known-internal ones: this session
+  // alone added two more internal DS-labeled prefixes (SHADOW_, then this
+  // task's own discovery of ERR_HANDLER), and a deny-list would need a new
+  // entry every time that happens again -- exactly the bug class that
+  // produced the SHADOW_ misclassification this fix is repairing. An
+  // allow-list only needs extending when a genuinely new category of
+  // BASIC-visible variable appears, which is rare. Arrays never appear in
+  // `integerEligible` (type-inference.ts permanently excludes array
+  // elements -- see its `expr.ref.indices` check), so an ARR_ symbol always
+  // and correctly falls into bcdOnlySymbols below, same as before this
+  // section existed.
   const varSymbols = [...input.symbols]
-    .filter(s => s.type === 'variable' && s.name.startsWith('VAR_'))
+    .filter(s => s.type === 'variable' && (s.name.startsWith('VAR_') || s.name.startsWith('ARR_')))
     .sort((a, b) => a.name.localeCompare(b.name));
   const eligibleSymbols = varSymbols.filter(s => integerEligible.has(s.name.replace(/^VAR_/, '')));
   const bcdOnlySymbols  = varSymbols.filter(s => !integerEligible.has(s.name.replace(/^VAR_/, '')));

@@ -89,6 +89,41 @@ describe('listing formatter - integer-eligibility and shadowed-loop classificati
     }
   });
 
+  it('lists a DIM\'d array under BCD-Only Variables, not missing from classification', () => {
+    // Direct reproduction of the reviewer's round-3 repro case. ARR_A is
+    // `type: 'variable'`-tagged and DS-labeled by the assembler, same as a
+    // scalar VAR_<name> -- but doesn't carry a VAR_ prefix, so a filter
+    // that allow-lists ONLY `VAR_` (this fix's round-2 form) would drop it
+    // from both new sections entirely, even though it should land under
+    // "BCD-Only Variables" (array elements are permanently excluded from
+    // integerEligible by type-inference.ts, same as before this feature
+    // existed).
+    const asm = generate(parse('10 DIM A(10)\n20 N=5\n30 END\n'));
+    const assembled = assemble(asm.lines);
+    expect(assembled.symbols).toContainEqual(expect.objectContaining({ name: 'ARR_A', type: 'variable' })); // sanity
+    const listing = formatListing({
+      sourceFile: 'TEST.BAS',
+      date: '2026-04-04',
+      lines: [],
+      symbols: assembled.symbols,
+      codeSize: assembled.codeSize,
+      dataSize: assembled.dataSize,
+      variableSize: assembled.variableSize,
+      integerEligible: asm.integerEligible,
+      shadowedLoops: asm.shadowedLoops,
+    });
+    const eligibleSection = listing.slice(
+      listing.indexOf('Integer-Eligible Variables:'),
+      listing.indexOf('BCD-Only Variables:'),
+    );
+    const bcdOnlySection = listing.slice(
+      listing.indexOf('BCD-Only Variables:'),
+      listing.indexOf('Shadowed FOR Loops:'),
+    );
+    expect(eligibleSection).not.toContain('ARR_A');
+    expect(bcdOnlySection).toContain('ARR_A');
+  });
+
   it('shows "(none)" when nothing is integer-eligible or shadowed', () => {
     const listing = formatListing({
       sourceFile: 'TEST.BAS',
