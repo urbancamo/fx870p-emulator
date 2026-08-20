@@ -873,8 +873,15 @@ describe('codegen - NEXT dual tail', () => {
     // A subroutine containing a loop it returns early out of. The RETURN skips
     // NEXT, so the once-per-loop exit re-sync never runs -- VAR_K has to have
     // been kept current all along, which is what the per-iteration sync does.
+    //
+    // The entry GOSUB's target (100) is deliberately BEFORE the FOR line
+    // (105), not ON it -- landing exactly on the FOR line would trip
+    // loop-shadow-eligibility.ts's hasExternalJumpIntoSpan (GOSUB is one of
+    // the edge kinds it now tracks, alongside GOTO) and disqualify the loop
+    // outright, which would make this test's own RETURN-mid-loop scenario
+    // unreachable for the wrong reason.
     const asm = generate(parse(
-      '10 GOSUB 100\n20 END\n100 FOR K=1 TO 10\n110 S=S+1\n115 IF S=3 THEN RETURN\n'
+      '10 GOSUB 100\n20 END\n100 S=0\n105 FOR K=1 TO 10\n110 S=S+1\n115 IF S=3 THEN RETURN\n'
       + '120 NEXT K\n130 RETURN\n',
     ));
     expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(true);

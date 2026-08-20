@@ -161,7 +161,43 @@ describe('analyzeLoopShadowEligibility', () => {
     expect(result.get(forStmts[0])).toBe(true);
   });
 
-  it('condition 4: GOSUB out of the loop body does NOT disqualify (it returns)', () => {
+  it('condition 4\': disqualified by the reviewer\'s GOSUB-into-span "continue" idiom (same repro as GOTO, GOSUB instead)', () => {
+    // "a call always returns to its own call site" is true in general, but
+    // NOT when the call target is a line inside a live shadowed loop's
+    // span: the loop's own NEXT is what transfers control next, so the
+    // CAL's return address is simply orphaned. Reproduced live on the
+    // emulator in tools/emu-debugger/tests/loop-shadow-goto.test.ts.
+    const { result, forStmts } = analyze(
+      '10 S=0\n20 FOR K=1 TO 10\n30 S=S+1\n40 IF S=3 THEN GOTO 100\n50 NEXT K\n'
+      + '60 GOTO 200\n100 K=8\n110 GOSUB 50\n120 GOTO 200\n200 T=S\n210 END\n',
+    );
+    expect(result.get(forStmts[0])).toBe(false);
+  });
+
+  it('condition 4\': disqualified by the same idiom via ON...GOSUB', () => {
+    const { result, forStmts } = analyze(
+      '10 S=0\n20 FOR K=1 TO 10\n30 S=S+1\n40 IF S=3 THEN GOTO 100\n50 NEXT K\n'
+      + '60 GOTO 200\n100 K=8\n110 ON 1 GOSUB 50\n120 GOTO 200\n200 T=S\n210 END\n',
+    );
+    expect(result.get(forStmts[0])).toBe(false);
+  });
+
+  it('condition 4\': disqualified by the same idiom via RESUME <line> (emits a raw jp, same as GOTO)', () => {
+    const { result, forStmts } = analyze(
+      '10 S=0\n20 FOR K=1 TO 10\n30 S=S+1\n40 IF S=3 THEN GOTO 100\n50 NEXT K\n'
+      + '60 GOTO 200\n100 K=8\n110 RESUME 50\n120 GOTO 200\n200 T=S\n210 END\n',
+    );
+    expect(result.get(forStmts[0])).toBe(false);
+  });
+
+  it('condition 4\': RESUME NEXT and a bare RESUME (no line target) do not disqualify anything', () => {
+    const { result, forStmts } = analyze(
+      '10 FOR K=1 TO 10\n20 S=S+1\n30 NEXT K\n40 END\n50 RESUME NEXT\n60 RESUME\n',
+    );
+    expect(result.get(forStmts[0])).toBe(true);
+  });
+
+  it('condition 4: GOSUB out of the loop body does NOT disqualify when its target is outside the span (it returns)', () => {
     const { result, forStmts } = analyze('10 FOR K=1 TO 10\n20 GOSUB 100\n30 NEXT K\n40 END\n100 PRINT "hi"\n110 RETURN\n');
     expect(result.get(forStmts[0])).toBe(true);
   });

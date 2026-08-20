@@ -191,28 +191,38 @@ interface ShadowSlots {
  * live for this loop, which keeps anything that consults that flag (including
  * Task 5's in-body operand resolution) on the BCD path too.
  *
- * ── The third hazard: a `GOTO` back INTO the span from outside it ──────────
+ * ── The third hazard: control lands back INSIDE the span from outside it ───
  *
- * A GOSUB always returns to its own call site, so it can never resume
- * mid-loop after leaving. A GOTO has no such guarantee: it can jump out,
- * run arbitrary other code (including writing the counter, e.g. `K=8`), and
- * then jump BACK IN via a second GOTO whose target sits inside this loop's
- * `[FOR, NEXT]` span — e.g. landing directly on the NEXT line itself. If
- * that happens, this loop's SHADOW_ACTIVE is still 1 and the native tail
- * just resumes stepping the int16 slot the intervening write never touched
- * — exactly the GOSUB hazard above, reached a different way, and NEITHER
- * flag on this interface can fix it after the fact: `bcdCounterRead`'s sync
- * only runs at NEXT, which the re-entering jump may skip straight past, and
- * `unshadowable` is never set because the write happened outside any body
- * this pass was ever watching.
+ * A GOTO can jump out, run arbitrary other code (including writing the
+ * counter, e.g. `K=8`), and then jump BACK IN via a second GOTO whose target
+ * sits inside this loop's `[FOR, NEXT]` span — e.g. landing directly on the
+ * NEXT line itself. If that happens, this loop's SHADOW_ACTIVE is still 1
+ * and the native tail just resumes stepping the int16 slot the intervening
+ * write never touched — exactly the `unshadowable` hazard above, reached a
+ * different way.
+ *
+ * A GOSUB, ON...GOSUB, or `RESUME <line>` can ALSO cause this, which is easy
+ * to get wrong: "a call always returns to its own call site" sounds like it
+ * should make GOSUB safe here, and it IS safe in the general case — but not
+ * when the call's TARGET is a line inside a live shadowed loop's span. Once
+ * control reaches that line, the loop's own NEXT is what transfers control
+ * next (back to the loop top, or out past the exit) — the original CAL's
+ * return address is simply orphaned, never used. Control persists inside the
+ * loop exactly as it would after a GOTO; it just arrived via a call
+ * instruction instead of a jump instruction.
+ *
+ * Either way, NEITHER flag on this interface can fix it after the fact:
+ * `bcdCounterRead`'s sync only runs at NEXT, which the re-entering
+ * jump/call may skip straight past, and `unshadowable` is never set because
+ * the write happened outside any body this pass was ever watching.
  *
  * There is no OpenShadowLoop flag for this because there is no OpenShadowLoop
  * for it to be a flag ON: the fix is a STATIC pre-condition, checked before a
  * loop is ever admitted to shadowing at all. See
  * loop-shadow-eligibility.ts's `hasExternalJumpIntoSpan` — a loop with any
- * GOTO/ON...GOTO elsewhere in the program whose target lands inside this
- * loop's span, from a source line outside it, never gets shadow slots in the
- * first place.
+ * GOTO/ON...GOTO/GOSUB/ON...GOSUB/`RESUME <line>` elsewhere in the program
+ * whose target lands inside this loop's span, from a source line outside it,
+ * never gets shadow slots in the first place.
  *
  * ── Relationship to Task 5 ────────────────────────────────────────────────
  *

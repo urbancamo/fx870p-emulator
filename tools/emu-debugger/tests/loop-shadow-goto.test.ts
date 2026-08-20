@@ -1,9 +1,18 @@
 // Task 6b acceptance test — proves a GOTO out of a shadowed loop's body forces
 // the per-iteration BCD re-sync (markShadowCounterMustBeCurrent), the same
-// remedy Task 4 already gave RETURN, on the real CPU.
+// remedy Task 4 already gave RETURN, on the real CPU (sections 1-2). Two
+// rounds of post-implementation review then found the same underlying bug
+// class reachable through two further doors, both fixed by
+// loop-shadow-eligibility.ts's `hasExternalJumpIntoSpan` static guard:
 //
-// See loop-shadow-eligibility.ts (condition 4 removed) and codegen.ts's
-// `case 'goto':` / `emitOnBranch`.
+//   - Section 3: a GOTO jumping back INTO a live loop's own span from
+//     outside it, after writing the counter externally.
+//   - Section 4: the identical hazard reached via a CALL (GOSUB/ON...GOSUB/
+//     RESUME <line>) instead of a JUMP -- a call whose TARGET lands inside
+//     the span orphans its own return address the same way.
+//
+// See loop-shadow-eligibility.ts's `hasExternalJumpIntoSpan`/`collectJumps`
+// and codegen.ts's `case 'goto':` / `emitOnBranch`.
 //
 // The probe/runLoop harness is loop-shadow-next.test.ts's, copied rather than
 // imported: importing another test file would run its suites too.
@@ -226,6 +235,62 @@ describe('a "continue" idiom that GOTOes out, writes the counter, then GOTOes ba
     // stepping its own stale int16 copy from 3 onward -- seven more
     // iterations (K=4..10) instead of two, landing on S=T=10.
     const run = runLoop(CONTINUE_IDIOM, 'L210');
+    expect(run.reason).toBe('breakpoint');
+    expect(hex(run.bcd('S'))).toBe(hex(numberToBcd9(5)));
+    expect(hex(run.bcd('T'))).toBe(hex(numberToBcd9(5)));
+  }, 120_000);
+});
+
+// ---------------------------------------------------------------------------
+// 4. The same hazard reached via a CALL instead of a JUMP
+// ---------------------------------------------------------------------------
+//
+// Second-round review finding: `collectJumps`'s original exclusion of GOSUB
+// rested on a false premise -- "a call always returns to its own call site,
+// so it cannot resume control mid-loop". That is true in general, but NOT
+// when the GOSUB's TARGET is a line inside a live shadowed loop's span. Once
+// control reaches that line, the loop's own NEXT is what transfers control
+// next (back to the loop top, or out past the exit) -- the original CAL's
+// return address is simply orphaned, never used. Control persists inside the
+// loop exactly as after a GOTO; it just arrived via `cal` instead of `jp`.
+//
+// This exposure was NEW as of the GOTO fix above, not pre-existing: reaching
+// an external GOSUB while the loop was still live required a GOTO out
+// first, which the OLD condition 4 disqualified outright before GOSUB ever
+// got the chance to matter here.
+//
+// Same three programs as the GOTO idiom above, `GOTO 50` swapped for
+// `GOSUB 50` / `ON 1 GOSUB 50` / `RESUME 50` -- all three land on the same
+// NEXT line, inside the loop's own span, from a source line outside it.
+function continueViaCall(callStmt: string): string {
+  return (
+    '10 S=0\n' +
+    '20 FOR K=1 TO 10\n' +
+    '30 S=S+1\n' +
+    '40 IF S=3 THEN GOTO 100\n' +
+    '50 NEXT K\n' +
+    '60 GOTO 200\n' +
+    '100 K=8\n' +
+    `110 ${callStmt}\n` +
+    '120 GOTO 200\n' +
+    '200 T=S\n' +
+    '210 END\n'
+  );
+}
+
+describe.each([
+  ['GOSUB', continueViaCall('GOSUB 50')],
+  ['ON...GOSUB', continueViaCall('ON 1 GOSUB 50')],
+  ['RESUME <line>', continueViaCall('RESUME 50')],
+])('the same "continue" idiom via %s instead of GOTO', (_label, program) => {
+  it('is disqualified from shadowing entirely -- no SHADOW_K_ACT, no NEXTSHADOW_ tail at all', () => {
+    const labels = asmLabels(program);
+    expect(labels.some(l => l === 'SHADOW_K_ACT')).toBe(false);
+    expect(labels.some(l => l.startsWith('NEXTSHADOW_'))).toBe(false);
+  });
+
+  it('produces the CORRECT answer (S=T=5), not the buggy S=T=10 a live shadow would give', () => {
+    const run = runLoop(program, 'L210');
     expect(run.reason).toBe('breakpoint');
     expect(hex(run.bcd('S'))).toBe(hex(numberToBcd9(5)));
     expect(hex(run.bcd('T'))).toBe(hex(numberToBcd9(5)));

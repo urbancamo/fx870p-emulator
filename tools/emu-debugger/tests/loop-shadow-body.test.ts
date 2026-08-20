@@ -462,9 +462,16 @@ describe('shadow-aware in-body operands, end to end on the real CPU', () => {
     // to survive anything. This is the equivalent that still has live slots
     // across a `cal`/`rtn` boundary -- the loop is INSIDE the subroutine, and
     // the caller does its own BCD arithmetic on both sides of the call.
+    //
+    // Post-Task-6b-review: the entry GOSUB's target (100) is deliberately a
+    // no-op line BEFORE the FOR line (105), not the FOR line itself --
+    // landing exactly on the FOR line would trip
+    // loop-shadow-eligibility.ts's hasExternalJumpIntoSpan (GOSUB is one of
+    // the edge kinds it tracks, alongside GOTO) and disqualify the loop
+    // outright, which would defeat this test's whole point.
     const run = runLoop(
       '10 S=0\n20 A=7\n30 GOSUB 100\n40 B=A+S\n50 END\n'
-      + '100 FOR K=1 TO 5\n110 S=S+(K+K)\n120 NEXT K\n130 RETURN\n',
+      + '100 T=0\n105 FOR K=1 TO 5\n110 S=S+(K+K)\n120 NEXT K\n130 RETURN\n',
       'L50',
     );
     expect(run.reason).toBe('breakpoint');

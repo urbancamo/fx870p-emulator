@@ -257,25 +257,40 @@ function walkProgram(program: Program, onLoopClosed: (loop: OpenLoop, nextLine: 
 interface JumpEdge { sourceLine: number; targetLine: number }
 
 /**
- * Every GOTO / ON...GOTO target in the WHOLE program, each tagged with the
- * line it appears on. Flat over the entire program rather than scoped to any
- * one loop's body -- BASIC line numbers have no scoping, so a jump written
- * inside a totally unrelated subroutine (or a sibling loop, or top-level
- * code) can still land inside THIS loop's span. Recurses into `if` branches
- * (the only construct that nests statement lists); GOSUB/ON...GOSUB are
- * deliberately excluded -- a call always returns to its own call site rather
- * than persisting control inside the callee, so it cannot reproduce the
- * "jump back into a live iteration" hazard this scan exists to catch (see
- * the `unshadowOpenLoops` doc comment in codegen.ts for GOSUB's own,
- * stronger remedy for the hazard it CAN cause).
+ * Every GOTO / ON...GOTO / GOSUB / ON...GOSUB / RESUME <line> target in the
+ * WHOLE program, each tagged with the line it appears on. Flat over the
+ * entire program rather than scoped to any one loop's body -- BASIC line
+ * numbers have no scoping, so a jump (or call) written inside a totally
+ * unrelated subroutine (or a sibling loop, or top-level code) can still land
+ * inside THIS loop's span. Recurses into `if` branches (the only construct
+ * that nests statement lists).
+ *
+ * GOSUB/ON...GOSUB/RESUME <line> are included DESPITE all being calls or
+ * call-like, not jumps: "a call always returns to its own call site" is true
+ * in general, but not when the call TARGET is a line inside a live shadowed
+ * loop's span. Once control reaches that line, the loop's own NEXT transfers
+ * control to the loop top -- the original CAL's return address is simply
+ * orphaned, never used. Control persists inside the loop exactly as it would
+ * after a GOTO; it just arrived via a call instruction instead of a jump
+ * instruction. (`unshadowOpenLoops`, in codegen.ts, is a DIFFERENT, stronger
+ * remedy for a DIFFERENT GOSUB hazard -- a subroutine called from OUTSIDE a
+ * live loop's body that WRITES the counter. That one is still exactly right
+ * for its own case; it says nothing about a GOSUB/RESUME whose TARGET is
+ * inside the span, which is this function's concern instead.)
+ *
+ * `RESUME NEXT` and a bare `RESUME` (retry) have no line-number target
+ * (`stmt.target` is `'next'` or `undefined`) and are correctly skipped --
+ * only `RESUME <line>` compiles to a raw `jp` (codegen.ts's `emitResume`).
  */
 function collectJumps(program: Program): JumpEdge[] {
   const jumps: JumpEdge[] = [];
   function visit(stmt: Statement, sourceLine: number): void {
-    if (stmt.type === 'goto') {
+    if (stmt.type === 'goto' || stmt.type === 'gosub') {
       jumps.push({ sourceLine, targetLine: stmt.target });
-    } else if (stmt.type === 'on-branch' && stmt.kind === 'goto') {
+    } else if (stmt.type === 'on-branch') {
       for (const t of stmt.targets) jumps.push({ sourceLine, targetLine: t.line });
+    } else if (stmt.type === 'resume' && typeof stmt.target === 'number') {
+      jumps.push({ sourceLine, targetLine: stmt.target });
     } else if (stmt.type === 'if') {
       for (const s of stmt.thenBranch) visit(s, sourceLine);
       if (stmt.elseBranch) for (const s of stmt.elseBranch) visit(s, sourceLine);
@@ -288,21 +303,25 @@ function collectJumps(program: Program): JumpEdge[] {
 }
 
 /**
- * Does any jump whose SOURCE line sits outside `[forLine, nextLine]` target a
- * line INSIDE that same closed range (both ends inclusive, matching how the
- * old body-local condition 4 defined "span")?
+ * Does any edge from `collectJumps` (GOTO, ON...GOTO, GOSUB, ON...GOSUB, or
+ * `RESUME <line>`) whose SOURCE line sits outside `[forLine, nextLine]`
+ * target a line INSIDE that same closed range (both ends inclusive, matching
+ * how the old body-local condition 4 defined "span")?
  *
  * This is the complementary hazard to the one `markShadowCounterMustBeCurrent`
  * handles: that hook keeps VAR_<v> correct for code the loop's own GOTO jumps
- * OUT to. It says nothing about a SECOND jump from somewhere else landing
- * back INSIDE the span while SHADOW_ACTIVE is still 1 -- e.g. a "continue"
- * idiom (`IF cond THEN GOTO 100` / `100 K=8` / `GOTO 50` where 50 is the
- * loop's own NEXT) that writes the counter from OUTSIDE the tracked body and
- * then resumes the native tail as if nothing happened, silently discarding
- * that write (the same class of hazard `unshadowOpenLoops` exists for GOSUB,
- * just reached a different way). No dataflow/reachability analysis needed --
- * conservatively disqualifying the loop whenever such a jump exists is always
- * sound, just occasionally more conservative than necessary.
+ * OUT to. It says nothing about a SECOND jump (or call) from somewhere else
+ * landing back INSIDE the span while SHADOW_ACTIVE is still 1 -- e.g. a
+ * "continue" idiom (`IF cond THEN GOTO 100` / `100 K=8` / `GOTO 50` -- or
+ * `GOSUB 50`, or `RESUME 50` -- where 50 is the loop's own NEXT) that writes
+ * the counter from OUTSIDE the tracked body and then resumes the native tail
+ * as if nothing happened, silently discarding that write (the same class of
+ * hazard `unshadowOpenLoops` exists for a GOSUB that WRITES the counter from
+ * a call site outside the loop -- this is the mirror case, a GOSUB whose
+ * TARGET lands inside the loop, reached via a call instead of a jump). No
+ * dataflow/reachability analysis needed -- conservatively disqualifying the
+ * loop whenever such an edge exists is always sound, just occasionally more
+ * conservative than necessary.
  */
 function hasExternalJumpIntoSpan(jumps: JumpEdge[], forLine: number, nextLine: number): boolean {
   return jumps.some(j =>
