@@ -953,6 +953,37 @@ describe('codegen - NEXT dual tail', () => {
     expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(false);
   });
 
+  // -- END / STOP: one codegen case, and it emits RETURN's own `rtn` ---------
+  //
+  // `case 'end':` handles END, STOP and CONT alike, all three emitting the
+  // same bare `rtn` as `case 'return':`. An END/STOP in a loop body therefore
+  // leaves without ever reaching NEXT, exactly like a RETURN.
+
+  it('an END inside a shadowed loop body forces a sync (it emits `rtn`, same as RETURN)', () => {
+    const asm = generate(parse('10 S=0\n20 FOR K=1 TO 10\n30 S=S+1\n40 IF S=3 THEN END\n50 NEXT K\n60 END\n'));
+    // The loop is still genuinely shadowed -- END is an exit, not a write...
+    expect(asm.lines.some(l => l.label === 'SHADOW_K_ACT')).toBe(true);
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_BCD_K'))).toBe(true);
+    // ...just with a forced per-iteration sync.
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(true);
+  });
+
+  it('a STOP inside a shadowed loop body forces a sync the same way (same codegen case)', () => {
+    const asm = generate(parse('10 S=0\n20 FOR K=1 TO 10\n30 S=S+1\n40 IF S=3 THEN STOP\n50 NEXT K\n60 END\n'));
+    expect(asm.lines.some(l => l.label === 'SHADOW_K_ACT')).toBe(true);
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(true);
+  });
+
+  it('does not force a sync for an END that is outside every shadowed loop', () => {
+    // The trailing END sits after NEXT, so it must not drag an already-closed
+    // loop back onto the slow path. (Every other loop-shadow program in this
+    // file ends in an END too -- this pins that the hook really is scoped to
+    // shadowStack rather than firing for the whole compilation unit.)
+    const asm = generate(parse('10 S=0\n20 FOR K=1 TO 10\n30 S=S+1\n40 NEXT K\n50 END\n'));
+    expect(asm.lines.some(l => l.label === 'SHADOW_K_ACT')).toBe(true);
+    expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(false);
+  });
+
   // -- GOSUB: the slots cannot be trusted at all ----------------------------
 
   it('takes a loop whose body GOSUBs off the fast path entirely', () => {

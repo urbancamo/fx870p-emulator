@@ -1,10 +1,10 @@
 // Task 6b acceptance test — proves a GOTO out of a shadowed loop's body forces
 // the per-iteration BCD re-sync (markShadowCounterMustBeCurrent), the same
-// remedy Task 4 already gave RETURN, on the real CPU (sections 1-2). Three
+// remedy Task 4 already gave RETURN, on the real CPU (sections 1-2). Four
 // rounds of post-implementation review then found the same underlying bug
 // class reachable through further doors -- two on the INCOMING axis (control
-// landing back inside a live span from outside), one on the OUTGOING axis (a
-// statement type that leaves a loop's body without calling the sync hook):
+// landing back inside a live span from outside), two on the OUTGOING axis
+// (statement types that leave a loop's body without calling the sync hook):
 //
 //   - Section 3: a GOTO jumping back INTO a live loop's own span from
 //     outside it, after writing the counter externally. Fixed by
@@ -17,9 +17,13 @@
 //     three RESUME forms leave a loop's body without reaching NEXT (same as
 //     GOTO/RETURN), but `emitResume` never called
 //     `markShadowCounterMustBeCurrent()`. Fixed by adding that one call.
+//   - Section 6: the same OUTGOING gap in `case 'end':`, which handles
+//     END/STOP/CONT and emits RETURN's own `rtn` while calling neither the
+//     sync hook nor unshadowOpenLoops. Fixed by adding the same one call.
 //
 // See loop-shadow-eligibility.ts's `hasExternalJumpIntoSpan`/`collectJumps`
-// and codegen.ts's `case 'goto':` / `emitOnBranch` / `emitResume`.
+// and codegen.ts's `case 'goto':` / `case 'end':` / `emitOnBranch` /
+// `emitResume`.
 //
 // The probe/runLoop harness is loop-shadow-next.test.ts's, copied rather than
 // imported: importing another test file would run its suites too.
@@ -30,6 +34,7 @@ import { generate } from '../../compiler/codegen.js';
 import { assemble } from '../../compiler/assembler.js';
 import { numberToBcd9 } from '../../compiler/bcd.js';
 import { EmulatorSession } from '../session.js';
+import type { SymbolEntry } from '../../compiler/asm-types.js';
 import { setUa, setDelayedUa, setIserv } from '../../../src/emulator/def.js';
 
 const ORIGIN = 0x1CD0;
@@ -47,12 +52,19 @@ interface LoopRun {
 }
 
 /**
- * Compile `basic`, run it to the label `breakAt`, and expose its memory. See
+ * Where to stop: a label name, or a function picking an address out of the
+ * assembled symbol table (for code `case 'end':` emits, which carries no
+ * label of its own -- see `firstEndPause`).
+ */
+type BreakTarget = string | ((symbols: SymbolEntry[]) => number);
+
+/**
+ * Compile `basic`, run it to `breakAt`, and expose its memory. See
  * loop-shadow-next.test.ts for the full rationale -- MODE110's UA=0x55, the
  * module-global ISERV reset, and why accessors must be read before the next
  * EmulatorSession is constructed.
  */
-function runLoop(basic: string, breakAt: string, maxCycles = 60_000_000): LoopRun {
+function runLoop(basic: string, breakAt: BreakTarget, maxCycles = 60_000_000): LoopRun {
   const assembled = assemble(generate(parse(basic)).lines);
   const addressOf = (name: string): number => {
     const entry = assembled.symbols.find(s => s.name === name);
@@ -66,7 +78,7 @@ function runLoop(basic: string, breakAt: string, maxCycles = 60_000_000): LoopRu
   setDelayedUa(0x55);
   setIserv(0);
   sess.setEntry(ORIGIN);
-  sess.addBreakpoint(addressOf(breakAt));
+  sess.addBreakpoint(typeof breakAt === 'function' ? breakAt(assembled.symbols) : addressOf(breakAt));
 
   const result = sess.run({ maxCycles });
   return {
@@ -397,5 +409,69 @@ describe('a RESUME <line> exiting a shadowed loop past NEXT (outgoing direction,
     expect(run.reason).toBe('breakpoint');
     expect(hex(run.bcd('S'))).toBe(hex(numberToBcd9(3)));
     expect(hex(run.bcd('T'))).toBe(hex(numberToBcd9(3)));
+  }, 120_000);
+});
+
+// ---------------------------------------------------------------------------
+// 6. END / STOP — the same OUTGOING gap in `case 'end':`
+// ---------------------------------------------------------------------------
+//
+// Fourth review round. `case 'end':` (codegen.ts) handles END, STOP and CONT
+// alike and emits a bare `rtn` — byte-for-byte the same transfer `case
+// 'return':` emits, and `case 'return':` has called
+// markShadowCounterMustBeCurrent() since Task 4. `case 'end':` called neither
+// that hook nor the stronger unshadowOpenLoops(), so a shadowed loop exited
+// via END/STOP left VAR_<v> at its iteration-1 seed — the identical
+// stale-counter signature as sections 2 and 5.
+//
+// Verified directly (not just argued) by temporarily removing the new
+// `this.markShadowCounterMustBeCurrent()` call from `case 'end':` and
+// re-running: both programs below read back VAR_K = `00 00 00 00 00 00 01 00
+// 01` (BCD 1, the loop's seed) while VAR_S correctly read 3 — proving three
+// iterations really had run and the counter really was 3 at that instant.
+// With the call restored, both read VAR_K = `00 00 00 00 00 00 03 00 01`.
+//
+// Why the breakpoint is an ADDRESS and not a label: the code `case 'end':`
+// emits carries no label of its own, and running THROUGH it is impossible
+// headlessly — emitPauseAtEnd's `cal KYIN` blocks forever waiting for a
+// keypress the debugger cannot supply (see hello-at-1cd0.test.ts, which
+// breaks at the same place for the same reason). `firstEndPause` therefore
+// stops at the in-loop END's own pause done-label, the instant control
+// reaches END and before the pause emits anything, which is exactly the
+// moment VAR_K's staleness is observable. Nothing between the loop body and
+// that point touches VAR_K.
+//
+// This measures the staleness itself rather than an answer computed FROM it.
+// The reviewer's fuller repro (END inside a GOSUB'd subroutine, whose `rtn`
+// then returns to the GOSUB's caller, which reads the stale counter into a
+// result variable) reaches a wrong ANSWER, but only by relying on a separate,
+// pre-existing bug in how this compiler's END returns to its caller instead
+// of halting — that bug is out of scope here, and leaning on it would couple
+// this regression test to behaviour nobody intends to keep.
+
+/** Address of the FIRST pause-sequence done-label in the program. Both
+ * programs below place their in-loop END/STOP before any other END and use no
+ * PRINT, so the lowest `L_PRSD<n>` address is unambiguously the in-loop
+ * exit's own pause. */
+const firstEndPause = (symbols: SymbolEntry[]): number =>
+  Math.min(...symbols.filter(s => s.name.startsWith('L_PRSD')).map(s => s.address));
+
+describe.each([
+  ['END', '10 S=0\n20 FOR K=1 TO 10\n30 S=S+1\n40 IF S=3 THEN END\n50 NEXT K\n60 END\n'],
+  ['STOP', '10 S=0\n20 FOR K=1 TO 10\n30 S=S+1\n40 IF S=3 THEN STOP\n50 NEXT K\n60 END\n'],
+])('a %s exiting a shadowed loop without reaching NEXT (outgoing direction)', (_label, program) => {
+  it('keeps the loop on the fast path with a forced per-iteration sync', () => {
+    const labels = asmLabels(program);
+    expect(labels.some(l => l === 'SHADOW_K_ACT')).toBe(true);
+    expect(labels.some(l => l.startsWith('NEXTSHADOW_SYNC_K'))).toBe(true);
+    // ...and it keeps the native tail: END is an exit, not a write.
+    expect(labels.some(l => l.startsWith('NEXTSHADOW_BCD_K'))).toBe(true);
+  });
+
+  it('leaves VAR_K at the counter\'s value on exit (3), not the loop\'s initial seed (1)', () => {
+    const run = runLoop(program, firstEndPause);
+    expect(run.reason).toBe('breakpoint');
+    expect(hex(run.bcd('S'))).toBe(hex(numberToBcd9(3)));  // three iterations ran...
+    expect(hex(run.bcd('K'))).toBe(hex(numberToBcd9(3)));  // ...so K really is 3 here
   }, 120_000);
 });

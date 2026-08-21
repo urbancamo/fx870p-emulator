@@ -158,20 +158,23 @@ interface ShadowSlots {
  *   * emitVariableLoad(<counter>) anywhere inside the body. Every read of a
  *     numeric variable funnels through there (expressions, PRINT items, array
  *     subscripts, a nested FOR's own bounds, ...), so one hook covers them all.
- *   * a `RETURN`, `GOTO`, `ON...GOTO`, or any of the three `RESUME` forms
- *     inside the body. None of these are a read at all — each is an EXIT
- *     that can leave without ever reaching NEXT, so the once-per-loop exit
- *     re-sync never runs and VAR_<v> is left at whatever it last held. A
- *     subroutine that returns early out of a loop it contains, or a
- *     trial-division idiom that GOTOes past NEXT on an early-out condition
- *     (PRIMES.BAS's own hot loop does exactly this, twice), are both
- *     ordinary idioms, and without this hook they silently yield the loop's
- *     initial counter to whatever runs after the jump. `RESUME <line>` /
- *     `RESUME NEXT` / bare `RESUME` are the same hazard under an
- *     error-handling statement: the first emits `jp` (mechanically identical
- *     to GOTO once compiled) and the other two emit `rtn` (identical to
- *     RETURN) — `emitResume` calls this hook unconditionally, once, rather
- *     than duplicating the GOTO/RETURN distinction per form.
+ *   * a `RETURN`, `GOTO`, `ON...GOTO`, `END`/`STOP`/`CONT`, or any of the
+ *     three `RESUME` forms inside the body. None of these are a read at all
+ *     — each is an EXIT that can leave without ever reaching NEXT, so the
+ *     once-per-loop exit re-sync never runs and VAR_<v> is left at whatever
+ *     it last held. A subroutine that returns early out of a loop it
+ *     contains, or a trial-division idiom that GOTOes past NEXT on an
+ *     early-out condition (PRIMES.BAS's own hot loop does exactly this,
+ *     twice), are both ordinary idioms, and without this hook they silently
+ *     yield the loop's initial counter to whatever runs after the jump.
+ *     `RESUME <line>` / `RESUME NEXT` / bare `RESUME` are the same hazard
+ *     under an error-handling statement: the first emits `jp` (mechanically
+ *     identical to GOTO once compiled) and the other two emit `rtn`
+ *     (identical to RETURN) — `emitResume` calls this hook unconditionally,
+ *     once, rather than duplicating the GOTO/RETURN distinction per form.
+ *     `END`, `STOP`, and `CONT` all share one codegen case and all emit the
+ *     same `rtn` as RETURN, so `case 'end':` likewise calls the hook once,
+ *     unconditionally, for every `kind`.
  *
  * The remedy is NEXT's `<sync>` block: re-encode the counter to BCD each
  * iteration. That is sufficient for every trigger above, because emitFor
@@ -490,6 +493,15 @@ class CodeGen {
         break;
 
       case 'end':
+        // An END/STOP/CONT inside a shadowed loop's body leaves WITHOUT
+        // reaching NEXT — it emits `rtn`, byte-for-byte the same transfer as
+        // `case 'return':` below — so the once-per-loop exit re-sync never
+        // runs and the counter's BCD form has to have been kept current all
+        // along. See OpenShadowLoop's `bcdCounterRead` section. Called once,
+        // unconditionally, for every `stmt.kind`: all three compile to the
+        // same `rtn`, and the hook only sets a compile-time flag, so there is
+        // nothing to gain from branching on which keyword got us here.
+        this.markShadowCounterMustBeCurrent();
         // Before returning to BASIC (which clears the LCD when redrawing its
         // prompt), emit OUTCR + "[EXE]" prompt + wait for keypress. This lets
         // the user see the program's output before BASIC clobbers it.
@@ -2110,13 +2122,15 @@ class CodeGen {
    * Every currently-open shadowed loop must keep its counter's BCD form
    * current for the whole body, not just at the exit. See OpenShadowLoop.
    *
-   * Called for a `RETURN`, `GOTO`, `ON...GOTO`, or any `RESUME` form — each
-   * can leave the loop WITHOUT reaching NEXT at all, so the once-per-loop
-   * exit re-sync never runs. `emitResume` calls this once, unconditionally,
-   * for all three RESUME forms rather than branching on which one it is —
-   * the hook only sets a compile-time flag, so there is nothing to gain from
-   * special-casing `RESUME <line>` (a `jp`, like GOTO) against `RESUME NEXT`
-   * / bare `RESUME` (both `rtn`, like RETURN).
+   * Called for a `RETURN`, `GOTO`, `ON...GOTO`, `END`/`STOP`/`CONT`, or any
+   * `RESUME` form — each can leave the loop WITHOUT reaching NEXT at all, so
+   * the once-per-loop exit re-sync never runs. `emitResume` calls this once,
+   * unconditionally, for all three RESUME forms rather than branching on
+   * which one it is — the hook only sets a compile-time flag, so there is
+   * nothing to gain from special-casing `RESUME <line>` (a `jp`, like GOTO)
+   * against `RESUME NEXT` / bare `RESUME` (both `rtn`, like RETURN).
+   * `case 'end':` calls it once for the same reason: `END`, `STOP`, and
+   * `CONT` share one case and all emit RETURN's `rtn`.
    *
    * This only guards the OUTGOING direction (code the jump/call leaves TO
    * reading a now-current VAR_<v>); it says nothing about a later jump or
@@ -2936,7 +2950,11 @@ class CodeGen {
     // unconditionally, before branching on which form this is: the hook only
     // sets a compile-time flag, so one call covers all three forms correctly
     // and there is no reason to special-case which one triggered it. See
-    // OpenShadowLoop's "third hazard" section and markShadowCounterMustBeCurrent.
+    // OpenShadowLoop's `bcdCounterRead` section, which is the OUTGOING
+    // direction this hook serves. (NOT the "third hazard" section -- that one
+    // is the INCOMING direction, control landing back inside a live span from
+    // outside it, which no runtime flag can fix and which
+    // loop-shadow-eligibility.ts's `hasExternalJumpIntoSpan` handles instead.)
     this.markShadowCounterMustBeCurrent();
     if (stmt.target === 'next') {
       this.code.push({ comment: 'RESUME NEXT — continue at next statement after error' });
