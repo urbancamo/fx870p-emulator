@@ -116,24 +116,38 @@ As a proxy, `EmulatorSession`'s own cycle/instruction counters were used to
 measure both binaries end-to-end, running to the exact cycle at which the
 LCD first shows `541`:
 
-| | Cycles | Instructions |
-|---|---|---|
-| Before (unshadowed) | 216,001,454 | 151,861 |
-| After (shadowed) | 218,001,331 | 143,188 |
-| Change | **+0.9%** | **−5.7%** |
+| | Cycles | Instructions | Cycles/instruction |
+|---|---|---|---|
+| Before (unshadowed) | 216,001,454 | 12,801,312 | 16.87 |
+| After (shadowed) | 218,001,331 | 13,500,170 | 16.15 |
+| Change | **+0.9%** | **+5.5%** | −4.3% |
+
+(Sanity check: `primes.test.ts`'s own Step 1 output, `instr=20631550` for a
+run that continues 82M cycles past the 218,001,331-cycle point above and
+into the post-`END` `KYIN` key-wait idle spin, is consistent with this —
+the extra ~7.1M instructions over that idle stretch average ~11.5
+cycles/instruction, a plausible cost for a tight wait loop, and land on top
+of the 13,500,170 figure rather than contradicting it.)
 
 **This is not a wall-clock win for this benchmark** — cycles are flat to
-very slightly worse, despite executing fewer total instructions and a
-markedly smaller ROM instruction share. The reason is visible in the
-attribution table above: `N MOD K=0`'s `MOD` call is by far the most
-expensive ROM operation in the loop (~10,217 cycles per call, per Task 2's
-own measured table, vs. ~1087 for `+` and ~1478 for a comparison) and this
-feature never touches it, so it dominates every iteration's cost in both
-binaries equally. The ~3,650 ROM cycles/iteration saved from `NEXT` and
-`K+K` are real, but small next to `MOD`'s cost, and get further offset by
-the shadow mechanism's own real overhead: three `BCD_TO_INT16` decodes per
-loop entry (once per candidate `N`, not per iteration) plus the
-per-iteration `INT16_TO_BCD` re-encode described above.
+very slightly worse, and now that instruction counts are measured
+correctly, the shadowed binary actually executes *more* total instructions
+(+5.5%), not fewer. That's coherent, not contradictory: shadowing trades a
+smaller number of expensive ROM digit-serial call chains for a larger
+number of cheap native instructions (`SHADOW_K_ACT` loads, `adw`/`sbcw`,
+the `INT16_TO_BCD` re-encode's own instruction sequence) — more
+instructions individually, each one cheaper on average (16.15 vs. 16.87
+cycles/instruction), landing at roughly the same total. The reason there's
+no net win is visible in the attribution table above: `N MOD K=0`'s `MOD`
+call is by far the most expensive ROM operation in the loop (~10,217
+cycles per call, per Task 2's own measured table, vs. ~1087 for `+` and
+~1478 for a comparison) and this feature never touches it, so it dominates
+every iteration's cost in both binaries equally. The ~3,650 ROM
+cycles/iteration saved from `NEXT` and `K+K` are real, but small next to
+`MOD`'s cost, and get further offset by the shadow mechanism's own real
+overhead: three `BCD_TO_INT16` decodes per loop entry (once per candidate
+`N`, not per iteration) plus the per-iteration `INT16_TO_BCD` re-encode
+described above.
 
 An interpreted baseline was also attempted headlessly (typing `PRIMES.BAS`
 into the BASIC editor via the test harness's synthetic keyboard, then
