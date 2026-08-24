@@ -474,11 +474,21 @@ describe('control flow that leaves or re-enters a shadowed loop', () => {
     expect(hex(run.bcd('T'))).toBe(hex(numberToBcd9(3)));  // read back out by BASIC code
   }, 120_000);
 
+  // -- a GOSUB in the body: never shadowed, so nothing to observe at runtime --
+  //
+  // These four used to assert `SHADOW_<v>_ACT == 0` -- a loop that WAS given
+  // slots and an entry decode, then had its activation constant back-patched
+  // to 0. A body GOSUB is a static disqualifier now, so the slots are never
+  // allocated at all and `has('SHADOW_<v>_ACT')` is the equivalent assertion.
+  // The observable program behaviour these tests exist to prove (a
+  // subroutine's write to the counter takes effect; a read of the counter
+  // inside a subroutine sees the current value) is byte-for-byte what it was.
+
   it('lets a GOSUB\'d subroutine WRITE the counter and have it take effect', () => {
-    // `K=99` lands in VAR_K. The native tail steps the int16 slot, which the
+    // `K=99` lands in VAR_K. A native tail would step the int16 slot, which the
     // subroutine never touched, so it would discard the write and run all ten
     // iterations (measured: S=10, K=11). A read-sync cannot fix that -- the
-    // loop has to drop off the fast path entirely.
+    // loop has to stay off the fast path entirely.
     const run = runLoop(
       '10 S=0\n20 FOR K=1 TO 10\n30 S=S+1\n35 IF S=3 THEN GOSUB 100\n40 NEXT K\n50 END\n'
       + '100 K=99\n110 RETURN\n',
@@ -487,13 +497,13 @@ describe('control flow that leaves or re-enters a shadowed loop', () => {
     expect(run.reason).toBe('breakpoint');
     expect(hex(run.bcd('S'))).toBe(hex(numberToBcd9(3)));    // the write ended the loop
     expect(hex(run.bcd('K'))).toBe(hex(numberToBcd9(100)));  // 99, then NEXT's step
-    // ...and the runtime flag agrees the slots were never live for this loop.
-    expect(run.byte('SHADOW_K_ACT')).toBe(0);
+    // ...and no shadow machinery was emitted for this loop at all.
+    expect(run.has('SHADOW_K_ACT')).toBe(false);
   }, 120_000);
 
   it('still reads the counter correctly inside a GOSUB\'d subroutine', () => {
     // The read direction, which used to be handled by forcing a per-iteration
-    // sync and is now handled by the stronger "no native tail" rule.
+    // sync and is now handled by the stronger "never shadowed" rule.
     const run = runLoop(
       '10 S=0\n20 FOR K=1 TO 10\n30 GOSUB 100\n40 NEXT K\n50 END\n100 S=S+K\n110 RETURN\n',
       'L50',
@@ -501,13 +511,13 @@ describe('control flow that leaves or re-enters a shadowed loop', () => {
     expect(run.reason).toBe('breakpoint');
     expect(hex(run.bcd('S'))).toBe(hex(numberToBcd9(55)));
     expect(hex(run.bcd('K'))).toBe(hex(numberToBcd9(11)));
-    expect(run.byte('SHADOW_K_ACT')).toBe(0);
+    expect(run.has('SHADOW_K_ACT')).toBe(false);
   }, 120_000);
 
-  it('takes an ON..GOSUB off the fast path the same way', () => {
+  it('keeps an ON..GOSUB off the fast path the same way', () => {
     // The selector has to be something other than the bare counter -- `ON K
     // GOSUB` puts K in a non-fast-path position, which disqualifies the loop
-    // statically before any of this applies.
+    // through condition 3 rather than condition 5.
     const run = runLoop(
       '10 S=0\n20 FOR K=1 TO 4\n25 N=1\n30 S=S+1\n35 ON N GOSUB 100\n40 NEXT K\n50 END\n'
       + '100 K=99\n110 RETURN\n',
@@ -516,12 +526,14 @@ describe('control flow that leaves or re-enters a shadowed loop', () => {
     expect(run.reason).toBe('breakpoint');
     expect(hex(run.bcd('S'))).toBe(hex(numberToBcd9(1)));    // the write ended the loop
     expect(hex(run.bcd('K'))).toBe(hex(numberToBcd9(100)));
-    expect(run.byte('SHADOW_K_ACT')).toBe(0);
+    expect(run.has('SHADOW_K_ACT')).toBe(false);
   }, 120_000);
 
-  it('unshadows an OUTER loop when the GOSUB is inside a nested inner loop', () => {
-    // The GOSUB is in J's body, but it is in K's body too -- both open loops
-    // have to drop off the fast path, or the subroutine's write to K is lost.
+  it('disqualifies an OUTER loop when the GOSUB is inside a nested inner loop', () => {
+    // The GOSUB is in J's body, but it is in K's body too -- both loops have to
+    // stay off the fast path, or the subroutine's read of K sees a stale value.
+    // K's own bounds (1 TO 3) clear the condition-6 minimum, so K is
+    // disqualified by the nested GOSUB alone, which is the point here.
     const run = runLoop(
       '10 S=0\n20 FOR K=1 TO 3\n30 FOR J=1 TO 2\n40 S=S+1\n50 GOSUB 200\n60 NEXT J\n70 NEXT K\n80 END\n'
       + '200 T=K\n210 RETURN\n',
@@ -530,7 +542,7 @@ describe('control flow that leaves or re-enters a shadowed loop', () => {
     expect(run.reason).toBe('breakpoint');
     expect(hex(run.bcd('S'))).toBe(hex(numberToBcd9(6)));
     expect(hex(run.bcd('T'))).toBe(hex(numberToBcd9(3)));  // K's last value, not a stale 1
-    expect(run.byte('SHADOW_K_ACT')).toBe(0);
-    expect(run.byte('SHADOW_J_ACT')).toBe(0);
+    expect(run.has('SHADOW_K_ACT')).toBe(false);
+    expect(run.has('SHADOW_J_ACT')).toBe(false);
   }, 120_000);
 });

@@ -170,4 +170,102 @@ this plan's scope), so the net effect on this particular benchmark's
 wall-clock/cycle proxy is negligible. A program whose hot loop leaned more
 on `+`/`-`/comparisons of the counter and less on an untouched expensive
 operator would be expected to show a real wall-clock improvement from this
-feature; `PRIMES.BAS` doesn't happen to be that program.
+feature; `PRIMES.BAS` doesn't happen to be that program. The next section
+measures one that is.
+
+## Loop-Shadowing: The Win Case (2026-08-24)
+
+The section above is an honest but unflattering measurement — `PRIMES.BAS`
+was chosen as this feature's design target and its bottleneck (`MOD`) turned
+out to be out of scope. This section measures what the feature *does* speed
+up, so the record isn't only the null result.
+
+### Methodology
+
+Identical to the cycle-count proxy above: compile a program with each
+compiler, load the binary at `0x1CD0` via `EmulatorSession` (`mode:
+'snapshot'`, `UA=0x55`), run to a breakpoint on the program's own `L50`
+label, and read the session's cycle counter. Both binaries were checked to
+produce the same BCD result for `S`, so the two are doing the same work.
+
+* **Before**: git `67ebda3` — the commit immediately preceding this plan's
+  first code change (built in a `git worktree`, so it is a genuine
+  pre-feature compiler, not a flag-disabled one).
+* **After**: this branch's HEAD.
+* `src/emulator/` and `tools/emu-debugger/session.ts` are byte-identical
+  between the two commits (`git diff --stat 67ebda3 HEAD -- src/emulator
+  tools/emu-debugger/session.ts` is empty), so the emulator being measured
+  against is the same one in both runs.
+
+### `FOR K=1 TO n : S=S+1 : NEXT K` — the counter is untouched by the body
+
+```basic
+10 S=0
+20 FOR K=1 TO n
+30 S=S+1
+40 NEXT K
+50 END
+```
+
+Nothing in the body reads `K`, so the counter's BCD form never has to be
+refreshed mid-loop and the shadow amortizes fully — this is the shape the
+design was built for.
+
+| Iterations | Before (cycles) | After (cycles) | Change |
+|---|---|---|---|
+| 1 | 5,010 | 5,010 | 0.0% |
+| 2 | 8,781 | 8,781 | 0.0% |
+| 3 | 12,955 | 10,740 | **−17.1%** |
+| 5 | 21,303 | 14,280 | **−33.0%** |
+| 10 | 42,344 | 23,277 | **−45.0%** |
+| 20 | 84,333 | 41,037 | **−51.3%** |
+| 40 | 168,293 | 76,557 | **−54.5%** |
+| 100 | 423,286 | 183,294 | **−56.7%** |
+
+**A 40-iteration loop runs in 45.5% of the cycles it used to** — the
+headline number for this feature. The saving grows with the trip count and
+tends toward ~−57%, which is where `NEXT`'s two ROM `cal`s per iteration
+(`FP_ADD` for the step, plus the limit comparison) stop being paid at all.
+
+The 1- and 2-iteration rows are exactly 0.0%, not a small regression: a
+loop whose `FOR` bounds are all integer literals and whose trip count works
+out below 3 is now statically refused shadowing
+(`loop-shadow-eligibility.ts` condition 6), so it compiles to byte-identical
+code. Before that check existed those two rows measured **+43.7%** and
+**+2.4%** — the entry decode (three `BCD_TO_INT16` calls, ~1370 cycles
+each) charged to a loop too short to earn it back.
+
+### `FOR K=1 TO n : S=S+K : NEXT K` — the body reads the counter
+
+| Iterations | Before (cycles) | After (cycles) | Change |
+|---|---|---|---|
+| 3 | 13,252 | 14,598 | +10.2% |
+| 5 | 21,603 | 21,711 | +0.5% |
+| 10 | 42,701 | 39,656 | −7.1% |
+| 20 | 84,633 | 74,689 | −11.7% |
+| 40 | 168,593 | 144,989 | **−14.0%** |
+| 100 | 426,826 | 359,686 | **−15.7%** |
+
+Still a real win at realistic trip counts, but a much smaller one, and it
+breaks even around 5 iterations rather than 3. The reason is visible in the
+generated listing: `S=S+K` reads `K`, and the result has to land in `S` as
+BCD, so `NEXT`'s native tail keeps a per-iteration `INT16_TO_BCD` re-encode
+alive (the same `bcdCounterRead` mechanism described in the `PRIMES.BAS`
+section above). That re-encode is cheaper than the two ROM `cal`s it
+replaced, but it is not free, and it is paid every iteration rather than
+once.
+
+**Known residual**: condition 6's 3-iteration threshold was calibrated on
+the "counter untouched" shape. A literal-bound loop of 3 or 4 iterations
+whose body *does* read the counter is still a small net loss (+10.2% at 3
+iterations). Raising the threshold would fix that case at the cost of
+refusing loops that do win; it is left as measured rather than tuned.
+
+### Scope, stated plainly
+
+This feature speeds up **loop bookkeeping** (`NEXT`'s increment and limit
+test) and **simple in-body arithmetic and comparisons on the counter**
+(`+`, `-`, and the six relational operators). It does **not** touch `MOD`,
+`*`, `/`, `^`, or any builtin function — those stay on the ROM's BCD path,
+which is exactly why `PRIMES.BAS`, whose inner loop is dominated by `N MOD
+K`, shows no net win while the loops above show up to −56.7%.

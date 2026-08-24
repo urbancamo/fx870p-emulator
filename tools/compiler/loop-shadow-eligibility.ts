@@ -272,11 +272,10 @@ interface JumpEdge { sourceLine: number; targetLine: number }
  * control to the loop top -- the original CAL's return address is simply
  * orphaned, never used. Control persists inside the loop exactly as it would
  * after a GOTO; it just arrived via a call instruction instead of a jump
- * instruction. (`unshadowOpenLoops`, in codegen.ts, is a DIFFERENT, stronger
- * remedy for a DIFFERENT GOSUB hazard -- a subroutine called from OUTSIDE a
- * live loop's body that WRITES the counter. That one is still exactly right
- * for its own case; it says nothing about a GOSUB/RESUME whose TARGET is
- * inside the span, which is this function's concern instead.)
+ * instruction. (Condition 5 below is a DIFFERENT, stronger disqualifier for a
+ * DIFFERENT GOSUB hazard -- a GOSUB *inside* the body, whose subroutine may
+ * WRITE the counter. That one says nothing about a GOSUB/RESUME whose TARGET
+ * is inside the span, which is this function's concern instead.)
  *
  * `RESUME NEXT` and a bare `RESUME` (retry) have no line-number target
  * (`stmt.target` is `'next'` or `undefined`) and are correctly skipped --
@@ -316,8 +315,8 @@ function collectJumps(program: Program): JumpEdge[] {
  * `GOSUB 50`, or `RESUME 50` -- where 50 is the loop's own NEXT) that writes
  * the counter from OUTSIDE the tracked body and then resumes the native tail
  * as if nothing happened, silently discarding that write (the same class of
- * hazard `unshadowOpenLoops` exists for a GOSUB that WRITES the counter from
- * a call site outside the loop -- this is the mirror case, a GOSUB whose
+ * hazard condition 5 below exists for a GOSUB *inside* the body whose
+ * subroutine WRITES the counter -- this is the mirror case, a GOSUB whose
  * TARGET lands inside the loop, reached via a call instead of a jump). No
  * dataflow/reachability analysis needed -- conservatively disqualifying the
  * loop whenever such an edge exists is always sound, just occasionally more
@@ -329,6 +328,46 @@ function hasExternalJumpIntoSpan(jumps: JumpEdge[], forLine: number, nextLine: n
     j.targetLine >= forLine && j.targetLine <= nextLine,
   );
 }
+
+/**
+ * The compile-time trip count of a FOR whose from/to/step are ALL plain
+ * integer literals, or undefined when any of them is a runtime expression (in
+ * which case the trip count is simply unknowable here and condition 6 does not
+ * apply at all).
+ *
+ * `hasDecimalPoint` literals are excluded for the same reason type-inference.ts
+ * excludes them: the eligibility rule this whole feature is built on is
+ * syntactic, and `5.0` is deliberately not an integer to it.
+ *
+ * A zero step yields `Infinity` (never < 3, so never a disqualifier) rather
+ * than a crash or a NaN; the compiler has no negative-STEP support at all
+ * (see codegen.ts's emitNext), so a descending loop's count is not meaningful
+ * either -- but neither shape needs special-casing, because a nonsensical or
+ * non-positive count lands in the same "not worth shadowing" bucket a genuinely
+ * short loop does.
+ */
+function literalTripCount(stmt: ForStatement): number | undefined {
+  const lit = (e: Expression | undefined): number | undefined =>
+    e === undefined ? undefined
+      : e.type === 'number' && !e.hasDecimalPoint ? e.value
+        : undefined;
+
+  const from = lit(stmt.from);
+  const to = lit(stmt.to);
+  if (from === undefined || to === undefined) return undefined;
+  const step = stmt.step === undefined ? 1 : lit(stmt.step);
+  if (step === undefined) return undefined;
+  return Math.floor((to - from) / step) + 1;
+}
+
+/**
+ * Below this many iterations, the loop-shadow entry decode (three
+ * BCD_TO_INT16 calls, ~1370 cycles each, plus the slot stores) costs more than
+ * the native tail saves. Measured on the real CPU: 1 iteration is +43.7%
+ * cycles, 2 is +2.4%, 3 is -17%, and it keeps improving from there (-54.5% at
+ * 40). See public/basic/emulator/PRIMES.md.
+ */
+const MIN_SHADOW_TRIP_COUNT = 3;
 
 export function analyzeLoopShadowEligibility(program: Program, integerEligible: Set<string>): Map<ForStatement, boolean> {
   const result = new Map<ForStatement, boolean>();
@@ -364,8 +403,41 @@ export function analyzeLoopShadowEligibility(program: Program, integerEligible: 
       return;
     }
 
-    // Conditions 2 and 3, combined per statement.
+    // Condition 6: a loop whose trip count is a compile-time constant BELOW
+    // the break-even point never gets to amortize its entry decode, so it is
+    // a guaranteed net LOSS. Only checkable when from/to/step are all
+    // literals -- for runtime bounds the trip count is unknowable and this
+    // condition simply doesn't apply.
+    const trips = literalTripCount(forStmt);
+    if (trips !== undefined && trips < MIN_SHADOW_TRIP_COUNT) {
+      result.set(forStmt, false);
+      return;
+    }
+
+    // Conditions 2, 3 and 5, combined per statement.
     for (const stmt of bodyStatements) {
+      // Condition 5: a GOSUB / ON..GOSUB anywhere in the body. The
+      // subroutine's code is emitted OUTSIDE the loop, so this pass can see
+      // neither what it reads nor what it WRITES: `K=99` inside it would land
+      // in VAR_<v> while the native tail kept stepping an int16 slot the
+      // subroutine never touched, silently discarding the write.
+      //
+      // Unlike a GOTO out of the body (which only ever LEAVES, and is handled
+      // at emission time by markShadowCounterMustBeCurrent forcing a
+      // per-iteration BCD re-sync), no amount of syncing VAR_<v> OUTWARD can
+      // fix a write coming back INWARD. So this is a static disqualifier:
+      // such a loop is never shadowed, never allocates slots, and never pays
+      // the entry decode -- which matters, because that decode is pure waste
+      // for a loop that could never have used the native tail anyway
+      // (measured at +12.7% to +18% cycles before this became static).
+      //
+      // `bodyStatements` includes nested loops' own body statements too (see
+      // walkProgram), so a GOSUB two levels deep correctly disqualifies the
+      // inner AND every enclosing loop.
+      if (stmt.type === 'gosub' || (stmt.type === 'on-branch' && stmt.kind === 'gosub')) {
+        result.set(forStmt, false);
+        return;
+      }
       const shape = statementShape(stmt);
       if (shape === UNKNOWN) {
         result.set(forStmt, false);

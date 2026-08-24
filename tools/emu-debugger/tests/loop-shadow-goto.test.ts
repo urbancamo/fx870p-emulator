@@ -18,8 +18,8 @@
 //     GOTO/RETURN), but `emitResume` never called
 //     `markShadowCounterMustBeCurrent()`. Fixed by adding that one call.
 //   - Section 6: the same OUTGOING gap in `case 'end':`, which handles
-//     END/STOP/CONT and emits RETURN's own `rtn` while calling neither the
-//     sync hook nor unshadowOpenLoops. Fixed by adding the same one call.
+//     END/STOP/CONT and emits RETURN's own `rtn` while never calling the
+//     sync hook at all. Fixed by adding the same one call.
 //
 // See loop-shadow-eligibility.ts's `hasExternalJumpIntoSpan`/`collectJumps`
 // and codegen.ts's `case 'goto':` / `case 'end':` / `emitOnBranch` /
@@ -217,8 +217,9 @@ describe('a GOTO that never touches a shadowed loop', () => {
 // own [FOR, NEXT] span -- with SHADOW_ACTIVE still 1 and the shadow slots
 // still live. The write lands in VAR_K; the native tail keeps stepping the
 // untouched int16 slot; the write is silently discarded. This is the same
-// class of hazard `unshadowOpenLoops` already fixes for GOSUB, reached a
-// different way, and `markShadowCounterMustBeCurrent` cannot fix it: its
+// class of hazard loop-shadow-eligibility.ts's condition 5 rules out for a
+// body GOSUB, reached a different way, and `markShadowCounterMustBeCurrent`
+// cannot fix it: its
 // sync only runs at NEXT, which the re-entering jump can skip straight past.
 //
 // The fix is a STATIC pre-condition (loop-shadow-eligibility.ts's
@@ -419,8 +420,8 @@ describe('a RESUME <line> exiting a shadowed loop past NEXT (outgoing direction,
 // Fourth review round. `case 'end':` (codegen.ts) handles END, STOP and CONT
 // alike and emits a bare `rtn` — byte-for-byte the same transfer `case
 // 'return':` emits, and `case 'return':` has called
-// markShadowCounterMustBeCurrent() since Task 4. `case 'end':` called neither
-// that hook nor the stronger unshadowOpenLoops(), so a shadowed loop exited
+// markShadowCounterMustBeCurrent() since Task 4. `case 'end':` never called
+// that hook at all, so a shadowed loop exited
 // via END/STOP left VAR_<v> at its iteration-1 seed — the identical
 // stale-counter signature as sections 2 and 5.
 //

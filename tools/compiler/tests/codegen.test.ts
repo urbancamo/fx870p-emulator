@@ -984,55 +984,88 @@ describe('codegen - NEXT dual tail', () => {
     expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(false);
   });
 
-  // -- GOSUB: the slots cannot be trusted at all ----------------------------
+  // -- GOSUB: never shadowed in the first place ------------------------------
+  //
+  // A body GOSUB used to be handled here, at emission time: the loop got its
+  // slots and its entry decode, then the runtime activation constant was
+  // back-patched to 0. Correct, but the ~4100-cycle entry decode still ran on
+  // every entry for a fast path the loop could never take. It is a STATIC
+  // disqualifier now (loop-shadow-eligibility.ts condition 5), so the whole
+  // apparatus -- slots, entry decode, native tail -- is simply never emitted.
+  // The observable runtime behaviour is identical either way: the loop runs
+  // on the unmodified BCD path and a subroutine's write to the counter takes
+  // effect (verified end to end in tools/emu-debugger/tests/
+  // loop-shadow-next.test.ts).
 
-  it('takes a loop whose body GOSUBs off the fast path entirely', () => {
-    // The subroutine may WRITE the counter, and that write lands in VAR_K --
-    // somewhere the native tail never looks. A read-sync cannot fix it, so the
-    // whole native tail is skipped and the runtime flag is forced to 0.
+  it('emits no shadow machinery at all for a loop whose body GOSUBs', () => {
     const asm = generate(parse(
       '10 FOR K=1 TO 10\n20 GOSUB 100\n30 NEXT K\n40 END\n100 K=99\n110 RETURN\n',
     ));
-    // No native tail at all -- NEXT is exactly the pre-shadowing BCD block.
+    // No entry decode...
+    expect(shadowEntryBlock(asm, 'K')).toEqual([]);
+    // ...no storage slots...
+    expect(shadowLabels(asm)).toEqual([]);
+    // ...and no native tail: NEXT is exactly the pre-shadowing BCD block.
     expect(asm.lines.some(l => (l.label ?? '').startsWith('NEXTSHADOW_'))).toBe(false);
     expect(asm.lines.some(l => l.operands === 'INT16_TO_BCD')).toBe(false);
-    // The entry decode still runs, but its activation constant is back-patched
-    // so SHADOW_ACTIVE is 0 on every path out of it.
-    const entry = shadowEntryBlock(asm, 'K');
-    expect(entry).not.toContain('ld $9,&H01');
-    expect(entry.filter(t => t === 'ld $9,&H00').length).toBe(2);
-    // ...and the slots are still reserved (emitFor already emitted them).
-    expect(shadowLabels(asm)).toContain('SHADOW_K_ACT');
+    expect(asm.lines.some(l => l.operands === 'BCD_TO_INT16')).toBe(false);
   });
 
-  it('takes an ON..GOSUB in the body off the fast path the same way', () => {
+  it('emits no shadow machinery for an ON..GOSUB in the body either', () => {
     const asm = generate(parse(
       '10 FOR K=1 TO 10\n20 ON S GOSUB 100,110\n30 NEXT K\n40 END\n100 K=99\n105 RETURN\n110 RETURN\n',
     ));
+    expect(shadowEntryBlock(asm, 'K')).toEqual([]);
+    expect(shadowLabels(asm)).toEqual([]);
     expect(asm.lines.some(l => (l.label ?? '').startsWith('NEXTSHADOW_'))).toBe(false);
-    expect(shadowEntryBlock(asm, 'K')).not.toContain('ld $9,&H01');
   });
 
-  it('unshadows every open loop when a GOSUB sits inside a nested one', () => {
+  it('disqualifies every enclosing loop when a GOSUB sits inside a nested one', () => {
     // The GOSUB is in J's body, but it is in K's body too.
     const asm = generate(parse(
-      '10 FOR K=1 TO 3\n20 FOR J=1 TO 2\n30 GOSUB 200\n40 NEXT J\n50 NEXT K\n60 END\n'
+      '10 FOR K=1 TO 3\n20 FOR J=1 TO 3\n30 GOSUB 200\n40 NEXT J\n50 NEXT K\n60 END\n'
       + '200 K=9\n210 RETURN\n',
     ));
+    expect(shadowEntryBlock(asm, 'K')).toEqual([]);
+    expect(shadowEntryBlock(asm, 'J')).toEqual([]);
+    expect(shadowLabels(asm)).toEqual([]);
     expect(asm.lines.some(l => (l.label ?? '').startsWith('NEXTSHADOW_'))).toBe(false);
-    expect(shadowEntryBlock(asm, 'K')).not.toContain('ld $9,&H01');
-    expect(shadowEntryBlock(asm, 'J')).not.toContain('ld $9,&H01');
   });
 
   it('leaves a GOSUB outside the loop alone', () => {
-    // Shadowing is only unsafe for loops that are OPEN when the GOSUB is
-    // emitted; one before or after must not disturb anything.
+    // Shadowing is only unsafe for a GOSUB inside the body; one before or
+    // after the loop must not disturb anything.
     const asm = generate(parse(
       '10 GOSUB 100\n20 FOR K=1 TO 10\n30 S=S+1\n40 NEXT K\n50 GOSUB 100\n60 END\n'
       + '100 S=0\n110 RETURN\n',
     ));
     expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_BCD_K'))).toBe(true);
     expect(asm.lines.some(l => l.label?.startsWith('NEXTSHADOW_SYNC_K'))).toBe(false);
+    expect(shadowEntryBlock(asm, 'K')).toContain('ld $9,&H01');
+  });
+
+  // -- literal-bound loops too short to amortize the entry decode ------------
+
+  it('emits no shadow machinery for a literal-bound loop below the 3-iteration break-even', () => {
+    // Measured: 1 iteration was +43.7% cycles, 2 was +2.4%. The entry decode
+    // is a fixed cost the loop never runs long enough to repay, so such a loop
+    // is statically disqualified (loop-shadow-eligibility.ts condition 6).
+    const asm = generate(parse('10 FOR K=1 TO 2\n20 S=S+1\n30 NEXT K\n40 END\n'));
+    expect(shadowEntryBlock(asm, 'K')).toEqual([]);
+    expect(shadowLabels(asm)).toEqual([]);
+    expect(asm.lines.some(l => (l.label ?? '').startsWith('NEXTSHADOW_'))).toBe(false);
+  });
+
+  it('still shadows a literal-bound loop at the break-even point', () => {
+    const asm = generate(parse('10 FOR K=1 TO 3\n20 S=S+1\n30 NEXT K\n40 END\n'));
+    expect(shadowEntryBlock(asm, 'K')).toContain('ld $9,&H01');
+    expect(shadowLabels(asm)).toContain('SHADOW_K_ACT');
+  });
+
+  it('still shadows a short-looking loop whose bounds are runtime expressions', () => {
+    // The trip count is unknowable at compile time, so condition 6 does not
+    // apply -- a runtime-bound loop is shadowed on the other conditions alone.
+    const asm = generate(parse('10 N=2\n20 FOR K=1 TO N\n30 S=S+1\n40 NEXT K\n50 END\n'));
     expect(shadowEntryBlock(asm, 'K')).toContain('ld $9,&H01');
   });
 
@@ -1337,8 +1370,12 @@ describe('codegen - shadow-aware in-body operands', () => {
     // read and J's tail must keep it current. A hook suppression that covered
     // the whole not-active block rather than just this counter's name would
     // silently drop J's sync.
+    //
+    // Both bounds are literal 3s, not 2s: a literal-bound loop shorter than
+    // 3 iterations is statically disqualified (condition 6), which would make
+    // J unshadowed and this test vacuous.
     const asm = generate(parse(
-      '10 S=0\n20 FOR I=1 TO 3\n30 FOR J=1 TO 2\n40 IF I>J THEN S=S+1\n50 NEXT J\n60 NEXT I\n70 END\n',
+      '10 S=0\n20 FOR I=1 TO 3\n30 FOR J=1 TO 3\n40 IF I>J THEN S=S+1\n50 NEXT J\n60 NEXT I\n70 END\n',
     ));
     expect(shadowLabels(asm)).toContain('SHADOW_I_CNT');
     expect(shadowLabels(asm)).toContain('SHADOW_J_CNT');

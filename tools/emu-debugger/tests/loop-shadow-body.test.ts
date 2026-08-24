@@ -438,18 +438,22 @@ describe('shadow-aware in-body operands, end to end on the real CPU', () => {
   }, 120_000);
 
   it('runs an inner SHADOWED loop inside an outer DISQUALIFIED one', () => {
+    // The inner loop runs 1 TO 3, not 1 TO 2: a literal-bound loop shorter
+    // than 3 iterations never amortizes its entry decode and is statically
+    // disqualified (loop-shadow-eligibility.ts condition 6), which would leave
+    // this test with no shadowed loop to exercise.
     const run = runLoop(
-      '10 S=0\n20 T=0\n30 FOR K=1 TO 3\n40 T=K\n50 FOR J=1 TO 2\n60 S=S+(J+J)\n'
+      '10 S=0\n20 T=0\n30 FOR K=1 TO 3\n40 T=K\n50 FOR J=1 TO 3\n60 S=S+(J+J)\n'
       + '70 NEXT J\n80 NEXT K\n90 END\n',
       'L90',
     );
     expect(run.reason).toBe('breakpoint');
     expect(run.has('SHADOW_J_CNT')).toBe(true);
     expect(run.has('SHADOW_K_CNT')).toBe(false);
-    expect(hex(run.bcd('S'))).toBe(hex(numberToBcd9(3 * 2 * (1 + 2))));
+    expect(hex(run.bcd('S'))).toBe(hex(numberToBcd9(3 * 2 * (1 + 2 + 3))));
     expect(hex(run.bcd('T'))).toBe(hex(numberToBcd9(3)));   // outer counter, plain BCD
     expect(hex(run.bcd('K'))).toBe(hex(numberToBcd9(4)));
-    expect(hex(run.bcd('J'))).toBe(hex(numberToBcd9(3)));
+    expect(hex(run.bcd('J'))).toBe(hex(numberToBcd9(4)));
   }, 120_000);
 
   // -- GOSUB ------------------------------------------------------------------
@@ -481,17 +485,17 @@ describe('shadow-aware in-body operands, end to end on the real CPU', () => {
     expect(hex(run.bcd('K'))).toBe(hex(numberToBcd9(6)));
   }, 120_000);
 
-  it('still gets the right answer when a body GOSUB unshadows the loop', () => {
-    // The other half of the same story: a GOSUB in the body forces the runtime
-    // flag to 0, so the body's shadow-aware block takes its not-active branch
-    // and reads VAR_K -- which the (unmodified) BCD tail keeps current.
+  it('still gets the right answer when a body GOSUB disqualifies the loop', () => {
+    // The other half of the same story: a GOSUB in the body means the loop is
+    // never shadowed at all, so `S=S+K` compiles to the plain BCD path and
+    // reads VAR_K -- which the (unmodified) BCD tail keeps current.
     const run = runLoop(
       '10 S=0\n20 T=0\n30 FOR K=1 TO 5\n40 S=S+K\n50 GOSUB 100\n60 NEXT K\n70 END\n'
       + '100 T=T+1\n110 RETURN\n',
       'L70',
     );
     expect(run.reason).toBe('breakpoint');
-    expect(run.byte('SHADOW_K_ACT')).toBe(0);
+    expect(run.has('SHADOW_K_ACT')).toBe(false);
     expect(hex(run.bcd('S'))).toBe(hex(numberToBcd9(15)));
     expect(hex(run.bcd('T'))).toBe(hex(numberToBcd9(5)));
     expect(hex(run.bcd('K'))).toBe(hex(numberToBcd9(6)));

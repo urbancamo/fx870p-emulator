@@ -198,9 +198,15 @@ describe("Task 4b: the reviewer's FOR repro", () => {
       return { cc: parts.length > 1 ? parts[0] : undefined, isBackEdge: parts[parts.length - 1] === 'FOR_I_1' };
     };
     const relaxed = programRelaxations(lines, assembled.lineResults).filter(r => backEdge(r).isBackEdge);
-    expect(relaxed.length).toBeGreaterThan(0);
-    // At least one is still the unconditional back-edge this test was written for.
-    expect(relaxed.some(r => backEdge(r).cc === undefined)).toBe(true);
+    // EXACTLY two, measured — the native tail's back-edge and the BCD tail's,
+    // both unconditional. Pinned rather than left as a loose lower bound so a
+    // future change that stops relaxing one of them fails here instead of
+    // passing on the strength of the other. (The conditional-branch handling
+    // below is kept because Task 5's amortization can turn a back-edge
+    // conditional depending on the body; it is simply not exercised by THIS
+    // program, whose `S=S+I` is served from the shadow slot.)
+    expect(relaxed.length).toBe(2);
+    expect(relaxed.every(r => backEdge(r).cc === undefined)).toBe(true);
 
     for (const site of relaxed) {
       const cc = backEdge(site).cc;

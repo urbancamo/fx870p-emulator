@@ -197,13 +197,94 @@ describe('analyzeLoopShadowEligibility', () => {
     expect(result.get(forStmts[0])).toBe(true);
   });
 
-  it('condition 4: GOSUB out of the loop body does NOT disqualify when its target is outside the span (it returns)', () => {
+  // -- condition 5: a GOSUB / ON..GOSUB anywhere in the body -----------------
+  //
+  // The subroutine is emitted outside the loop, so this pass can see neither
+  // what it reads nor what it WRITES. It used to be handled at codegen time
+  // by back-patching the loop's runtime SHADOW_ACTIVE flag to 0 -- correct,
+  // but the loop still paid emitFor's three-BCD_TO_INT16 entry decode on every
+  // entry for a fast path it could never take (a measured +12.7%..+18%). It is
+  // a static disqualifier now, so no slots and no entry decode are emitted at
+  // all.
+
+  it('condition 5: GOSUB in the loop body disqualifies, even with its target outside the span', () => {
     const { result, forStmts } = analyze('10 FOR K=1 TO 10\n20 GOSUB 100\n30 NEXT K\n40 END\n100 PRINT "hi"\n110 RETURN\n');
+    expect(result.get(forStmts[0])).toBe(false);
+  });
+
+  it('condition 5: ON...GOSUB in the loop body disqualifies the same way', () => {
+    const { result, forStmts } = analyze('10 FOR K=1 TO 10\n20 ON 1 GOSUB 100\n30 NEXT K\n40 END\n100 PRINT "hi"\n110 RETURN\n');
+    expect(result.get(forStmts[0])).toBe(false);
+  });
+
+  it('condition 5: a GOSUB inside a NESTED loop disqualifies the inner AND the outer loop', () => {
+    // walkProgram appends every visited statement to every currently-open
+    // loop's body, so the GOSUB on line 30 is in J's body and in K's.
+    const { result, forStmts } = analyze(
+      '10 FOR K=1 TO 10\n20 FOR J=1 TO 5\n30 GOSUB 200\n40 NEXT J\n50 NEXT K\n60 END\n'
+      + '200 S=1\n210 RETURN\n',
+    );
+    const outer = forStmts.find(f => f.variable.name === 'K')!;
+    const inner = forStmts.find(f => f.variable.name === 'J')!;
+    expect(result.get(outer)).toBe(false);
+    expect(result.get(inner)).toBe(false);
+  });
+
+  it('condition 5: a GOSUB inside an IF branch in the body still counts as in-body', () => {
+    const { result, forStmts } = analyze(
+      '10 FOR K=1 TO 10\n20 IF S=3 THEN GOSUB 100\n30 NEXT K\n40 END\n100 S=0\n110 RETURN\n',
+    );
+    expect(result.get(forStmts[0])).toBe(false);
+  });
+
+  it('condition 5: a GOSUB OUTSIDE every loop body does not disqualify anything', () => {
+    // The complement of condition 5, and also a guard against condition 4'
+    // (hasExternalJumpIntoSpan) over-firing: the GOSUB's target sits well
+    // clear of the loop's [FOR, NEXT] span, and the call site is outside it.
+    const { result, forStmts } = analyze(
+      '10 GOSUB 100\n20 FOR K=1 TO 10\n30 S=S+1\n40 NEXT K\n50 GOSUB 100\n60 END\n'
+      + '100 S=0\n110 RETURN\n',
+    );
     expect(result.get(forStmts[0])).toBe(true);
   });
 
-  it('condition 4: ON...GOSUB out of the loop body does NOT disqualify (it returns, same as plain GOSUB)', () => {
-    const { result, forStmts } = analyze('10 FOR K=1 TO 10\n20 ON 1 GOSUB 100\n30 NEXT K\n40 END\n100 PRINT "hi"\n110 RETURN\n');
+  // -- condition 6: a literal-bound loop too short to amortize the entry cost -
+
+  it('condition 6: a 1-iteration literal-bound loop is disqualified (entry decode never amortizes)', () => {
+    const { result, forStmts } = analyze('10 FOR K=1 TO 1\n20 S=S+1\n30 NEXT K\n40 END\n');
+    expect(result.get(forStmts[0])).toBe(false);
+  });
+
+  it('condition 6: a 2-iteration literal-bound loop is disqualified (measured +2.4% cycles)', () => {
+    const { result, forStmts } = analyze('10 FOR K=1 TO 2\n20 S=S+1\n30 NEXT K\n40 END\n');
+    expect(result.get(forStmts[0])).toBe(false);
+  });
+
+  it('condition 6: 3 iterations is the break-even point and stays eligible', () => {
+    const { result, forStmts } = analyze('10 FOR K=1 TO 3\n20 S=S+1\n30 NEXT K\n40 END\n');
+    expect(result.get(forStmts[0])).toBe(true);
+  });
+
+  it('condition 6: STEP is taken into account (1 TO 10 STEP 5 is only 2 iterations)', () => {
+    const { result, forStmts } = analyze('10 FOR K=1 TO 10 STEP 5\n20 S=S+1\n30 NEXT K\n40 END\n');
+    expect(result.get(forStmts[0])).toBe(false);
+  });
+
+  it('condition 6: STEP 4 over 1 TO 10 is 3 iterations and stays eligible', () => {
+    const { result, forStmts } = analyze('10 FOR K=1 TO 10 STEP 4\n20 S=S+1\n30 NEXT K\n40 END\n');
+    expect(result.get(forStmts[0])).toBe(true);
+  });
+
+  it('condition 6: a zero-trip literal-bound loop (TO below FROM) is disqualified too', () => {
+    const { result, forStmts } = analyze('10 FOR K=5 TO 1\n20 S=S+1\n30 NEXT K\n40 END\n');
+    expect(result.get(forStmts[0])).toBe(false);
+  });
+
+  it('condition 6: does not apply when any bound is a runtime expression', () => {
+    // N is unknown at compile time, so the trip count is unknowable and the
+    // loop's eligibility is decided by the other conditions -- even though it
+    // may well run only once.
+    const { result, forStmts } = analyze('10 N=1\n20 FOR K=1 TO N\n30 S=S+1\n40 NEXT K\n50 END\n');
     expect(result.get(forStmts[0])).toBe(true);
   });
 

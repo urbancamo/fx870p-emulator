@@ -65,6 +65,10 @@ const ROM = {
   INT:       '&H0000',  // TODO: ROM address for INT
   FIX:       '&H0000',  // TODO: ROM address for FIX
   SGN:       '&H0000',  // TODO: ROM address for SGN
+  // WARNING when wiring RND (or any other SIDE-EFFECTING builtin) up: the
+  // loop-shadow fast path re-evaluates both operands on its fallback, so
+  // `IF K > RND(1)` would consume TWO values from the random sequence per
+  // evaluation instead of one. See emitShadowNativeOperands' doc comment.
   RND:       '&H0000',  // TODO: ROM address for RND
   LEN:       '&H0000',  // TODO: ROM address for LEN
   VAL:       '&H0000',  // TODO: ROM address for VAL
@@ -143,13 +147,12 @@ interface ShadowSlots {
  *
  * Shadowing moves the live counter out of VAR_<v> and into an int16 slot, so
  * VAR_<v> is deliberately STALE between the FOR and the NEXT and correct again
- * only at the exit. Three separate things can make that visible (two of them
- * fixed here, at emission time; the third fixed earlier, by refusing to
- * shadow the loop at all) — hence two flags PLUS a static pre-condition that
- * never lets a loop reach this interface in the first place for the third
- * case. The two flags are answered by OBSERVING WHAT WAS ACTUALLY EMITTED
- * rather than by a second static scan, so no expression context or statement
- * shape can be overlooked.
+ * only at the exit. Three separate things can make that visible. Exactly ONE
+ * of them is fixed here, at emission time — hence the single `bcdCounterRead`
+ * flag; the other two are prevented STATICALLY, by refusing to shadow such a
+ * loop at all, so they never reach this interface. The flag is answered by
+ * OBSERVING WHAT WAS ACTUALLY EMITTED rather than by a second static scan, so
+ * no expression context or statement shape can be overlooked.
  *
  * ── `bcdCounterRead` — VAR_<v> must be CURRENT throughout the body ─────────
  *
@@ -182,33 +185,34 @@ interface ShadowSlots {
  * equals the current iteration's counter at every point in the body —
  * including at a `RETURN`, a `GOTO` out, or any `RESUME` form.
  *
- * Note what this does NOT cover: a `GOTO` back INTO the span from outside it,
- * which can resume a live iteration with SHADOW_ACTIVE still 1 after code
- * outside the tracked body wrote the counter. See the next paragraph.
+ * Note what this does NOT cover: a write to the counter arriving from code
+ * this pass never watched — either from a subroutine, or from outside the span
+ * entirely. See the next two paragraphs; both are prevented statically.
  *
- * ── `unshadowable` — the int16 slots cannot be trusted at all ──────────────
+ * ── Second hazard: a GOSUB / ON..GOSUB in the body ─────────────────────────
  *
- * Set by a GOSUB / ON..GOSUB in the body. A read-sync is NOT enough here: the
- * subroutine's code is emitted outside the loop and may WRITE the counter
- * (`K=99`). That write lands in VAR_<v>, while NEXT's native tail keeps
- * stepping the int16 slot the subroutine never touched — so the write is
- * silently discarded, where before shadowing it took effect immediately.
+ * A read-sync is NOT enough there: the subroutine's code is emitted outside
+ * the loop and may WRITE the counter (`K=99`). That write lands in VAR_<v>,
+ * while NEXT's native tail would keep stepping the int16 slot the subroutine
+ * never touched — so the write would be silently discarded, where before
+ * shadowing it took effect immediately.
  *
- * The remedy has to be stronger: the loop leaves the fast path entirely. NEXT
- * emits only the unmodified BCD tail, and emitFor's runtime activation
- * constant is back-patched to 0 so SHADOW_ACTIVE agrees — the slots are never
- * live for this loop, which keeps anything that consults that flag (including
- * Task 5's in-body operand resolution) on the BCD path too.
+ * There is no flag for this because there is no OpenShadowLoop for a flag to
+ * be ON: a loop with a GOSUB or ON..GOSUB anywhere in its body (nested loops
+ * included) is disqualified by the static scan — see
+ * loop-shadow-eligibility.ts's condition 5. It therefore never allocates shadow
+ * slots and never emits emitFor's entry decode, which also means it never pays
+ * for machinery it could not have used.
  *
- * ── The third hazard: control lands back INSIDE the span from outside it ───
+ * ── Third hazard: control lands back INSIDE the span from outside it ───────
  *
  * A GOTO can jump out, run arbitrary other code (including writing the
  * counter, e.g. `K=8`), and then jump BACK IN via a second GOTO whose target
  * sits inside this loop's `[FOR, NEXT]` span — e.g. landing directly on the
  * NEXT line itself. If that happens, this loop's SHADOW_ACTIVE is still 1
  * and the native tail just resumes stepping the int16 slot the intervening
- * write never touched — exactly the `unshadowable` hazard above, reached a
- * different way.
+ * write never touched — exactly the second hazard above, reached a different
+ * way.
  *
  * A GOSUB, ON...GOSUB, or `RESUME <line>` can ALSO cause this, which is easy
  * to get wrong: "a call always returns to its own call site" sounds like it
@@ -220,14 +224,11 @@ interface ShadowSlots {
  * loop exactly as it would after a GOTO; it just arrived via a call
  * instruction instead of a jump instruction.
  *
- * Either way, NEITHER flag on this interface can fix it after the fact:
- * `bcdCounterRead`'s sync only runs at NEXT, which the re-entering
- * jump/call may skip straight past, and `unshadowable` is never set because
- * the write happened outside any body this pass was ever watching.
+ * `bcdCounterRead` cannot fix it after the fact either: its sync only runs at
+ * NEXT, which the re-entering jump/call may skip straight past.
  *
- * There is no OpenShadowLoop flag for this because there is no OpenShadowLoop
- * for it to be a flag ON: the fix is a STATIC pre-condition, checked before a
- * loop is ever admitted to shadowing at all. See
+ * So, like the second hazard, this one is a STATIC pre-condition, checked
+ * before a loop is ever admitted to shadowing at all. See
  * loop-shadow-eligibility.ts's `hasExternalJumpIntoSpan` — a loop with any
  * GOTO/ON...GOTO/GOSUB/ON...GOSUB/`RESUME <line>` elsewhere in the program
  * whose target lands inside this loop's span, from a source line outside it,
@@ -238,22 +239,12 @@ interface ShadowSlots {
  * `bcdCounterRead`'s in-body-read half is self-retiring: Task 5 serves such a
  * reference from the slot instead of emitting a BCD load, so the flag stops
  * being set for exactly the loops Task 5 learns to handle. Its `RETURN`/
- * `GOTO` half and `unshadowable` are permanent — they are about control flow
- * and about writes this pass cannot see, neither of which Task 5 changes.
+ * `GOTO` half is permanent — it is about control flow, which Task 5 does not
+ * change.
  */
 interface OpenShadowLoop extends ShadowSlots {
   varName: string;
   bcdCounterRead: boolean;
-  unshadowable: boolean;
-  /**
-   * Index in `this.code` of emitFor's `ld $9,&H01` activation constant, so
-   * `unshadowOpenLoops` can back-patch it to `&H00`. A single-pass compiler
-   * back-patching its own already-emitted line, exactly as label fixups do —
-   * the decision ("does this body GOSUB?") is only knowable after the line has
-   * been emitted, and it is a constant, not an address, so nothing else needs
-   * revisiting.
-   */
-  activeConstIndex: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -521,7 +512,10 @@ class CodeGen {
         break;
 
       case 'gosub':
-        this.unshadowOpenLoops();
+        // No shadow bookkeeping here: a GOSUB anywhere in a loop's body is a
+        // STATIC disqualifier (loop-shadow-eligibility.ts condition 5), so no
+        // enclosing loop that could be harmed by the subroutine writing its
+        // counter is ever on `shadowStack` at this point.
         this.code.push({ mnemonic: 'cal', operands: `L${stmt.target}` });
         break;
 
@@ -1158,16 +1152,12 @@ class CodeGen {
    * can reference an OUTER shadowed loop's counter from inside an inner
    * (possibly disqualified) loop. Same traversal `emitVariableLoad`'s
    * bcdCounterRead hook uses.
-   *
-   * A loop already marked `unshadowable` is skipped: emitFor's activation
-   * constant has been back-patched to 0, so its SHADOW_ACTIVE is 0 at run time
-   * and the native branch would be unreachable code.
    */
   private shadowCounterOperand(expr: Expression): OpenShadowLoop | undefined {
     if (expr.type !== 'variable' || expr.ref.isString || expr.ref.indices) return undefined;
     for (let i = this.shadowStack.length - 1; i >= 0; i--) {
       const open = this.shadowStack[i]!;
-      if (open.varName === expr.ref.name && !open.unshadowable) return open;
+      if (open.varName === expr.ref.name) return open;
     }
     return undefined;
   }
@@ -1237,6 +1227,15 @@ class CodeGen {
    * int16. `$10-$18` is left holding that operand's BCD on the failure path,
    * but nothing needs it — `failLabel` recovers the counter from its slot and
    * falls into the unchanged BCD path, which re-evaluates both operands.
+   *
+   * WARNING — that re-evaluation is only harmless while every builtin is
+   * side-effect-FREE. `RND` is the one that is not, and it is unwired today
+   * (its ROM address is still `&H0000`, see the ROM table at the top of this
+   * file). Whoever wires RND up — or adds any other side-effecting builtin —
+   * must handle this: on the fallback path, `IF K > RND(1)` would draw TWO
+   * values from the random sequence per evaluation instead of one. The fix
+   * would be to spill the already-evaluated operand rather than recompute it,
+   * or to keep expressions containing such a builtin off the fast path.
    */
   private emitShadowNativeOperands(
     shadow: OpenShadowLoop,
@@ -2076,9 +2075,6 @@ class CodeGen {
       // $9 is dead here (the branch above was its last reader) and sits outside
       // the $2/$3 address pair, so it survives emitShadowStore8's own `ldw $2`.
       this.code.push({ mnemonic: 'ld', operands: '$9,&H01', comment: 'all three decoded -> shadowing active' });
-      // Remembered so a GOSUB later in the body can back-patch this constant
-      // to 0 -- see OpenShadowLoop.activeConstIndex.
-      const activeConstIndex = this.code.length - 1;
       this.code.push({ mnemonic: 'jr', operands: doneLabel });
       this.code.push({ label: offLabel, mnemonic: 'ld', operands: '$9,&H00', comment: 'a decode failed -> stay on the BCD path' });
       this.code.push({ label: doneLabel });
@@ -2087,8 +2083,6 @@ class CodeGen {
       this.shadowStack.push({
         varName, ...slots,
         bcdCounterRead: false,
-        unshadowable: false,
-        activeConstIndex,
       });
       this.shadowedLoopsFound.push({ varName, line: this.currentLine });
     }
@@ -2142,31 +2136,6 @@ class CodeGen {
    */
   private markShadowCounterMustBeCurrent(): void {
     for (const open of this.shadowStack) open.bcdCounterRead = true;
-  }
-
-  /**
-   * Take every currently-open shadowed loop off the fast path completely: its
-   * NEXT emits only the unmodified BCD tail, and its runtime SHADOW_ACTIVE
-   * flag is forced to 0 so nothing else trusts the int16 slots either.
-   *
-   * Called for a GOSUB / ON..GOSUB, whose target is emitted outside the loop
-   * and may WRITE the counter — a write the native tail would silently
-   * discard, because it steps the shadow slot the subroutine never touched.
-   * See OpenShadowLoop for why a read-sync cannot fix that.
-   */
-  private unshadowOpenLoops(): void {
-    for (const open of this.shadowStack) {
-      open.unshadowable = true;
-      // Redundant once the BCD tail is what runs (it stores VAR_<v> every
-      // iteration anyway), but kept truthful so the flag never claims the
-      // counter's BCD form is unobserved when it is.
-      open.bcdCounterRead = true;
-      const activation = this.code[open.activeConstIndex];
-      if (activation) {
-        activation.operands = '$9,&H00';
-        activation.comment = 'forced off: a GOSUB in this loop\'s body may write the counter';
-      }
-    }
   }
 
   // -------------------------------------------------------------------------
@@ -2368,13 +2337,8 @@ class CodeGen {
       // path a non-eligible loop takes (no shadow entry -> nothing emitted
       // here at all) and the runtime fallback a shadowed loop takes when a
       // bound didn't decode, so it must stay a straight copy of the original.
-      //
-      // `unshadowable` (a GOSUB in the body) means no native tail at all: the
-      // subroutine may have written the counter straight into VAR_<v>, which
-      // only the BCD tail reads. emitFor's activation constant has already
-      // been back-patched to 0 to match, so SHADOW_ACTIVE agrees at run time.
       const shadow = this.popShadowLoop(loop.varName);
-      if (shadow && !shadow.unshadowable) this.emitShadowedNextTail(loop, loopVar, shadow);
+      if (shadow) this.emitShadowedNextTail(loop, loopVar, shadow);
 
       // Increment: counter = counter + step
       this.code.push({ comment: `NEXT ${varName}` });
@@ -2648,13 +2612,13 @@ class CodeGen {
 
   private emitOnBranch(stmt: OnBranchStatement): void {
     // ON..GOSUB, like plain GOSUB, runs code emitted outside the loop body:
-    // this pass can see neither what it reads nor what it WRITES, so any open
-    // shadowed loop drops off the fast path entirely (unshadowOpenLoops).
+    // this pass can see neither what it reads nor what it WRITES. That is a
+    // STATIC disqualifier (loop-shadow-eligibility.ts condition 5), so no
+    // enclosing loop is on `shadowStack` here and nothing needs doing.
     // ON..GOTO, like plain GOTO, only ever LEAVES the loop -- any target still
     // runs as part of the same program, so a read-sync is enough: force the
     // counter's BCD form to stay current every iteration instead
     // (markShadowCounterMustBeCurrent), same remedy as `case 'goto':` above.
-    if (stmt.kind === 'gosub') this.unshadowOpenLoops();
     if (stmt.kind === 'goto') this.markShadowCounterMustBeCurrent();
     const skipLabel = this.uniqueLabel('ON_END');
     this.code.push({ comment: `ON ... ${stmt.kind.toUpperCase()} ${stmt.targets.map(t => t.line).join(',')}` });
